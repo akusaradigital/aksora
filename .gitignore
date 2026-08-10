@@ -1,0 +1,95 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files - .env.example boleh di-commit sebagai template
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# editor
+.vscode/
+.idea/
+
+# local database
+/prisma/*.db
+/prisma/*.db-shm
+/prisma/*.db-wal
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+
+# playwright / e2e local testing artifacts
+/.playwright-cli/
+/playwright-report/
+/test-results/
+/playwright/.cache/
+
+# local uploads
+/public/uploads/
+
+# local logs
+*.log
+logs/
+
+# scratch and test scripts
+/scratch/
+/test-*.js
+/test-*.ts
+
+# local root-level databases
+*.db
+*.db-shm
+*.db-wal
+
+# eslint local config
+eslint.json
+
+# claude
+/.claude/
+/.claude/settings.local.json
+
+# generated artifacts
+vitest-results.json
+missing-tests.txt
+
+# reference assets
+logres.gif
+
+# Database backups
+/backups

@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --bg-app: #fafbfc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-header: #ffffff;
+  --bg-input: #f8fafc;
+  --bg-table-head: #f8fafc;
+  --bg-table-row-alt: #fafbfc;
+  --bg-module-header: #ffffff;
+  --border-color: #e5e7eb;
+  --border-sidebar: #e5e7eb;
+  --border-module-header: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-label: #6b7280;
+  --accent-primary: #2563eb;
+  --accent-secondary: #3b82f6;
+  /* Layout */
+  --sidebar-expanded: 240px;
+  --sidebar-collapsed: 64px;
+  /* Z-index scale */
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-sidebar: 40;
+  --z-modal: 50;
+  --z-notification: 300;
+  --z-tooltip: 9999;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Inter", monospace;
+  --font-serif: "Inter", serif;
+}
+
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--foreground);
+  font-family: "Inter", sans-serif;
+}
+
+/* ── Utility classes (replacing old glass/mesh) ──────────────── */
+
+.mesh-gradient {
+  background: var(--bg-app);
+}
+
+.glass-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+}
+
+.premium-button {
+  background: var(--accent-primary);
+  transition: all 150ms ease;
+}
+
+.premium-button:hover {
+  background: #1d4ed8;
+}
+
+.premium-button:active {
+  background: #1e40af;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background 0.15s;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+}
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+aside ::-webkit-scrollbar {
+  width: 0px;
+}
+aside {
+  scrollbar-width: none;
+}
+
+/* ── Base element resets ─────────────────────────────────────── */
+
+a,
+button,
+input,
+textarea,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+/* ── Focus ring override ──────────────────────────────────────── */
+
+button:focus,
+button:focus-visible,
+button:focus-within,
+a:focus,
+a:focus-visible,
+a:focus-within,
+label:focus,
+label:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible,
+[tabindex]:focus,
+[tabindex]:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not(.border-none):focus,
+input:not([type="checkbox"]):not([type="radio"]):not(.border-none):focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: none !important;
+}
+
+input.border-none:focus,
+input.border-none:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ── Print ────────────────────────────────────────────────────── */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  nav,
+  aside,
+  button,
+  .no-print,
+  [aria-label="Export Excel"],
+  [aria-label="Download Template"],
+  [aria-label="Import Excel"],
+  .sidebar-toggle {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  section {
+    break-inside: avoid;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+/* ── Animations (kept minimal) ────────────────────────────────── */
+
+@keyframes show {
+  0%, 49.99% { opacity: 0; z-index: 1; }
+  50%, 100% { opacity: 1; z-index: 5; }
+}
+
+.animate-show {
+  animation: show 0.7s;
+}
+
+@keyframes stat-value-pop {
+  0% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes attention-slide-in {
+  0% { transform: translateY(-8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes activity-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-stat-pop {
+  animation: stat-value-pop 200ms ease-out;
+}
+
+.animate-attention-slide-in {
+  animation: attention-slide-in 150ms ease-out;
+}
+
+.animate-activity-fade-in {
+  animation: activity-fade-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stat-pop,
+  .animate-attention-slide-in,
+  .animate-activity-fade-in {
+    animation: none;
+  }
+}
+
+/* ── Square Spinner ───────────────────────────────────────────── */
+
+@keyframes square-spin {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-square-spin {
+  animation: square-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
