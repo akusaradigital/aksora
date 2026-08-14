@@ -30,11 +30,11 @@ vi.mock("@/lib/roles", () => ({
 }));
 
 vi.mock("@phosphor-icons/react/dist/ssr", () => {
-  function IconStub({ name, ...props }: { name: string } & Record<string, unknown>) {
+      function IconStub({ name, ...props }: { name: string } & Record<string, unknown>) {
     return <svg data-testid={`icon-${name.toLowerCase()}`} {...props} />;
   }
   return Object.fromEntries(
-    ["Users", "Gear", "CaretRight", "Info", "Lock", "Bell"].map((name) => [
+    ["Users", "Gear", "CaretRight", "Info", "Lock", "Bell", "Buildings"].map((name) => [
       name,
       (props: Record<string, unknown>) => <IconStub name={name} {...props} />,
     ]),

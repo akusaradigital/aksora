@@ -136,7 +136,7 @@ describe("auth-core", () => {
 
     expect(result).toMatchObject({ id: 1, email: "user@example.com" });
     expect(mocks.db.get).toHaveBeenCalledWith(
-      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+      'SELECT "id", "name", "email", "role", "company", "password", "mfaEnabled", "mfaSecret" FROM "User" WHERE "email" = ?',
       ["user@example.com"],
     );
     expect(mocks.db.run).toHaveBeenCalledWith(

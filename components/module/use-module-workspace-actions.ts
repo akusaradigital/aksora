@@ -41,6 +41,7 @@ type ActionArgs = {
   setPendingDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setKanbanRows: Dispatch<SetStateAction<TableRow[]>>;
+  setImportErrors: Dispatch<SetStateAction<{ row: number; message: string }[] | null>>;
 };
 
 export function useModuleWorkspaceActions(args: ActionArgs) {
@@ -75,6 +76,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setDeleteId,
     setRows,
     setKanbanRows,
+    setImportErrors,
     router,
   } = args;
 
@@ -108,6 +110,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     setPendingDeleteId,
     setDeleteId,
     setKanbanRows,
+    setImportErrors,
   });
 
   useEffect(() => {

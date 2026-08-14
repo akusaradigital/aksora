@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Key,
   Plus,
@@ -223,7 +224,7 @@ export function ApiKeysClient() {
             </div>
             <h4 className="mt-3 text-sm font-bold text-slate-800">No API Keys Created</h4>
             <p className="mt-1 max-w-sm text-xs text-slate-500">
-              You haven't generated any API keys yet. Click "Create API Key" above to generate your first key.
+              You have not generated any API keys yet. Click the Create API Key button above to generate your first key.
             </p>
           </div>
         ) : (
@@ -302,12 +303,12 @@ export function ApiKeysClient() {
             <Code size={20} weight="bold" className="text-blue-600" />
             <h3 className="text-sm font-bold">API Usage & Authentication</h3>
           </div>
-          <a
+          <Link
             href="/docs/api"
             className="text-xs font-semibold text-blue-600 hover:text-blue-800 shrink-0"
           >
             Read full API docs &rarr;
-          </a>
+          </Link>
         </div>
         <p className="text-xs leading-relaxed text-slate-600">
           Authenticate your requests by sending your API key in the <code className="bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-800">Authorization</code> header using the <code className="bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-800">Bearer</code> scheme.

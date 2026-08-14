@@ -102,8 +102,8 @@ export function authEnabled() {
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string }>(
-      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null }>(
+      'SELECT "id", "name", "email", "role", "company", "password", "mfaEnabled", "mfaSecret" FROM "User" WHERE "email" = ?',
       [email]
     );
     if (!user) return null;
@@ -125,6 +125,8 @@ export async function validateCredentials(email: string, password: string) {
       email: user.email,
       role: user.role,
       company: user.company,
+      mfaEnabled: Boolean(user.mfaEnabled),
+      mfaSecret: user.mfaSecret || null,
     };
   } catch (err) {
     console.error("Auth DB error:", err);
@@ -151,6 +153,36 @@ export async function registerUser(email: string, password: string, name?: strin
       return { error: "Email address is already registered. Please use a different email." };
     }
     return { error: "Registration failed. Please try again later." };
+  }
+}
+
+export async function createTempMfaToken(userId: number) {
+  const { secret } = getAuthConfig();
+  if (!secret) throw new Error("AUTH_SECRET is required.");
+  
+  const payload = toBase64UrlBytes(JSON.stringify({
+    userId,
+    purpose: "mfa_pending",
+    expiresAt: Date.now() + 300000, // 5 minutes
+  }));
+  const signature = await sign(payload, secret);
+  return `${payload}.${signature}`;
+}
+
+export async function verifyTempMfaToken(token: string | undefined | null) {
+  const { secret } = getAuthConfig();
+  if (!token || !secret) return null;
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return null;
+  if ((await sign(payload, secret)) !== signature) return null;
+
+  try {
+    const data = JSON.parse(fromBase64UrlBytes(payload)) as { userId?: number; purpose?: string; expiresAt?: number };
+    if (data.purpose !== "mfa_pending" || !data.userId || !data.expiresAt) return null;
+    if (Date.now() > data.expiresAt) return null; // Token expired
+    return data.userId;
+  } catch {
+    return null;
   }
 }
 

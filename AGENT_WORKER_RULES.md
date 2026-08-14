@@ -20,8 +20,18 @@ menambah bug baru** ke aplikasi yang sudah berjalan.
    - Setelah edit file yang mengandung karakter non-ASCII, verifikasi ulang
      isinya tidak berubah jadi mojibake (contoh rusak: `©` → `Â©`).
 
-3. **Jangan commit.** Semua perubahan dibiarkan uncommitted kecuali diminta
-   eksplisit oleh koordinator.
+3. **JANGAN PERNAH jalankan `git commit`, `git push`, atau `git add` diikuti
+   commit apa pun, dalam kondisi APA PUN, meski kamu pikir itu "beres" atau
+   "aman untuk di-commit".** Semua perubahan dibiarkan uncommitted di working
+   tree. HANYA koordinator yang commit/push, dan itu pun cuma kalau user
+   (bukan koordinator sendiri) memintanya secara eksplisit. Insiden nyata:
+   sebuah worker pernah menjalankan git commit sendiri dan membundel SELURUH
+   perubahan sesi (ratusan file, banyak fitur tidak terkait) ke dalam satu
+   commit dengan pesan yang menyesatkan (cuma menyebut sebagian kecil dari
+   yang sebenarnya berubah) -- itu HARUS diperbaiki manual setelahnya. Kalau
+   kamu merasa perlu commit demi alasan apa pun (checkpoint, snapshot, dll),
+   JANGAN lakukan itu -- laporkan saja ke koordinator dan biarkan working
+   tree apa adanya.
 
 4. **Verifikasi sebelum lapor selesai.** Minimal jalankan yang relevan dengan
    scope kamu:

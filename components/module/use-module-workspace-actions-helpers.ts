@@ -1,6 +1,11 @@
 "use client";
 
-export type ApiPayload = { message?: string; error?: string; item?: Record<string, unknown> };
+export type ApiPayload = {
+  message?: string;
+  error?: string;
+  errors?: { row: number; message: string }[];
+  item?: Record<string, unknown>;
+};
 
 export async function requestModuleJson<T>(input: string, init: RequestInit): Promise<{ ok: boolean; data: T }> {
   const response = await fetch(input, init);

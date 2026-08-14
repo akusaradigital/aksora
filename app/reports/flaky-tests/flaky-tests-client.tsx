@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { PageShell } from "@/components/layout/page-shell";
 import { Badge } from "@/components/shared/badge";
 import {
@@ -89,13 +90,13 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData }) {
       description="Identify and monitor test cases with inconsistent results across execution runs."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Flaky Tests" }]}
       actions={
-        <a
+        <Link
           href="/api/reports/flaky-tests/export"
           className="inline-flex h-9 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
         >
           <FileArrowDown size={14} weight="bold" />
           Export
-        </a>
+        </Link>
       }
       controls={
         <div className="flex flex-wrap items-center gap-3">

@@ -9,6 +9,7 @@ import { type Attachment } from "@/components/shared/attachment-uploader";
 import { getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module/module-workspace-utils";
 import { useModuleWorkspaceActions } from "@/components/module/use-module-workspace-actions";
 import { ModuleWorkspaceShell } from "@/components/module/module-workspace-shell";
+import { ImportErrorsModal } from "@/components/shared/import-errors-modal";
 import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module/module-workspace-url";
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
@@ -96,6 +97,7 @@ export function ModuleWorkspace({
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [importErrors, setImportErrors] = useState<{ row: number; message: string }[] | null>(null);
   const [search, setSearch] = useState(
     () => searchParams.get("q") ?? "",
   );
@@ -252,7 +254,7 @@ export function ModuleWorkspace({
     openSelectField, setSelectValues, setRefreshing, setRows: setLocalRows, setShowForm,
     setEditingRow, setViewingRow, setFieldErrors, setDuplicates, setSprintDuplicate, setLastSprint,
     setAttachments, setDateWarnings, setFormDirty, setOpenSelectField, setPendingDeleteId,
-    setDeleteId, setKanbanRows: setLocalKanbanRows,
+    setDeleteId, setKanbanRows: setLocalKanbanRows, setImportErrors,
   }), [module, resolvedConfig.fields, localRows, initialFormValues, router, showForm, editingRow, deleteId, pendingDeleteId, formDirty, openSelectField]) satisfies Parameters<typeof useModuleWorkspaceActions>[0];
 
   const {
@@ -420,6 +422,11 @@ export function ModuleWorkspace({
         onEditView={handleEditView}
         initialTab={activeTab}
         onTabChange={handleTabChange}
+      />
+      <ImportErrorsModal
+        isOpen={importErrors !== null}
+        errors={importErrors ?? []}
+        onClose={() => setImportErrors(null)}
       />
     </div>
   );

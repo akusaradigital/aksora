@@ -61,7 +61,7 @@ export default function LandingPage() {
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
                 Aksora keeps the QA work your team uses every day close together,
-                without asking the landing page to do the app's job.
+                without asking the landing page to do the app&apos;s job.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">

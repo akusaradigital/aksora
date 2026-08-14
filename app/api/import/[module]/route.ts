@@ -64,7 +64,7 @@ export async function POST(
   );
 
   const rows: Record<string, unknown>[] = [];
-  const errors: string[] = [];
+  const errors: { row: number; message: string }[] = [];
 
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
@@ -81,9 +81,10 @@ export async function POST(
 
     const parsed = safeParseModuleEntry(moduleKey, entry);
     if (!parsed.success) {
-      errors.push(
-        `Row ${rowNumber}: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`,
-      );
+      errors.push({
+        row: rowNumber,
+        message: parsed.error.issues.map((issue) => issue.message).join(", "),
+      });
       return;
     }
 
@@ -91,7 +92,13 @@ export async function POST(
   });
 
   if (errors.length > 0) {
-    return NextResponse.json({ error: errors.join(" | ") }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: errors.map((e) => `Row ${e.row}: ${e.message}`).join(" | "),
+        errors,
+      },
+      { status: 400 },
+    );
   }
 
   await db.transaction(async () => {

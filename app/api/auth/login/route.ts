@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authEnabled, createSessionToken, validateCredentials, sessionCookieName } from "@/lib/auth";
+import { authEnabled, createSessionToken, validateCredentials, sessionCookieName, createTempMfaToken } from "@/lib/auth";
 import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit } from "@/lib/rate-limit";
 
 function getClientIp(request: NextRequest): string {
@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
 
     // Success - clear rate limit
     await clearRateLimit(key);
+
+    if (user.mfaEnabled) {
+      const tempToken = await createTempMfaToken(user.id);
+      return NextResponse.json({
+        requiresMfa: true,
+        tempToken,
+      });
+    }
 
     const token = await createSessionToken(email, user);
     const response = NextResponse.json({ ok: true, role: user.role, company: user.company });

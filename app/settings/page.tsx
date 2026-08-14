@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell } from"@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -32,6 +32,15 @@ export default async function SettingsPage() {
           icon: Lock,
           color: "text-emerald-600",
           bg: "bg-emerald-50",
+          disabled: false,
+        },
+        {
+          title: "Workspace",
+          description: "View workspace details, plan subscription, and user limit metrics.",
+          href: "/settings/workspace",
+          icon: Buildings,
+          color: "text-blue-600",
+          bg: "bg-blue-50",
           disabled: false,
         },
  {
