@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
     transaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
   },
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn((role: string | null | undefined, company: string | null | undefined) => {
+  isPlatformSuperAdmin: vi.fn((role: string | null | undefined, company: string | null | undefined) => {
     const normalizedRole = String(role ?? "").trim().toLowerCase();
     return normalizedRole === "admin" && !String(company ?? "").trim();
   }),
@@ -26,7 +26,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
   hashPassword: mocks.hashPassword,
 }));
 
@@ -828,7 +828,7 @@ describe("module row queries", () => {
     const rows = await getModuleRows("deployments");
 
     expect(rows[0]).toMatchObject({
-      notes: "1. Penyempurnaan Visual & UI: Perbaikan spasi agar lebih proporsional.",
+      notes: "1. Visual & UI Improvements: Perbaikan spasi to keep the layout balanced.",
     });
   });
 
@@ -887,4 +887,3 @@ describe("module row queries", () => {
     ]);
   });
 });
-

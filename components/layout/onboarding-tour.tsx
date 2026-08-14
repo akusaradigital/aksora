@@ -96,39 +96,39 @@ const tourSteps: TourStep[] = [
 
 export function OnboardingTour() {
   const [visible, setVisible] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    try {
+      return Number(window.localStorage.getItem(ONBOARDING_STEP_KEY)) || 0;
+    } catch {
+      return 0;
+    }
+  });
   const [completed, setCompleted] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [shouldShowTour] = useState(() => {
+    try {
+      const isDone = window.localStorage.getItem(ONBOARDING_KEY) === "true";
+      const isDismissed = window.localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
+      return !(isDone || isDismissed);
+    } catch {
+      return false;
+    }
+  });
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    setMounted(true);
-    try {
-      const isDone = window.localStorage.getItem(ONBOARDING_KEY) === "true";
-      const isDismissed = window.localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
-      if (isDone || isDismissed) {
-        setVisible(false);
-        return;
-      }
-      const savedStep = window.localStorage.getItem(ONBOARDING_STEP_KEY);
-      if (savedStep) setCurrentStep(Number(savedStep) || 0);
-      // Show tour after a short delay to let the page settle
-      const timer = setTimeout(() => setVisible(true), 1500);
-      return () => clearTimeout(timer);
-    } catch {
-      // ignore
-    }
-  }, []);
+    if (!shouldShowTour) return;
+    const timer = setTimeout(() => setVisible(true), 1500);
+    return () => clearTimeout(timer);
+  }, [shouldShowTour]);
 
   useEffect(() => {
-    if (!mounted) return;
     try {
       window.localStorage.setItem(ONBOARDING_STEP_KEY, String(currentStep));
     } catch {
       // ignore
     }
-  }, [currentStep, mounted]);
+  }, [currentStep]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
@@ -173,7 +173,7 @@ export function OnboardingTour() {
     }
   }, [currentStep, pathname, router]);
 
-  if (!mounted || !visible) return null;
+  if (!visible) return null;
 
   const step = tourSteps[currentStep];
   const progress = ((currentStep + 1) / tourSteps.length) * 100;
@@ -280,17 +280,15 @@ export function OnboardingTour() {
  * Useful for conditionally showing help hints.
  */
 export function useOnboardingStatus() {
-  const [isCompleted, setIsCompleted] = useState(true);
-
-  useEffect(() => {
+  const [isCompleted] = useState(() => {
     try {
       const done = window.localStorage.getItem(ONBOARDING_KEY) === "true";
       const dismissed = window.localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
-      setIsCompleted(done || dismissed);
+      return done || dismissed;
     } catch {
-      setIsCompleted(true);
+      return true;
     }
-  }, []);
+  });
 
   return { isCompleted };
 }

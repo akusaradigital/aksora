@@ -75,6 +75,8 @@ CREATE INDEX IF NOT EXISTS "idx_invite_company" ON "Invite"("company");
 CREATE INDEX IF NOT EXISTS "idx_invite_token" ON "Invite"("token");
 CREATE INDEX IF NOT EXISTS "idx_invite_company_status" ON "Invite"("company", "status");
 CREATE INDEX IF NOT EXISTS "idx_user_company_active_created" ON "User"("company", "createdAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_apikey_keyhash" ON "ApiKey"("keyHash");
+CREATE INDEX IF NOT EXISTS "idx_apikey_user_created" ON "ApiKey"("userId", "createdAt" DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_assignee_userId" ON "Assignee"("userId") WHERE "userId" IS NOT NULL;
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_updated" ON "Assignee"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_name" ON "Assignee"("company", "name");

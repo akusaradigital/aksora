@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   db: {
     run: vi.fn(),
     get: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -38,7 +38,7 @@ import { DELETE, POST, PUT } from "@/app/api/test-cases/route";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isAdminUser.mockReturnValue(false);
+  mocks.isPlatformSuperAdmin.mockReturnValue(false);
 });
 
 function buildFormRequest(values: Record<string, string>) {
@@ -95,7 +95,7 @@ describe("test-cases route", () => {
 
   it("rejects invalid delete ids", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
 
     const response = await DELETE(
       {
@@ -109,7 +109,7 @@ describe("test-cases route", () => {
 
   it("updates execution rows", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "fullstack", company: "acme" });
-    mocks.isAdminUser.mockReturnValue(false);
+    mocks.isPlatformSuperAdmin.mockReturnValue(false);
 
     const response = await PUT(
       new Request("http://localhost/api/test-cases", {

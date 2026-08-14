@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   db: {
     query: vi.fn(),
   },
@@ -14,7 +14,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -29,7 +29,7 @@ beforeEach(() => {
   vi.stubEnv("NODE_ENV", "test");
   vi.stubEnv("ENABLE_SQL_RUN_ROUTE", "false");
   mocks.getCurrentUser.mockResolvedValue({ id: 1, role: "superadmin", company: "" });
-  mocks.isAdminUser.mockReturnValue(true);
+  mocks.isPlatformSuperAdmin.mockReturnValue(true);
   mocks.db.query.mockResolvedValue([{ ok: true }]);
 });
 
@@ -43,7 +43,7 @@ describe("sql-run route", () => {
 
   it("rejects non-admin users", async () => {
     vi.stubEnv("ENABLE_SQL_RUN_ROUTE", "true");
-    mocks.isAdminUser.mockReturnValue(false);
+    mocks.isPlatformSuperAdmin.mockReturnValue(false);
 
     const response = await POST(
       new Request("http://localhost/api/tools/sql-run", {

@@ -58,10 +58,10 @@ export function ModuleWorkspaceFormText({
  : value;
  const [versionDraft, setVersionDraft] = useState(initialValue);
 
- useEffect(() => {
+useEffect(() => {
  if (field.helperKind !=="version-sequence") return;
- setVersionDraft(initialValue);
- }, [field.helperKind, initialValue]);
+ queueMicrotask(() => setVersionDraft(initialValue));
+}, [field.helperKind, initialValue]);
 
  if (isLocked) {
  return (

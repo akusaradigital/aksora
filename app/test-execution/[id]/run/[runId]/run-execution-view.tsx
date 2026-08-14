@@ -61,7 +61,6 @@ export function RunExecutionView({
   const router = useRouter();
   const [items, setItems] = useState<CaseItem[]>(initialCases);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [_saving, _setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);

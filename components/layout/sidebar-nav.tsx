@@ -22,6 +22,7 @@ import {
   Users,
   ClockCounterClockwise,
   Headset,
+  Key,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,7 @@ export const groups: SidebarGroup[] = [
     title: "System Settings",
     items: [
       { href: "/settings", label: "Settings", icon: Gear },
+      { href: "/settings/api-keys", label: "API Keys", icon: Key },
       { href: "/settings/support", label: "Support", icon: Headset },
     ],
   },
@@ -89,13 +91,13 @@ export const groups: SidebarGroup[] = [
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/support", "/work-logs"],
-  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/work-logs"],
-  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/work-logs"],
-  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/work-logs"],
-  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
-  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/work-logs"],
-  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/work-logs"],
+  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/api-keys", "/settings/support", "/work-logs"],
+  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
 };
 
 function canSeeHref(role: string, href: string) {
@@ -172,20 +174,20 @@ export function SidebarNavItem({
       onMouseEnter={(e) => showTooltip(e, item.label)}
       onMouseLeave={hideTooltip}
       className={cn(
-        "group relative flex h-9 items-center text-[13px] font-medium transition-colors duration-100 outline-none",
+        "group relative flex h-10 items-center text-[13px] font-medium transition-colors duration-100 outline-none",
         collapsed ? "justify-center px-0" : "gap-2.5 px-3",
         active
-          ? "bg-blue-50 text-blue-700 font-semibold"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+          ? "bg-sky-50 text-sky-700 font-semibold"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
       )}
     >
-      {active && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-600" />}
+      {active && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-sky-600" />}
       <Icon
         size={16}
         weight="bold"
         className={cn(
           "shrink-0 transition-colors",
-          active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600",
+          active ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600",
           collapsed ? "mx-auto" : "",
         )}
       />
@@ -216,14 +218,14 @@ export function SidebarSection({
       {group.title && (
         <div
           className={cn(
-            "px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 transition-all duration-150 whitespace-nowrap overflow-hidden",
+            "px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-all duration-150 whitespace-nowrap overflow-hidden",
             collapsed ? "opacity-0 h-0" : "opacity-100 h-auto mt-4",
           )}
         >
           {group.title}
         </div>
       )}
-      <div className="space-y-px">
+      <div className="space-y-1">
         {group.items.map((item) => (
           <SidebarNavItem
             key={item.href}

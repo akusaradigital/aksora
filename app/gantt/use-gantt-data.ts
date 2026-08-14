@@ -1,10 +1,9 @@
-import { useMemo, useCallback } from "react";
+import { useMemo } from "react";
 import {
   DAY_PX,
   ROW_H,
   STATUS_COLORS,
   ZOOM_SCALE,
-  addDays,
   computeProgress,
   diffDays,
   getItemKey,
@@ -12,7 +11,6 @@ import {
   getScrollTargetDate,
   overlapsWindow,
   parseDate,
-  toKey,
 } from "./gantt-helpers";
 import type {
   GanttData,
@@ -98,11 +96,6 @@ export function useGanttDerivedData({
     }
     return rows;
   }, [activeItems, periodStart, periodEnd, filter, sectionCollapse]);
-
-  const toggleSection = useCallback((type: "sprint" | "plan" | "task") => {
-    // Note: caller must handle setSectionCollapse
-    void type;
-  }, []);
 
   const sprintKeyByName = useMemo(() => { const map = new Map<string, string>(); for (const item of displayItems) { if (item.type === "sprint") map.set(item.label, getItemKey(item)); } return map; }, [displayItems]);
   const yearScrollTarget = useMemo(() => getScrollTargetDate(viewMode, focusDate), [focusDate, viewMode]);

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { company: _company, isAdmin, params } = getAccessScope(user);
+  const { isAdmin, params } = getAccessScope(user);
   const threshold = Number(request.nextUrl.searchParams.get("threshold") ?? 20);
   const minRuns = Number(request.nextUrl.searchParams.get("minRuns") ?? 3);
 
@@ -159,6 +159,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Flaky tests API error:", error);
-    return NextResponse.json({ error: "Failed to load flaky test data" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

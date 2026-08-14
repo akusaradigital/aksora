@@ -192,7 +192,6 @@ function compareSuiteGroups(a: SuiteGroup, b: SuiteGroup) {
 }
 
 const ALL ="All";
-const _STATUS_FILTERS = [ALL,"Passed","Failed","Blocked","Pending"] as const;
 
 /* ─── Sortable Test Case Table ─── */
 function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase[]; suiteAssignee: string | null }) {
@@ -281,9 +280,9 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
 }
 
 export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[]; initialSearch?: string }) {
- const [search, _setSearch] = useState(initialSearch);
- const [filterStatus, _setFilterStatus] = useState(ALL);
- const [filterAssignee, _setFilterAssignee] = useState(ALL);
+ const [search] = useState(initialSearch);
+ const [filterStatus] = useState(ALL);
+ const [filterAssignee] = useState(ALL);
  const [selectedKey, setSelectedKey] = useState<string | null>(null);
  const [isMenuOpen, setIsMenuOpen] = useState(false);
  const menuRef = useRef<HTMLDivElement | null>(null);
@@ -349,27 +348,12 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  });
  }, [groups, filterStatus, filterAssignee, search]);
 
- const _assigneeOptions = useMemo(() => {
- const values = new Set<string>();
- cases.forEach((c) => {
- const suiteAssignee = String(c.suiteAssignee ??"").trim();
- const assignee = String(c.assignee ??"").trim();
- if (assignee) values.add(assignee);
- else if (suiteAssignee) values.add(suiteAssignee);
- });
- return [ALL, ...Array.from(values).sort((a, b) => a.localeCompare(b))];
- }, [cases]);
-
  const selected = filteredGroups.find((g) => g.key === selectedKey) ?? filteredGroups[0] ?? null;
  const displayCases = selected
  ? (filterStatus !== ALL || search
  ? selected.filteredCases
  : selected.cases)
  : [];
-
- useEffect(() => {
- setIsMenuOpen(false);
- }, [selected?.key]);
 
  useEffect(() => {
  if (!isMenuOpen) return;
@@ -404,10 +388,13 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  const isActive = (selectedKey ?? filteredGroups[0]?.key) === group.key;
  const displayCount = filterStatus !== ALL || search || filterAssignee !== ALL ? group.filteredCases.length : group.cases.length;
  return (
- <button
+<button
  key={group.key}
  type="button"
- onClick={() => setSelectedKey(group.key)}
+ onClick={() => {
+ setSelectedKey(group.key);
+ setIsMenuOpen(false);
+ }}
  className={cn(
 "w-full  px-4 py-4 text-left transition-all",
  isActive ?"bg-blue-600 text-white shadow-sm shadow-blue-500/20" :"hover:bg-gray-50",

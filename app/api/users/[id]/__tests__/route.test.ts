@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   isWorkspaceAdmin: vi.fn(),
   normalizeRole: vi.fn((role: string) => String(role).trim().toLowerCase()),
   isInviteRole: vi.fn((role: string) => ["qa", "pm", "fe", "be", "fullstack", "ai"].includes(role)),
@@ -22,7 +22,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/roles", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
   isWorkspaceAdmin: mocks.isWorkspaceAdmin,
   isInviteRole: mocks.isInviteRole,
   normalizeRole: mocks.normalizeRole,
@@ -53,7 +53,7 @@ beforeEach(() => {
 describe("user id route", () => {
   it("rejects non-admin users", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "pm", company: "acme" });
-    mocks.isAdminUser.mockReturnValue(false);
+    mocks.isPlatformSuperAdmin.mockReturnValue(false);
 
     const response = await PATCH(
       new Request("http://localhost/api/users/1", {
@@ -69,7 +69,7 @@ describe("user id route", () => {
 
   it("rejects disallowed roles", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
     mocks.normalizeRole.mockReturnValueOnce("guest");
 
     const response = await PATCH(
@@ -86,7 +86,7 @@ describe("user id route", () => {
 
   it("updates user with password", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
 
     const response = await PATCH(
       new Request("http://localhost/api/users/2", {
@@ -114,7 +114,7 @@ describe("user id route", () => {
 
   it("blocks self deletion", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 2, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
 
     const response = await DELETE(
       new Request("http://localhost/api/users/2", { method: "DELETE" }) as NextRequest,

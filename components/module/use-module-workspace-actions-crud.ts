@@ -12,8 +12,9 @@ import {
   showApiSuccess,
   type ApiPayload,
 } from "@/components/module/use-module-workspace-actions-helpers";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = Record<string, string | number> & { id: string | number };
+type Row = TableRow;
 
 export type CrudArgs = {
   module: ModuleKey;
@@ -62,7 +63,6 @@ export function createCrudActions(args: CrudArgs) {
     setLastSprint,
     setAttachments,
     setDateWarnings,
-    setFormDirty,
     setPendingDeleteId,
     setDeleteId,
     setKanbanRows,

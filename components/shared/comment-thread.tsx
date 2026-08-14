@@ -143,9 +143,9 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
           scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
         }, 50);
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
       // Retain draft text on failure
-      setError(err.message || "Failed to submit comment");
+      setError(error instanceof Error ? error.message : "Failed to submit comment");
     } finally {
       setSubmitting(false);
     }

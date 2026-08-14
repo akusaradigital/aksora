@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser, isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
+import { isPlatformSuperAdmin, isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
 
@@ -80,7 +80,7 @@ export async function createInvite(input: InviteInput) {
 
 export async function revokeInvite(token: string) {
   const user = await getCurrentUser();
-  if (!user || !isAdminUser(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return { error: "Unauthorized" } as const;
   }
   await db.run('UPDATE "Invite" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "token" = ?', ["revoked", token]);

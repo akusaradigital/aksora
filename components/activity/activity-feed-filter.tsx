@@ -151,7 +151,7 @@ export function ActivityFeedFilter() {
         ) : (
           <div className="space-y-1.5">
             {/* Collapsed groups */}
-            {data.collapsed.map((group, _i) => {
+            {data.collapsed.map((group) => {
               const groupKey = `${group.action}-${group.entityType}-${group.actor}-${group.startTime}`;
               const isExpanded = expandedGroups.has(groupKey);
               return (

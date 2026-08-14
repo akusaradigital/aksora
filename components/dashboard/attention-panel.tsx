@@ -55,10 +55,13 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
   const showQuickActions = canUseQuickActions(userRole);
 
   return (
-    <div className="lg:col-span-3 flex flex-col  border border-gray-200 bg-white p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">Attention Needed</h3>
-        <Warning size={15} className="text-amber-400" weight="bold" />
+    <div className="lg:col-span-3 flex flex-col border border-slate-200 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-sm font-black text-slate-900">Attention Needed</h3>
+          <p className="mt-1 text-[11px] text-slate-500">Critical blockers and priorities</p>
+        </div>
+        <Warning size={18} className="text-amber-500" weight="bold" />
       </div>
       {items.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-10 text-gray-400 gap-2">

@@ -403,7 +403,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       ID: String(item.id),
       Name: String(item.name),
       Email: String(item.email ?? ""),
-      Role: getRoleExportLabel(String(item.role ?? ""), String(item.company ?? "")),
+      Role: getRoleExportLabel(String(item.role ?? "")),
     }),
     fields: [
       { name: "name", label: "Full Name", kind: "text", placeholder: "e.g. John Doe", required: true },
@@ -541,3 +541,4 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     ],
   },
 };
+

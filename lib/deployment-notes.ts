@@ -28,8 +28,8 @@ function parseLine(line: string) {
 
 function joinNatural(items: string[]) {
   if (items.length <= 1) return items[0] ?? "";
-  if (items.length === 2) return `${items[0]} dan ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, dan ${items[items.length - 1]}`;
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 type CategoryKey = "visual" | "access" | "interaction" | "navigation" | "general";
@@ -47,26 +47,26 @@ function humanizePhrase(title: string) {
   const source = compactText(title);
   const lower = source.toLowerCase();
 
-  if (/remove purple line/i.test(lower)) return "Menghapus garis ungu di My Library";
-  if (/forbid unlogged-in user/i.test(lower)) return "Menambahkan restriksi pada jalur /vania";
-  if (/resize icon/i.test(lower)) return "Menyesuaikan ukuran ikon";
-  if (/auto lock project group selection/i.test(lower)) return "Menerapkan auto-lock pada pilihan grup proyek";
-  if (/auto collapse option in image and video generator/i.test(lower)) return "Menerapkan auto-collapse pada generator gambar/video";
-  if (/close modal when clicked from outside the detail modal/i.test(lower)) return "Menutup modal otomatis saat klik di luar area";
-  if (/redirect to prompt section when delete prompt/i.test(lower)) return "Mengarahkan ke bagian Prompt setelah penghapusan";
-  if (/edit\s*&\s*delete feature for project/i.test(lower)) return "Menambahkan fitur Edit & Delete proyek";
-  if (/prompt title/i.test(lower)) return "Memperbarui prompt title";
-  if (/auto collapse/i.test(lower)) return "Menerapkan auto-collapse";
-  if (/auto lock/i.test(lower)) return "Menerapkan auto-lock";
-  if (/forbid/i.test(lower)) return "Menambahkan restriksi";
-  if (/remove/i.test(lower)) return "Menghapus";
-  if (/resize/i.test(lower)) return "Menyesuaikan ukuran";
-  if (/redirect/i.test(lower)) return "Mengarahkan";
-  if (/close modal/i.test(lower)) return "Menutup modal";
-  if (/edit/i.test(lower) && /delete/i.test(lower)) return "Menambahkan fitur Edit & Delete";
-  if (/add/i.test(lower)) return "Menambahkan";
-  if (/implement/i.test(lower)) return "Menerapkan";
-  if (/update/i.test(lower)) return "Memperbarui";
+  if (/remove purple line/i.test(lower)) return "Remove the purple line in My Library";
+  if (/forbid unlogged-in user/i.test(lower)) return "Add a restriction to the /vania path";
+  if (/resize icon/i.test(lower)) return "Adjust the icon size";
+  if (/auto lock project group selection/i.test(lower)) return "Apply auto-lock to project group selection";
+  if (/auto collapse option in image and video generator/i.test(lower)) return "Apply auto-collapse in the image and video generator";
+  if (/close modal when clicked from outside the detail modal/i.test(lower)) return "Close the modal automatically when clicking outside the area";
+  if (/redirect to prompt section when delete prompt/i.test(lower)) return "Redirect to the Prompt section after deletion";
+  if (/edit\s*&\s*delete feature for project/i.test(lower)) return "Add Edit & Delete project functionality";
+  if (/prompt title/i.test(lower)) return "Update the prompt title";
+  if (/auto collapse/i.test(lower)) return "Apply auto-collapse";
+  if (/auto lock/i.test(lower)) return "Apply auto-lock";
+  if (/forbid/i.test(lower)) return "Add a restriction";
+  if (/remove/i.test(lower)) return "Remove";
+  if (/resize/i.test(lower)) return "Adjust the size";
+  if (/redirect/i.test(lower)) return "Redirect";
+  if (/close modal/i.test(lower)) return "Close the modal";
+  if (/edit/i.test(lower) && /delete/i.test(lower)) return "Add Edit & Delete functionality";
+  if (/add/i.test(lower)) return "Add";
+  if (/implement/i.test(lower)) return "Implement";
+  if (/update/i.test(lower)) return "Update";
 
   return source;
 }
@@ -81,15 +81,15 @@ function summarizeCategory(category: CategoryKey, titles: Array<{ title: string 
 
   switch (category) {
     case "visual":
-      return `Penyempurnaan Visual & UI: ${body} agar lebih proporsional.`;
+      return `Visual & UI Improvements: ${body} to keep the layout balanced.`;
     case "access":
-      return `Keamanan Akses: ${body} sehingga pengguna yang belum login tidak dapat mengaksesnya.`;
+      return `Access Security: ${body} so unauthenticated users cannot access it.`;
     case "interaction":
-      return `Optimasi Interaksi: ${body}.`;
+      return `Interaction Optimization: ${body}.`;
     case "navigation":
-      return `Alur Navigasi & Fitur Baru: ${body}.`;
+      return `Navigation Flow & New Features: ${body}.`;
     default:
-      return `Pembaruan Umum: ${body}.`;
+      return `General Updates: ${body}.`;
   }
 }
 

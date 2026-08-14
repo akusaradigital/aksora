@@ -4,16 +4,17 @@ import {
   WORKSPACE_ROLES,
   INVITE_ROLES,
   normalizeRole,
-  isAdminUser,
+  isPlatformSuperAdmin,
   isInviteRole,
   getRoleLabel,
   getInviteRoleOptions,
   getPublicRoleOptions,
 } from "@/lib/roles";
+import { apiUserContext } from "@/lib/auth-context";
 
 const COOKIE_NAME = "aksora_session";
 
-export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isAdminUser, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
+export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isPlatformSuperAdmin, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
 
 function getAuthConfig() {
   const secret = (process.env.AUTH_SECRET || "").trim();
@@ -144,8 +145,9 @@ export async function registerUser(email: string, password: string, name?: strin
       await syncAssigneeFromUser(user);
     }
     return { success: true };
-  } catch (err: any) {
-    if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {
+  } catch (err: unknown) {
+    const error = err as { code?: unknown; message?: unknown } | null;
+    if (error?.code === "23505" || String(error?.message ?? "").includes("UNIQUE constraint")) {
       return { error: "Email address is already registered. Please use a different email." };
     }
     return { error: "Registration failed. Please try again later." };
@@ -202,6 +204,11 @@ export async function verifySessionToken(token: string | undefined | null) {
 }
 
 export async function getCurrentUser() {
+  const apiUser = apiUserContext.getStore();
+  if (apiUser) {
+    return { ...apiUser, role: normalizeRole(apiUser.role) };
+  }
+
   let token = "";
   try {
     const { cookies } = await import("next/headers");

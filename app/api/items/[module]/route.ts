@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createModuleRecord, deleteModuleRecord, deleteModuleRecords } from "@/lib/data";
-import { db } from "@/lib/db";
 import {
   formDataToEntry,
   moduleConfigs,
@@ -51,11 +50,7 @@ function getValidationMessage(module: ModuleKey, error: z.ZodError) {
   return issue?.message ?? "Invalid data provided.";
 }
 
-function enforceSelfAssignment(
-  _moduleKey: ModuleKey,
-  _data: Record<string, string>,
-  _user: Awaited<ReturnType<typeof getCurrentUser>>,
-) {
+function enforceSelfAssignment() {
   // All roles can assign to anyone
   return null;
 }
@@ -97,7 +92,7 @@ export async function POST(
       );
     }
 
-    const selfAssignmentError = enforceSelfAssignment(moduleKey, parsed.data as Record<string, string>, user);
+    const selfAssignmentError = enforceSelfAssignment();
     if (selfAssignmentError) {
       return NextResponse.json({ error: selfAssignmentError }, { status: 403 });
     }
@@ -264,7 +259,7 @@ export async function PATCH(
         );
       }
 
-      const selfAssignmentError = enforceSelfAssignment(moduleKey, parsed.data as Record<string, string>, user);
+      const selfAssignmentError = enforceSelfAssignment();
       if (selfAssignmentError) {
         return NextResponse.json({ error: selfAssignmentError }, { status: 403 });
       }

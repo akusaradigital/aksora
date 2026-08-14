@@ -28,11 +28,12 @@ const AuditLogTab = dynamic(() => import("./admin-other-tabs").then((m) => m.Aud
 });
 
 type Tab = "overview" | "revenue" | "announcements" | "tickets" | "audit";
+type AdminUser = { name?: string; email?: string } | null;
 
 export default function AdminOverviewPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AdminUser>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {

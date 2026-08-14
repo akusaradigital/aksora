@@ -1,23 +1,30 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { Badge } from "@/components/shared/badge";
-import { cn, formatDate, formatDisplayText } from "@/lib/utils";
-import { getFieldIcons } from "@/components/module/module-workspace-utils";
+import { cn } from "@/lib/utils";
 import {
-  Bug, CheckCircle, ClipboardText, TrendUp,
-  ArrowDown, ArrowUp, Minus, WarningCircle, Clock,
+  Bug,
+  CheckCircle,
+  ClipboardText,
+  TrendUp,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, CartesianGrid } from "recharts";
 import { ResponsiveContainer } from "@/components/shared/responsive-container";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Types
 export type WeeklyReportData = {
   period: { from: string; to: string };
   summary: {
-    newBugs: number; closedBugs: number; openBugs: number;
-    newTasks: number; doneTasks: number; openTasks: number;
-    sessions: number; testCasesRun: number; passRate: number | null;
+    newBugs: number;
+    closedBugs: number;
+    openBugs: number;
+    newTasks: number;
+    doneTasks: number;
+    openTasks: number;
+    sessions: number;
+    testCasesRun: number;
+    passRate: number | null;
   };
   newBugs: Array<{ id: number; code: string; title: string; severity: string; priority: string; project: string; status: string }>;
   closedBugs: Array<{ id: number; code: string; title: string; severity: string }>;
@@ -32,9 +39,18 @@ export type WeeklyReportData = {
 
 export type DetailModal = { type: string; module: string; id: number; fields: Array<{ label: string; value: string; icon?: string }> } | null;
 
-const SEVERITY_COLORS: Record<string, string> = { critical: "#dc2626", high: "#f97316", medium: "#facc15", low: "#0ea5e9", p0: "#dc2626", p1: "#f97316", p2: "#facc15", p3: "#0ea5e9" };
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "#dc2626",
+  high: "#f97316",
+  medium: "#facc15",
+  low: "#0ea5e9",
+  p0: "#dc2626",
+  p1: "#f97316",
+  p2: "#facc15",
+  p3: "#0ea5e9",
+};
 
-// ─── Shared Components ───────────────────────────────────────────────────────
+// Shared Components
 export function StatCard({ icon, label, value, sub, color }: { icon: ReactNode; label: string; value: number | string; sub?: string; color?: string }) {
   return (
     <div className="glass-card flex items-start gap-3 p-4">
@@ -52,7 +68,10 @@ export function Panel({ title, subtitle, children, actions }: { title: string; s
   return (
     <section className="glass-card overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-gray-200/70 px-5 py-4">
-        <div><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">{title}</p>{subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}</div>
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-400">{title}</p>
+          {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+        </div>
         {actions}
       </div>
       <div className="p-5">{children}</div>
@@ -60,13 +79,7 @@ export function Panel({ title, subtitle, children, actions }: { title: string; s
   );
 }
 
-function TrendIcon({ direction }: { direction: "up" | "down" | "flat" }) {
-  if (direction === "up") return <ArrowUp size={13} weight="bold" />;
-  if (direction === "down") return <ArrowDown size={13} weight="bold" />;
-  return <Minus size={13} weight="bold" />;
-}
-
-// ─── Report Summary Stats ────────────────────────────────────────────────────
+// Report Summary Stats
 export function ReportSummaryStats({ summary, passRateTone, insightLine }: { summary: WeeklyReportData["summary"]; passRateTone: string; insightLine: string }) {
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -78,7 +91,7 @@ export function ReportSummaryStats({ summary, passRateTone, insightLine }: { sum
   );
 }
 
-// ─── Charts Section ──────────────────────────────────────────────────────────
+// Charts Section
 export function ReportCharts({ report }: { report: WeeklyReportData }) {
   const sessionTrendData = useMemo(() => {
     const sessions = report.sessions ?? [];
@@ -86,14 +99,34 @@ export function ReportCharts({ report }: { report: WeeklyReportData }) {
     for (const session of sessions) {
       const key = session.date || "Unknown";
       const current = map.get(key) ?? { date: key, sessions: 0, passed: 0, failed: 0, blocked: 0, totalCases: 0 };
-      current.sessions += 1; current.passed += Number(session.passed ?? 0); current.failed += Number(session.failed ?? 0); current.blocked += Number(session.blocked ?? 0); current.totalCases += Number(session.totalCases ?? 0);
+      current.sessions += 1;
+      current.passed += Number(session.passed ?? 0);
+      current.failed += Number(session.failed ?? 0);
+      current.blocked += Number(session.blocked ?? 0);
+      current.totalCases += Number(session.totalCases ?? 0);
       map.set(key, current);
     }
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [report]);
 
-  const severityChartData = useMemo(() => (report.bugsBySeverity ?? []).map((item) => ({ name: item.name, count: Number(item.count ?? 0) })).filter((item) => item.count > 0).sort((a, b) => b.count - a.count), [report]);
-  const projectChartData = useMemo(() => (report.bugsByProject ?? []).map((item) => ({ name: item.name, count: Number(item.count ?? 0) })).filter((item) => item.count > 0).sort((a, b) => b.count - a.count).slice(0, 6), [report]);
+  const severityChartData = useMemo(
+    () =>
+      (report.bugsBySeverity ?? [])
+        .map((item) => ({ name: item.name, count: Number(item.count ?? 0) }))
+        .filter((item) => item.count > 0)
+        .sort((a, b) => b.count - a.count),
+    [report],
+  );
+
+  const projectChartData = useMemo(
+    () =>
+      (report.bugsByProject ?? [])
+        .map((item) => ({ name: item.name, count: Number(item.count ?? 0) }))
+        .filter((item) => item.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6),
+    [report],
+  );
 
   const actionItems = useMemo(() => {
     const items: Array<{ title: string; detail: string; tone: "danger" | "warning" | "info" }> = [];
@@ -120,21 +153,34 @@ export function ReportCharts({ report }: { report: WeeklyReportData }) {
                 <Bar dataKey="blocked" stackId="sessions" radius={[0, 0, 4, 4]} fill="#f59e0b" />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No execution data this period.</div>}
+          ) : (
+            <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No execution data this period.</div>
+          )}
         </Panel>
         <Panel title="Focus Area" subtitle="Priority items to close out this period.">
           <div className="space-y-3">
             {actionItems.map((item, idx) => (
               <div key={`${item.title}-${idx}`} className={cn(" border p-4", item.tone === "danger" && "border-rose-200 bg-rose-50", item.tone === "warning" && "border-amber-200 bg-amber-50", item.tone === "info" && "border-sky-200 bg-sky-50")}>
                 <div className="flex items-start gap-3">
-                  <div className={cn("mt-0.5 flex h-8 w-8 items-center justify-center  text-white", item.tone === "danger" ? "bg-rose-600" : item.tone === "warning" ? "bg-amber-600" : "bg-sky-600")}><WarningCircle size={16} weight="bold" /></div>
-                  <div className="min-w-0"><p className="text-sm font-bold text-gray-900">{item.title}</p><p className="mt-0.5 text-xs text-gray-600">{item.detail}</p></div>
+                  <div className={cn("mt-0.5 flex h-8 w-8 items-center justify-center  text-white", item.tone === "danger" ? "bg-rose-600" : item.tone === "warning" ? "bg-amber-600" : "bg-sky-600")}>
+                    <WarningCircle size={16} weight="bold" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900">{item.title}</p>
+                    <p className="mt-0.5 text-xs text-gray-600">{item.detail}</p>
+                  </div>
                 </div>
               </div>
             ))}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className=" border border-gray-200/70 bg-gray-50 p-4"><p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Bugs</p><p className="mt-2 text-2xl font-bold text-gray-900">{report.summary.openBugs}</p></div>
-              <div className=" border border-gray-200/70 bg-gray-50 p-4"><p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Tasks</p><p className="mt-2 text-2xl font-bold text-gray-900">{report.summary.openTasks}</p></div>
+              <div className=" border border-gray-200/70 bg-gray-50 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Bugs</p>
+                <p className="mt-2 text-2xl font-bold text-gray-900">{report.summary.openBugs}</p>
+              </div>
+              <div className=" border border-gray-200/70 bg-gray-50 p-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Open Tasks</p>
+                <p className="mt-2 text-2xl font-bold text-gray-900">{report.summary.openTasks}</p>
+              </div>
             </div>
           </div>
         </Panel>
@@ -149,10 +195,16 @@ export function ReportCharts({ report }: { report: WeeklyReportData }) {
                 <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: "1px solid rgba(148,163,184,0.2)" }} />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>{severityChartData.map((entry) => (<Cell key={entry.name} fill={SEVERITY_COLORS[entry.name.toLowerCase()] ?? "#94a3b8"} />))}</Bar>
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  {severityChartData.map((entry) => (
+                    <Cell key={entry.name} fill={SEVERITY_COLORS[entry.name.toLowerCase()] ?? "#94a3b8"} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No severity data.</div>}
+          ) : (
+            <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No severity data.</div>
+          )}
         </Panel>
         <Panel title="Bugs by Test Plans" subtitle="Test plans with the most bugs this period.">
           {projectChartData.length > 0 ? (
@@ -165,7 +217,9 @@ export function ReportCharts({ report }: { report: WeeklyReportData }) {
                 <Bar dataKey="count" radius={[0, 6, 6, 0]} fill="#2563eb" />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No test plan data.</div>}
+          ) : (
+            <div className=" border border-dashed border-gray-200 p-8 text-sm text-gray-500">No test plan data.</div>
+          )}
         </Panel>
       </div>
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, Plus, MagnifyingGlass, Funnel, Lightning, ArrowRight, Lightbulb } from "@phosphor-icons/react";
+import { FolderOpen, Plus, MagnifyingGlass, Funnel, Lightning, ArrowRight } from "@phosphor-icons/react";
 
 type ModuleEmptyStateProps = {
   shortTitle: string;
@@ -18,7 +18,7 @@ const moduleGuidance: Record<string, { tip: string; steps: string[] }> = {
   },
   "test-suites": {
     tip: "Suites group related test cases for organized execution.",
-    steps: ["Create a suite per feature area", "Add test cases to the suite", "Run the suite as a session"],
+    steps: [],
   },
   "test-cases": {
     tip: "Test cases are individual scenarios with steps and expected results.",
@@ -91,26 +91,6 @@ export function ModuleEmptyState({ shortTitle, canAdd, colSpan = 2, onAdd, hasAc
               </>
             )}
           </div>
-
-          {/* Guided steps for empty modules */}
-          {!hasActiveFilters && guidance && (
-            <div className="w-full max-w-md border border-gray-100 bg-gray-50/50 px-5 py-4 text-left">
-              <div className="flex items-center gap-2 mb-3">
-                <Lightbulb size={14} weight="bold" className="text-amber-500" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-500">Quick Start Guide</span>
-              </div>
-              <ol className="space-y-2">
-                {guidance.steps.map((step, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-blue-100 text-[10px] font-bold text-blue-700">
-                      {i + 1}
-                    </span>
-                    <span className="text-xs font-medium text-gray-600 pt-0.5">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
 
           {!hasActiveFilters && canAdd && (
             <button

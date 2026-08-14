@@ -55,7 +55,7 @@ function CardActions({
   onView,
   onEdit,
   onDelete,
-}: {
+  }: {
   row: TableRow;
   canEdit: boolean;
   canDelete: boolean;
@@ -63,6 +63,7 @@ function CardActions({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  void _row;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -134,6 +135,8 @@ export function ModuleMobileCards({
   onNextPage,
   onGoToPage,
 }: ModuleMobileCardsProps) {
+  void _module;
+  void _columns;
   const getTitle = (row: TableRow) => String(row.title || row.caseName || row.name || "-");
 
   if (rows.length === 0) {

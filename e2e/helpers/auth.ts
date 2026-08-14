@@ -1,4 +1,4 @@
-import { type Page, expect } from "@playwright/test";
+import { type Page } from "@playwright/test";
 
 /**
  * Login helper - authenticates a user via the login page.

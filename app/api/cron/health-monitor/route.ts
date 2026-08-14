@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, getDbHealthInfo } from "@/lib/db";
+import { createAdminNotification } from "@/lib/admin-notifications";
 import { emailEnabled, sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -48,19 +49,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, status, latencyMs });
   }
 
-  // Breach — email the ops address if configured.
+  // Breach ??? email the ops address if configured.
   let emailed = false;
+  let emailDeliveryFailed = false;
+  let emailFailureReason = "";
   if (emailEnabled()) {
     const to = process.env.HEALTH_ALERT_EMAIL?.split(",").map((s) => s.trim()).filter(Boolean) || [];
     if (to.length > 0) {
       const res = await sendEmail({
         to,
-        subject: `[Aksora] Health alert: ${status} — ${checks.length} issue(s)`,
+        subject: `[Aksora] Health alert: ${status} ??? ${checks.length} issue(s)`,
         html: `<p>Health monitor detected the following on ${new Date().toISOString()}:</p><ul>${checks.map((c) => `<li>${c}</li>`).join("")}</ul>`,
         text: `Health alert: ${checks.join("; ")}`,
       });
       emailed = res.ok;
+      emailDeliveryFailed = !res.ok;
+      if (!res.ok) {
+        emailFailureReason = "sendEmail returned not ok";
+      }
+    } else {
+      emailDeliveryFailed = true;
+      emailFailureReason = "HEALTH_ALERT_EMAIL is not configured";
     }
+  } else {
+    emailDeliveryFailed = true;
+    emailFailureReason = "RESEND_API_KEY is not set";
+  }
+
+  if (emailDeliveryFailed) {
+    await createAdminNotification({
+      type: "email_delivery_failed",
+      title: "Health monitor email delivery failed",
+      message: `Health monitor cron found ${checks.length} issue${checks.length === 1 ? "" : "s"} and email was not delivered.`,
+      meta: { route: "health-monitor", status, issues: checks.length, reason: emailFailureReason },
+    });
   }
 
   return NextResponse.json({

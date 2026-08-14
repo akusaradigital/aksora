@@ -15,8 +15,9 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableCard, KanbanColumn } from "@/components/module/kanban-board-column";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = Record<string, string | number>;
+type Row = TableRow;
 
 function getRowOrder(row: Row) {
   const raw = row.sortOrder ?? row.SortOrder ?? row.order ?? row.Order ?? row.position ?? row.Position ?? 0;

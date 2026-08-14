@@ -243,6 +243,29 @@ export const tables = [
     `
   },
   {
+    name: "ApiKey",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "name" TEXT NOT NULL,
+      "keyHash" TEXT NOT NULL,
+      "keyPrefix" TEXT NOT NULL,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastUsedAt" DATE_TYPE,
+      "revokedAt" DATE_TYPE,
+      "expiresAt" DATE_TYPE
+    `
+  },
+  {
+    name: "RateLimitAttempt",
+    schema: `
+      "key" TEXT PRIMARY KEY,
+      "attempts" INTEGER NOT NULL DEFAULT 0,
+      "firstAttempt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lockedUntil" DATE_TYPE
+    `
+  },
+  {
     name: "Invite",
     schema: `
       "id" SERIAL_OR_PK,

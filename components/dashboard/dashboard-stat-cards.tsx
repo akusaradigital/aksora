@@ -3,10 +3,10 @@
 import Link from "next/link";
 import {
   Bug,
-  ArrowRight,
   TrendUp,
   TrendDown,
   Minus,
+  ArrowRight,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useValueChangeAnimation } from "@/hooks/use-value-change-animation";
@@ -17,15 +17,14 @@ export function StatCard({ label, value, icon, color, href }: {
   const animClass = useValueChangeAnimation(value);
   return (
     <Link href={href} prefetch={false}
-      className="flex items-center gap-4  border border-gray-200 bg-white p-5 transition hover:border-gray-300   group">
-      <div className={cn("flex h-12 w-12 items-center justify-center ", color)}>
-        {icon}
+      className="flex flex-col gap-3 border border-slate-200 bg-white p-6 transition-all hover:border-blue-500 hover:shadow-md group">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-blue-600 transition-colors">{label}</p>
+        <div className={cn("flex h-8 w-8 items-center justify-center rounded-sm", color)}>
+          {icon}
+        </div>
       </div>
-      <div>
-        <p className={cn("text-2xl font-bold tracking-tight text-gray-900", animClass)}>{value}</p>
-        <p className="text-xs font-semibold text-gray-400">{label}</p>
-      </div>
-      <ArrowRight size={14} className="ml-auto text-gray-300 group-hover:text-gray-500 transition" weight="bold" />
+      <p className={cn("text-5xl font-black tracking-tighter text-slate-900", animClass)}>{value}</p>
     </Link>
   );
 }
@@ -36,30 +35,27 @@ export function BugStatCard({ value, bugSeverityCounts }: {
 }) {
   const animClass = useValueChangeAnimation(value);
   return (
-    <div className="flex flex-col  border border-gray-200 bg-white p-5 transition hover:border-gray-300   group">
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center  bg-rose-50">
-          <Bug size={20} weight="bold" className="text-rose-500" />
-        </div>
-        <div>
-          <p className={cn("text-2xl font-bold tracking-tight text-gray-900", animClass)}>{value}</p>
-          <p className="text-xs font-semibold text-gray-400">Open Bugs</p>
-        </div>
-        <Link href="/bugs" prefetch={false} className="ml-auto">
-          <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 transition" weight="bold" />
+    <div className="flex flex-col border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 transition-all hover:shadow-md group relative">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-rose-600">Open Bugs</p>
+        <Link href="/bugs" prefetch={false} aria-label="View all bugs">
+          <ArrowRight size={16} className="text-slate-300 group-hover:text-rose-500 transition-colors" weight="bold" />
         </Link>
       </div>
+      <div className="flex items-center gap-3">
+        <p className={cn("text-5xl font-black tracking-tighter text-slate-900", animClass)}>{value}</p>
+      </div>
       {bugSeverityCounts && (
-        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-gray-100 pt-3">
+        <div className="mt-4 grid grid-cols-4 gap-2 border-t border-slate-100 pt-4">
           {(["critical", "high", "medium", "low"] as const).map((severity) => (
             <Link
               key={severity}
               href={`/bugs?severity=${severity}`}
               prefetch={false}
-              className="text-center hover:bg-gray-50  p-1.5 transition"
+              className="text-center group/sev transition-transform hover:-translate-y-0.5"
             >
-              <p className="text-sm font-bold text-gray-700">{bugSeverityCounts[severity]}</p>
-              <p className="text-[11px] font-semibold text-gray-400 capitalize">{severity}</p>
+              <p className="text-lg font-black text-slate-800 group-hover/sev:text-rose-600 transition-colors">{bugSeverityCounts[severity]}</p>
+              <p className="text-[10px] font-bold text-slate-400 capitalize uppercase tracking-widest">{severity}</p>
             </Link>
           ))}
         </div>
@@ -75,17 +71,17 @@ export function PulseMetric({ label, value, prev, color, bgColor }: {
   const TrendIcon = delta > 0 ? TrendUp : delta < 0 ? TrendDown : Minus;
 
   return (
-    <div className={cn(" px-4 py-3", bgColor)}>
+    <div className={cn("p-4 border border-slate-100", bgColor)}>
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-gray-600">{label}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">{label}</span>
         {prev > 0 && (
-          <div className={cn("flex items-center gap-0.5 text-[11px] font-bold", delta > 0 ? "text-rose-500" : delta < 0 ? "text-emerald-500" : "text-gray-400")}>
-            <TrendIcon size={10} weight="bold" />
+          <div className={cn("flex items-center gap-0.5 text-xs font-black", delta > 0 ? "text-rose-600" : delta < 0 ? "text-emerald-600" : "text-slate-400")}>
+            <TrendIcon size={12} weight="bold" />
             <span>{delta > 0 ? "+" : ""}{delta}%</span>
           </div>
         )}
       </div>
-      <p className={cn("text-xl font-bold mt-1", color)}>{value}</p>
+      <p className={cn("text-3xl font-black tracking-tight mt-2", color)}>{value}</p>
     </div>
   );
 }
@@ -97,20 +93,20 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
   const { current, delta } = resolutionRate;
   const isNA = current === null;
-  const rateColor = isNA ? "text-gray-400" : current < 70 ? "text-amber-500" : "text-emerald-500";
-  const rateBgColor = isNA ? "bg-gray-50" : current < 70 ? "bg-amber-50" : "bg-emerald-50";
+  const rateColor = isNA ? "text-slate-400" : current < 70 ? "text-amber-600" : "text-emerald-600";
+  const rateBgColor = isNA ? "bg-slate-50" : current < 70 ? "bg-amber-50/60" : "bg-emerald-50/60";
 
   return (
-    <div className={cn(" px-4 py-3", rateBgColor)} data-testid="resolution-rate-metric">
+    <div className={cn("p-4 border border-slate-100", rateBgColor)} data-testid="resolution-rate-metric">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-gray-600">Resolution Rate</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Resolution Rate</span>
         {delta !== null && (
-          <span className={cn("text-[11px] font-bold", delta >= 0 ? "text-emerald-600" : "text-amber-600")} data-testid="resolution-rate-delta">
+          <span className={cn("text-xs font-black", delta >= 0 ? "text-emerald-600" : "text-amber-600")} data-testid="resolution-rate-delta">
             {delta >= 0 ? `+${delta}` : `\u2212${Math.abs(delta)}`}pp
           </span>
         )}
       </div>
-      <p className={cn("text-xl font-bold mt-1", rateColor)} data-testid="resolution-rate-value">
+      <p className={cn("text-3xl font-black tracking-tight mt-2", rateColor)} data-testid="resolution-rate-value">
         {isNA ? "N/A" : `${current}%`}
       </p>
     </div>
@@ -119,7 +115,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
 export function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5  border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 transition hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900">
+    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
       {icon}{label}
     </Link>
   );

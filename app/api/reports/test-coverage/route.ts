@@ -132,7 +132,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { company: _company, isAdmin, params } = getAccessScope(user);
+  const { isAdmin, params } = getAccessScope(user);
 
   try {
     // Coverage by suite

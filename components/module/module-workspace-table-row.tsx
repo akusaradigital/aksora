@@ -14,6 +14,7 @@ type RelatedSuite = { id: string; title: string; token?: string; publicToken?: s
 
 export type TableRow = {
   id: string | number;
+  publicToken?: string;
   status?: string;
   createdAt?: string | number;
   relatedSuites?: RelatedSuite[];
@@ -43,7 +44,6 @@ export const SortableRow = memo(function SortableRow({
   pendingDeleteId,
   selectedIds,
   onToggleSelect,
-  onToggleSelectAll: _onToggleSelectAll,
   canEdit,
   canDelete,
   onViewRow,

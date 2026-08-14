@@ -23,7 +23,7 @@ export function useValueChangeAnimation(value: number | string | null | undefine
       return;
     }
     if (prevValue.current !== value) {
-      setAnimating(true);
+      queueMicrotask(() => setAnimating(true));
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setAnimating(false), 300);
     }

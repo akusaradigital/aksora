@@ -1,10 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { normalizeRole } from "@/lib/roles";
 
-export async function GET(_request: NextRequest) {
+type WorkloadRow = {
+  id: number | string;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+};
+
+type CountRow = {
+  assignee: string | null;
+  count: number | string;
+};
+
+export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -15,7 +27,7 @@ export async function GET(_request: NextRequest) {
 
   try {
     // 1. Get all assignees (from User table)
-    const assignees = await db.query<any>(`
+    const assignees = await db.query<WorkloadRow>(`
       SELECT "id", "name", "email", "role"
       FROM "User"
       WHERE 1=1
@@ -24,7 +36,7 @@ export async function GET(_request: NextRequest) {
     `, params);
 
     // 2. Get counts from Tasks
-    const taskCounts = await db.query<any>(`
+    const taskCounts = await db.query<CountRow>(`
       SELECT "assignee", COUNT(*) as count
       FROM "Task"
       WHERE "status" NOT IN ('done', 'closed', 'archived')
@@ -33,7 +45,7 @@ export async function GET(_request: NextRequest) {
     `, params);
 
     // 3. Get counts from Test Plans
-    const planCounts = await db.query<any>(`
+    const planCounts = await db.query<CountRow>(`
       SELECT "assignee", COUNT(*) as count
       FROM "TestPlan"
       WHERE "deletedAt" IS NULL AND "status" NOT IN ('completed', 'closed', 'archived')
@@ -44,11 +56,11 @@ export async function GET(_request: NextRequest) {
 
     // 4. Merge data
     const workload = assignees
-      .filter((a: any) => normalizeRole(String(a.role)) !== 'admin')
-      .map((a: any) => {
+      .filter((a) => normalizeRole(String(a.role)) !== "admin")
+      .map((a) => {
         const name = String(a.name || a.email);
-        const tasks = Number(taskCounts.find((t: any) => String(t.assignee) === name)?.count || 0);
-        const plans = Number(planCounts.find((p: any) => String(p.assignee) === name)?.count || 0);
+        const tasks = Number(taskCounts.find((t) => String(t.assignee) === name)?.count || 0);
+        const plans = Number(planCounts.find((p) => String(p.assignee) === name)?.count || 0);
         
         // Simple workload score: Plans weigh more than tasks
         const score = (plans * 3) + tasks;
@@ -61,12 +73,12 @@ export async function GET(_request: NextRequest) {
           tasks,
           plans,
           score,
-          level: score > 10 ? 'critical' : score > 6 ? 'high' : score > 3 ? 'medium' : 'low'
+          level: score > 10 ? "critical" : score > 6 ? "high" : score > 3 ? "medium" : "low",
         };
       });
 
     const totalMembers = workload.length;
-    const lowCount = workload.filter(w => w.level === 'low' || w.level === 'medium').length;
+    const lowCount = workload.filter((w) => w.level === "low" || w.level === "medium").length;
     const efficiency = totalMembers > 0 ? Math.round((lowCount / totalMembers) * 100) : 0;
 
     return NextResponse.json({ workload, efficiency });

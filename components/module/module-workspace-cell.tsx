@@ -7,18 +7,7 @@ import { InlineStatusEditor } from "@/components/module/inline-status-editor";
 import { cn, formatDate, formatRelativeTime } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import type { ModuleKey } from "@/lib/modules";
-
-type RelatedSuite = { id: string; title: string; token?: string; publicToken?: string };
-
-type TableRow = {
-  id: string | number;
-  status?: string;
-  createdAt?: string | number;
-  relatedSuites?: RelatedSuite[];
-  projectRowSpan?: number;
-  testPlanRowSpan?: number;
-  [key: string]: string | number | boolean | null | undefined | RelatedSuite[] | unknown;
-};
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 type Column = {
   key: string;
@@ -110,7 +99,7 @@ export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onIn
           <HighlightText text={String(value)} query="" linkify={false} />
         </a>
       ) : (module === "users" || module === "assignees") && column.key === "role" ? (
-        <Badge value={String(value)} displayValue={getRoleLabel(String(value), String(row.company ?? ""))} />
+        <Badge value={String(value)} displayValue={getRoleLabel(String(value))} />
       ) : column.tone === "status" && onInlineUpdate && statusOptions && canEdit ? (
         <InlineStatusEditor
           value={String(value)}

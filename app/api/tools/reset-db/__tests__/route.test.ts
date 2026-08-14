@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   db: {
     exec: vi.fn(),
   },
@@ -15,7 +15,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -32,7 +32,7 @@ beforeEach(() => {
   vi.stubEnv("ENABLE_RESET_DB_ROUTE", "false");
   vi.stubEnv("RESET_SECRET", "topsecret");
   mocks.getCurrentUser.mockResolvedValue({ id: 1, role: "superadmin", company: "" });
-  mocks.isAdminUser.mockReturnValue(true);
+  mocks.isPlatformSuperAdmin.mockReturnValue(true);
   mocks.db.exec.mockResolvedValue(undefined);
 });
 
@@ -46,7 +46,7 @@ describe("reset-db route", () => {
 
   it("returns 403 for non-admin user", async () => {
     vi.stubEnv("ENABLE_RESET_DB_ROUTE", "true");
-    mocks.isAdminUser.mockReturnValue(false);
+    mocks.isPlatformSuperAdmin.mockReturnValue(false);
 
     const response = await POST(
       new Request("http://localhost/api/tools/reset-db", {

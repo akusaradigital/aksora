@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isSuperAdmin } from "@/lib/roles";
+import { isPlatformSuperAdmin } from "@/lib/roles";
 import { getSchemaHealth } from "@/lib/db-health";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || !isSuperAdmin(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

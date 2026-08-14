@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   CheckCircle, 
   XCircle, 
@@ -31,7 +31,7 @@ export function PlayModeView({
   cases,
   onClose
 }: {
-  executionGroup: any;
+  executionGroup: { title: string };
   cases: TestCase[];
   onClose: (updatedCases: TestCase[]) => void;
 }) {
@@ -56,12 +56,12 @@ export function PlayModeView({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const updateStatus = (status: string) => {
+  const updateStatus = useCallback((status: string) => {
     setItems(prev => prev.map((it, i) => i === index ? { ...it, status } : it));
     if (index < items.length - 1) {
       setTimeout(() => setIndex(index + 1), 200);
     }
-  };
+  }, [index, items]);
 
   const updateActual = (val: string) => {
     setItems(prev => prev.map((it, i) => i === index ? { ...it, actualResult: val } : it));
@@ -79,7 +79,7 @@ export function PlayModeView({
     };
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
-  }, [index, items]);
+  }, [index, items, onClose, updateStatus]);
 
   const progress = Math.round(((items.filter(i => i.status).length) / items.length) * 100);
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 
 function sqlRunRouteEnabled() {
   return process.env.NODE_ENV !== "production" && process.env.ENABLE_SQL_RUN_ROUTE === "true";
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdminUser(user.role, user.company)) {
+  if (!isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
   }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const result = await db.query(query, params || []);
     return NextResponse.json({ data: result });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }

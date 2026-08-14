@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Rate limit by IP using a stable key derived from the credential tail.
     const ip = getClientIp(request);
     const key = rateLimitKey(ip, credential.slice(-16));
-    const { limited, retryAfterSeconds } = isRateLimited(key);
+    const { limited, retryAfterSeconds } = await isRateLimited(key);
     if (limited) {
       return NextResponse.json(
         { error: `Too many attempts. Try again in ${retryAfterSeconds} seconds.` },
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     const info = await verifyGoogleToken(credential);
     if (!info) {
-      recordFailedAttempt(key);
+      await recordFailedAttempt(key);
       return NextResponse.json({ error: "Google sign-in failed. Please try again." }, { status: 401 });
     }
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Existing user → log them in (password untouched; they can still sign in with password).
     const existing = await findUserByEmail(email);
     if (existing) {
-      clearRateLimit(key);
+      await clearRateLimit(key);
       const token = await createSessionToken(email, {
         id: existing.id,
         name,
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     const invite = inviteToken ? await getInviteByToken(inviteToken) : null;
 
     if (inviteToken && (!invite || invite.status !== "pending")) {
-      recordFailedAttempt(key);
+      await recordFailedAttempt(key);
       return NextResponse.json({ error: "Invite is invalid or already used." }, { status: 400 });
     }
     if (invite && !isInviteRole(invite.role)) {

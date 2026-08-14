@@ -15,10 +15,10 @@ describe("generateDeploymentNotes", () => {
     );
 
     expect(notes).toBe(
-      "1. Penyempurnaan Visual & UI: Menghapus garis ungu di My Library dan Menyesuaikan ukuran ikon agar lebih proporsional.\n" +
-      "2. Keamanan Akses: Menambahkan restriksi pada jalur /vania sehingga pengguna yang belum login tidak dapat mengaksesnya.\n" +
-      "3. Optimasi Interaksi: Menerapkan auto-lock pada pilihan grup proyek, Menerapkan auto-collapse pada generator gambar/video, dan Menutup modal otomatis saat klik di luar area.\n" +
-      "4. Alur Navigasi & Fitur Baru: Mengarahkan ke bagian Prompt setelah penghapusan dan Menambahkan fitur Edit & Delete proyek.",
+      "1. Visual & UI Improvements: Remove the purple line in My Library and Adjust the icon size to keep the layout balanced.\n" +
+      "2. Access Security: Add a restriction to the /vania path so unauthenticated users cannot access it.\n" +
+      "3. Interaction Optimization: Apply auto-lock to project group selection, Apply auto-collapse in the image and video generator, and Close the modal automatically when clicking outside the area.\n" +
+      "4. Navigation Flow & New Features: Redirect to the Prompt section after deletion and Add Edit & Delete project functionality.",
     );
   });
 });

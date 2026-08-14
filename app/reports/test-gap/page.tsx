@@ -13,6 +13,7 @@ import {
   Funnel,
   Info,
   ArrowRight,
+  FileArrowDown,
 } from "@phosphor-icons/react";
 import {
   BarChart,
@@ -119,6 +120,15 @@ export default function TestGapPage() {
       title="Test Gap Analysis"
       description="Identify features and resolved bugs that lack test case coverage."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Gap Analysis" }]}
+      actions={
+        <a
+          href="/api/reports/test-gap/export"
+          className="inline-flex h-9 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+        >
+          <FileArrowDown size={14} weight="bold" />
+          Export
+        </a>
+      }
       controls={
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">

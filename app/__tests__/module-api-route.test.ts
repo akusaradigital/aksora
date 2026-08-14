@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   createModuleRecord: vi.fn(),
   updateModuleRecord: vi.fn(),
   updateModuleStatus: vi.fn(),
@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: mocks.getCurrentUser }));
-vi.mock("@/lib/auth-core", () => ({ isAdminUser: mocks.isAdminUser }));
+vi.mock("@/lib/auth-core", () => ({ isPlatformSuperAdmin: mocks.isPlatformSuperAdmin }));
 vi.mock("@/lib/data", () => ({
   createModuleRecord: mocks.createModuleRecord,
   updateModuleRecord: mocks.updateModuleRecord,
@@ -41,11 +41,13 @@ vi.mock("@/lib/modules", () => ({
 vi.mock("@/lib/logger", () => ({ friendlyErrorMessage: (_error: unknown, fallback: string) => fallback, logError: mocks.logError }));
 
 import { POST, PATCH } from "@/app/api/items/[module]/route";
+type ModuleRouteRequest = Parameters<typeof POST>[0];
+type ModuleRouteContext = Parameters<typeof POST>[1];
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getCurrentUser.mockResolvedValue({ id: 1, name: "Rina", role: "pm", company: "acme", email: "rina@example.com" });
-  mocks.isAdminUser.mockReturnValue(false);
+  mocks.isPlatformSuperAdmin.mockReturnValue(false);
 });
 
 function makeRequest(body: Record<string, unknown>) {
@@ -57,14 +59,18 @@ function makeRequest(body: Record<string, unknown>) {
       return form;
     },
     json: async () => body,
-  } as any;
+  } as unknown as ModuleRouteRequest;
+}
+
+function makeParams(module: string): ModuleRouteContext {
+  return { params: Promise.resolve({ module }) };
 }
 
 describe("module api route", () => {
   it("allows cross-assignment on POST for non-admin", async () => {
     mocks.formDataToEntry.mockReturnValue({ suggestedDev: "Budi", title: "Bug 1" });
 
-    const response = await POST(makeRequest({ suggestedDev: "Budi", title: "Bug 1" }), { params: Promise.resolve({ module: "bugs" }) } as any);
+    const response = await POST(makeRequest({ suggestedDev: "Budi", title: "Bug 1" }), makeParams("bugs"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -73,7 +79,7 @@ describe("module api route", () => {
   });
 
   it("allows cross-assignment on PATCH for non-admin", async () => {
-    const response = await PATCH(makeRequest({ id: 1, entry: { suggestedDev: "Budi", title: "Bug 1" } }), { params: Promise.resolve({ module: "bugs" }) } as any);
+    const response = await PATCH(makeRequest({ id: 1, entry: { suggestedDev: "Budi", title: "Bug 1" } }), makeParams("bugs"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -89,13 +95,13 @@ describe("module api route", () => {
       company: "",
       email: "admin@example.com",
     });
-    mocks.isAdminUser.mockReturnValueOnce(true);
+    mocks.isPlatformSuperAdmin.mockReturnValueOnce(true);
     mocks.formDataToEntry.mockReturnValue({ suggestedDev: "Budi", title: "Bug 1" });
     mocks.createModuleRecord.mockResolvedValueOnce(undefined);
 
     const response = await POST(
       makeRequest({ suggestedDev: "Budi", title: "Bug 1" }),
-      { params: Promise.resolve({ module: "bugs" }) } as any,
+      makeParams("bugs"),
     );
 
     expect(response.status).toBe(200);

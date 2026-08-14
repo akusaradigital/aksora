@@ -7,7 +7,6 @@ import {
   CaretLeft,
   CaretRight,
   Printer,
-  TrendUp,
   ArrowDown,
   ArrowUp,
   Minus,
@@ -36,7 +35,6 @@ export function ReportDateNav({
   weekStart,
   setWeekStart,
   weekEnd,
-  customEnd,
   setCustomEnd,
   isCurrentWeek,
   passRateTone,
@@ -45,7 +43,6 @@ export function ReportDateNav({
   weekStart: Date;
   setWeekStart: (d: Date | ((prev: Date) => Date)) => void;
   weekEnd: Date;
-  customEnd: Date;
   setCustomEnd: (d: Date) => void;
   isCurrentWeek: boolean;
   passRateTone: string;
@@ -55,7 +52,6 @@ export function ReportDateNav({
   const [calMonth, setCalMonth] = useState(() => new Date());
   const [rangeFrom, setRangeFrom] = useState<Date | null>(null);
   const [rangeTo, setRangeTo] = useState<Date | null>(null);
-  const [_rangeError, setRangeError] = useState<string | null>(null);
   const calRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,7 +60,6 @@ export function ReportDateNav({
         setCalOpen(false);
         setRangeFrom(null);
         setRangeTo(null);
-        setRangeError(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -83,7 +78,6 @@ export function ReportDateNav({
   };
 
   const pickDate = (d: Date) => {
-    setRangeError(null);
     if (!rangeFrom || (rangeFrom && rangeTo)) {
       setRangeFrom(d);
       setRangeTo(null);

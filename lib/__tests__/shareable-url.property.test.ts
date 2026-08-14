@@ -111,7 +111,7 @@ describe("Property 2: Query Parameter Preservation", () => {
         const result = preserveQueryParams(original, undefined, true);
 
         // All non-view params should still be present
-        for (const [key, value] of params) {
+        for (const [key] of params) {
           expect(result.get(key)).toBe(original.get(key));
         }
         // view should be removed
@@ -135,8 +135,7 @@ describe("Property 2: Query Parameter Preservation", () => {
         const resultKeys = new Set<string>();
         result.forEach((_, key) => resultKeys.add(key));
 
-        const expectedKeys = new Set<string>();
-        original.forEach((_, key) => expectedKeys.add(key));
+        const expectedKeys = new Set<string>(result.keys());
         expectedKeys.add("view");
 
         expect(resultKeys).toEqual(expectedKeys);

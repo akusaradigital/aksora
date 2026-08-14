@@ -19,6 +19,14 @@ type AppWrapperProps = {
   children: React.ReactNode;
 };
 
+type AppUser = {
+  role?: string;
+  company?: string | null;
+  name?: string | null;
+  email?: string | null;
+  avatar?: string | null;
+};
+
 export function AppWrapper({ children }: AppWrapperProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -27,7 +35,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -35,7 +43,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const pathname = usePathname();
   const router = useRouter();
   const companyName = String(user?.company || "").trim();
-  const accountLabel = companyName || (user ? getRoleLabel(user?.role || "", user?.company || "") : "Workspace");
+  const accountLabel = companyName || (user ? getRoleLabel(user?.role || "") : "Workspace");
 
   const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security"];
   const isAuthScreen = marketingPaths.includes(pathname);
@@ -271,7 +279,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
                       </div>
                       <div className="flex items-center justify-between py-1">
                         <span className="text-gray-500">Role</span>
-                        <span className="font-semibold text-gray-800">{getRoleLabel(user?.role || "", user?.company || "")}</span>
+                        <span className="font-semibold text-gray-800">{getRoleLabel(user?.role || "")}</span>
                       </div>
                       {companyName && (
                         <div className="flex items-center justify-between py-1">
@@ -346,6 +354,4 @@ export function AppWrapper({ children }: AppWrapperProps) {
     </div>
   );
 }
-
-
 

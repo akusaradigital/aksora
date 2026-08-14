@@ -17,9 +17,7 @@ import {
   getDayLabel,
   getItemKey,
   getJakartaNow,
-  getPeriodWindow,
   getScopedStorageKey,
-  getScrollTargetDate,
   parseDate,
   serializeDate,
   startOfMonth,
@@ -54,7 +52,7 @@ export default function GanttPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("year");
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("normal");
   const [focusDate, setFocusDate] = useState(() => { const d = getJakartaNow(); d.setHours(0, 0, 0, 0); return d; });
-  const [_viewportRange, setViewportRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [, setViewportRange] = useState<{ start: Date; end: Date } | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip>(null);
   const [editModal, setEditModal] = useState<EnhancedEditModalState | null>(null);
   const [hoveredItemKey, setHoveredItemKey] = useState<string | null>(null);

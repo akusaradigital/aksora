@@ -10,10 +10,51 @@ import {
   dashboardCacheKey,
   computeResolutionRate,
   computeResolutionRateDelta,
-  invalidateDashboardCache,
 } from "@/lib/data/data-dashboard-stats";
 
-export async function getDashboardData(filterProject?: string): Promise<any> {
+type SqlValue = string | number | null;
+type DashboardData = any;
+type SummaryCountsRow = { taskCount: SqlValue; bugCount: SqlValue; caseCount: SqlValue };
+type SprintCountsRow = { suiteCount: SqlValue; sessionCount: SqlValue };
+type CompletionCountsRow = { bugFixedCount?: SqlValue; taskCompletedCount?: SqlValue; count?: SqlValue };
+type WeekPulseRow = {
+  bugCreatedThisWeek?: SqlValue;
+  taskCreatedThisWeek?: SqlValue;
+  bugResolvedThisWeek?: SqlValue;
+  taskResolvedThisWeek?: SqlValue;
+  bugCreatedLastWeek?: SqlValue;
+  taskCreatedLastWeek?: SqlValue;
+  bugResolvedLastWeek?: SqlValue;
+  taskResolvedLastWeek?: SqlValue;
+};
+type HeatCountRow = { name: SqlValue; cnt: SqlValue };
+type BurndownRow = { date: SqlValue; count: SqlValue };
+type SprintPassRateRow = {
+  id: SqlValue;
+  name: SqlValue;
+  startDate: SqlValue;
+  endDate: SqlValue;
+  passed: SqlValue;
+  totalCases: SqlValue;
+  sessions: SqlValue;
+};
+type MostActiveProjectRow = { name: SqlValue };
+type RecentSessionRow = {
+  id: SqlValue;
+  date: SqlValue;
+  tester: SqlValue;
+  scope: SqlValue;
+  totalCases: SqlValue;
+  passed: SqlValue;
+  failed: SqlValue;
+  blocked: SqlValue;
+  result: SqlValue;
+};
+type CriticalBugRow = { id: SqlValue; title: SqlValue; severity: SqlValue; updatedAt: SqlValue; ageDays: SqlValue };
+type PriorityTaskRow = { id: SqlValue; title: SqlValue; priority: SqlValue; updatedAt: SqlValue; ageDays: SqlValue };
+type SprintRow = { id: SqlValue; name: SqlValue; startDate: SqlValue; endDate: SqlValue; status: SqlValue };
+
+export async function getDashboardData(filterProject?: string): Promise<DashboardData> {
   const user = await getCurrentUser();
   const { company, isAdmin } = getAccessScope(user);
   const userRole = user?.role || "user";
@@ -22,7 +63,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   const cacheKey = dashboardCacheKey(company, isAdmin, userRole, filterProject || "");
   const cached = dashboardCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return structuredClone(cached.data as object);
+    return structuredClone(cached.data as DashboardData);
   }
 
   const companyWhere = isAdmin ? "" : `WHERE "company" = ?`;
@@ -63,24 +104,24 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     safeQuery(selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
     safeQuery(selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
     safeQuery(selectAll(`SELECT "id", "caseName", "priority", "status" FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, companyParams), []),
-    safeQuery(db.get(
+    safeQuery(db.get<SummaryCountsRow>(
       `SELECT
          (SELECT COUNT(*) FROM "Task" WHERE "deletedAt" IS NULL${projectAndWhere}) AS taskCount,
          (SELECT COUNT(*) FROM "Bug" WHERE "deletedAt" IS NULL AND "status" NOT IN ('closed', 'resolved', 'fixed', 'rejected')${projectAndWhere}) AS bugCount,
          (SELECT COUNT(*) FROM "TestCase" WHERE "deletedAt" IS NULL${companyAndWhere}) AS caseCount
        `,
       [...projectParams, ...projectParams, ...companyParams],
-    ) as Promise<any>, null),
+    ), null),
     safeQuery(selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${projectWhere} GROUP BY status`, projectParams), []),
     safeQuery(selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY severity`, projectParams), []),
-    safeQuery(db.get(`SELECT "id", "name", "startDate", "endDate", "status" FROM "Sprint" WHERE status = 'active' ${companyAndWhere} LIMIT 1`, companyParams) as Promise<any>, null),
-    safeQuery(db.get(
+    safeQuery(db.get<SprintRow>(`SELECT "id", "name", "startDate", "endDate", "status" FROM "Sprint" WHERE status = 'active' ${companyAndWhere} LIMIT 1`, companyParams), null),
+    safeQuery(db.get<CompletionCountsRow>(
       `SELECT
          (SELECT COUNT(*) FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}) AS bugFixedCount,
          (SELECT COUNT(*) FROM "Task" WHERE status = 'completed' ${projectAndWhere}) AS taskCompletedCount
        `,
       [...projectParams, ...projectParams],
-    ) as Promise<any>, null),
+    ), null),
     safeQuery(selectAll(`SELECT date("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere} GROUP BY date("createdAt") ORDER BY date ASC`, projectParams), []),
     safeQuery(selectAll(`SELECT id, name, "startDate", "endDate", status FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 20`, companyParams), []),
     safeQuery(selectAll(`SELECT "id", "entityType", "entityId", "action", "summary", "createdAt" FROM "ActivityLog" ${companyWhere} ORDER BY "createdAt" DESC LIMIT 10`, companyParams), []),
@@ -90,15 +131,15 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     safeQuery(selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE date("createdAt") = CURRENT_DATE ${projectAndWhere}`, projectParams), []),
     safeQuery(selectAll(`SELECT "id", "title", "severity", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
     safeQuery(selectAll(`SELECT "id", "title", "priority", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
-    safeQuery(db.get(
+    safeQuery(db.get<SprintCountsRow>(
       `SELECT
          (SELECT COUNT(*) FROM "TestSuite" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS suiteCount,
          (SELECT COUNT(*) FROM "TestSession" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS sessionCount
        `,
       [...companyParams, ...companyParams],
-    ) as Promise<any>, null),
+    ), null),
     safeQuery(selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams), []),
-    safeQuery(db.get(
+    safeQuery(db.get<WeekPulseRow>(
       `SELECT
          (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS bugCreatedThisWeek,
          (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskCreatedThisWeek,
@@ -110,47 +151,48 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
          (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '14 days' AND "updatedAt" < CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskResolvedLastWeek
        `,
       [...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams],
-    ) as Promise<any>, null),
+    ), null),
   ]);
 
   // Heatmap: merge 4 lightweight queries instead of 1 heavy CTE
   const [heatTaskCounts, heatBugCounts, heatSuiteCounts, heatPlanCounts] = await Promise.all([
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "Task" WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), []),
-    safeQuery(selectAll(`SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug" WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"`, projectParams), []),
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite" WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee`, companyParams), []),
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan" WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), []),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "Task" WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug" WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"`, projectParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite" WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee`, companyParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan" WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
   ]);
 
   const heatmap = new Map<string, { taskCount: number; bugCount: number; suiteCount: number; planCount: number }>();
+  const emptyHeatmapCounts = { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
   for (const row of heatTaskCounts) {
     const name = String(row.name ?? "").trim();
     if (!name) continue;
-    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    const entry = heatmap.get(name) || { ...emptyHeatmapCounts };
     entry.taskCount = Number(row.cnt ?? 0);
     heatmap.set(name, entry);
   }
   for (const row of heatBugCounts) {
     const name = String(row.name ?? "").trim();
     if (!name) continue;
-    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    const entry = heatmap.get(name) || { ...emptyHeatmapCounts };
     entry.bugCount = Number(row.cnt ?? 0);
     heatmap.set(name, entry);
   }
   for (const row of heatSuiteCounts) {
     const name = String(row.name ?? "").trim();
     if (!name) continue;
-    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    const entry = heatmap.get(name) || { ...emptyHeatmapCounts };
     entry.suiteCount = Number(row.cnt ?? 0);
     heatmap.set(name, entry);
   }
   for (const row of heatPlanCounts) {
     const name = String(row.name ?? "").trim();
     if (!name) continue;
-    const entry = heatmap.get(name) || { taskCount: 0, bugCount: 0, suiteCount: 0, planCount: 0 };
+    const entry = heatmap.get(name) || { ...emptyHeatmapCounts };
     entry.planCount = Number(row.cnt ?? 0);
     heatmap.set(name, entry);
   }
-  const heatmapRes = [...heatmap.entries()].map(([name, counts]) => ({ name, ...counts }));
+  const heatmapRes: Array<{ name: string } & typeof emptyHeatmapCounts> = [...heatmap.entries()].map(([name, counts]) => ({ name, ...counts }));
 
   let taskCount = Number(summaryCounts?.taskCount ?? 0);
   let bugCount = Number(summaryCounts?.bugCount ?? 0);
@@ -160,10 +202,10 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   let bugFixed = { count: Number(completionCounts?.bugFixedCount ?? 0) };
   let taskCompleted = { count: Number(completionCounts?.taskCompletedCount ?? 0) };
   if (!summaryCounts) {
-    const openBugRow = await db.get(
+    const openBugRow = await db.get<{ total?: number | string }>(
       `SELECT COUNT(*) as total FROM "Bug" WHERE "status" NOT IN ('closed', 'resolved', 'fixed', 'rejected')${company ? ' AND "company" = ?' : ""}`,
       company ? [company] : [],
-    ) as { total?: number } | undefined;
+    );
     [taskCount, bugCount, caseCount] = await Promise.all([
       countRows("Task", company),
       Promise.resolve(Number(openBugRow?.total ?? 0)),
@@ -178,11 +220,11 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   }
   if (!completionCounts) {
     const [bugFixedCount, taskCompletedCount] = await Promise.all([
-      db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams) as Promise<any>,
-      db.get(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams) as Promise<any>,
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Bug" WHERE status IN ('fixed', 'closed') ${projectAndWhere}`, projectParams),
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Task" WHERE status = 'completed' ${projectAndWhere}`, projectParams),
     ]);
-    bugFixed = { count: Number(bugFixedCount?.count ?? 0) };
-    taskCompleted = { count: Number(taskCompletedCount?.count ?? 0) };
+    bugFixed = { count: Number(bugFixedCount?.bugFixedCount ?? bugFixedCount?.count ?? 0) };
+    taskCompleted = { count: Number(taskCompletedCount?.taskCompletedCount ?? taskCompletedCount?.count ?? 0) };
   }
 
   const todayActivity = [...(todayTasks || []), ...(todayBugs || []), ...(todaySessions || [])];
@@ -191,8 +233,8 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   const sprintBurndown: { date: string; done: number; ideal: number }[] = [];
   if (sprint) {
     const [tTotal, tDone, burndownRows] = await Promise.all([
-      db.get('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + companyAndWhere, [sprint.id, ...companyParams]) as Promise<any>,
-      db.get("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + companyAndWhere, [sprint.id, ...companyParams]) as Promise<any>,
+      db.get<CompletionCountsRow>('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + companyAndWhere, [sprint.id, ...companyParams]),
+      db.get<CompletionCountsRow>("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + companyAndWhere, [sprint.id, ...companyParams]),
       selectAll(
         `SELECT date("updatedAt") as date, COUNT(*) as count FROM "Task"
          WHERE "sprintId" = ? AND status = 'done'
@@ -206,18 +248,18 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       name: String(sprint.name),
       startDate: String(sprint.startDate),
       endDate: String(sprint.endDate),
-      progress: Number(tTotal.count) > 0 ? Math.round((Number(tDone.count) / Number(tTotal.count)) * 100) : 0,
-      taskTotal: Number(tTotal.count),
-      taskDone: Number(tDone.count)
+      progress: Number(tTotal?.count ?? 0) > 0 ? Math.round((Number(tDone?.count ?? 0) / Number(tTotal?.count ?? 0)) * 100) : 0,
+      taskTotal: Number(tTotal?.count ?? 0),
+      taskDone: Number(tDone?.count ?? 0)
     };
 
     // Build cumulative burndown with ideal line
-    const start = new Date(sprint.startDate);
-    const end = new Date(sprint.endDate);
+    const start = new Date(String(sprint.startDate ?? ""));
+    const end = new Date(String(sprint.endDate ?? ""));
     const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
-    const totalTasks = Number(tTotal.count);
+    const totalTasks = Number(tTotal?.count ?? 0);
     const doneByDate: Record<string, number> = {};
-    for (const row of burndownRows as any[]) {
+    for (const row of burndownRows as BurndownRow[]) {
       doneByDate[String(row.date)] = Number(row.count);
     }
     let cumDone = 0;
@@ -249,7 +291,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     ? 'WHERE sp."deletedAt" IS NULL'
     : 'WHERE sp."company" = ? AND sp."deletedAt" IS NULL';
   const sprintWhereParams = isAdmin ? [] : [company];
-  const sprintPassRateRows = await selectAll(
+  const sprintPassRateRows = (await selectAll(
     `SELECT sp.id, sp.name, sp."startDate", sp."endDate",
             COALESCE(SUM(COALESCE(ts.passed, 0)), 0) AS passed,
             COALESCE(SUM(COALESCE(ts."totalCases", 0)), 0) AS totalCases,
@@ -264,8 +306,8 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
      ORDER BY sp."startDate" DESC
      LIMIT 5`,
     [...sprintJoinParams, ...sprintWhereParams],
-  ) as any[];
-  const sprintPassRates = sprintPassRateRows.map((sp: any) => {
+  )) as SprintPassRateRow[];
+  const sprintPassRates = sprintPassRateRows.map((sp) => {
     const totalPassed = Number(sp.passed ?? 0);
     const totalCases = Number(sp.totalCases ?? 0);
     return {
@@ -278,7 +320,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
   
   // Dynamic spotlight project
-  const mostActiveProject = await db.get(`SELECT project as name FROM "TestPlan" ${companyWhere} GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1`, companyParams) as any;
+  const mostActiveProject = await db.get<MostActiveProjectRow>(`SELECT project as name FROM "TestPlan" ${companyWhere} GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1`, companyParams);
   const spotlightName = mostActiveProject?.name || (taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project");
 
   const data = {
@@ -289,7 +331,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
       { label: "Test Suites", value: suiteCount, caption: "Organized collections of test scenarios." },
       { label: "Sessions", value: sessionCount, caption: "Test execution sessions recorded." },
     ],
-    recentSessions: (recentSessions || []).map((s: any) => ({
+    recentSessions: (recentSessions || [] as RecentSessionRow[]).map((s) => ({
       id: Number(s.id),
       date: String(s.date ?? ""),
       tester: String(s.tester ?? ""),
@@ -337,19 +379,19 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
-       criticalBugs: (critBugs || []).map((b: any) => ({ 
-         id: b.id,
-         title: String(b.title), 
-         severity: String(b.severity),
+       criticalBugs: (critBugs || [] as CriticalBugRow[]).map((b) => ({ 
+          id: b.id,
+          title: String(b.title), 
+          severity: String(b.severity),
          code: codeFromId("BUG", Number(b.id)),
          statusChangedAt: b.updatedAt ? String(b.updatedAt) : null,
-         ageDays: b.ageDays != null ? Number(b.ageDays) : null,
-         moduleType: 'Bug' as const,
-       })),
-       priorityTasks: (prioTasks || []).map((t: any) => ({ 
-         id: t.id,
-         title: String(t.title), 
-         priority: String(t.priority),
+          ageDays: b.ageDays != null ? Number(b.ageDays) : null,
+          moduleType: 'Bug' as const,
+        })),
+       priorityTasks: (prioTasks || [] as PriorityTaskRow[]).map((t) => ({ 
+          id: t.id,
+          title: String(t.title), 
+          priority: String(t.priority),
          code: codeFromId("TASK", Number(t.id)),
          statusChangedAt: t.updatedAt ? String(t.updatedAt) : null,
          ageDays: t.ageDays != null ? Number(t.ageDays) : null,
@@ -359,12 +401,12 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     sprintInfo: sprintInfo ? {
        ...sprintInfo,
        goal: "Complete all planned tasks for the current cycle."
-    } : null,
+     } : null,
     personalSuccessRate: successRate,
-    heatmap: (heatmapRes || []).map((r: any) => ({
-      name: String(r.name),
-      taskCount: Number(r.taskCount),
-      bugCount: Number(r.bugCount),
+    heatmap: (heatmapRes || []).map((r) => ({
+       name: String(r.name),
+       taskCount: Number(r.taskCount),
+       bugCount: Number(r.bugCount),
       suiteCount: Number(r.suiteCount),
       planCount: Number(r.planCount),
       total: Number(r.taskCount) + Number(r.bugCount) + Number(r.suiteCount) + Number(r.planCount)
@@ -405,7 +447,7 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     })),
   };
   dashboardCache.set(cacheKey, { data, expiresAt: Date.now() + 30000 });
-  return structuredClone(data as object);
+  return structuredClone(data as DashboardData);
 }
 
 export async function getReportsData() {
@@ -439,7 +481,7 @@ export async function getResourceDetails(name: string) {
   }).__qaResourceDetailsCache = new Map());
   const cached = resourceCache.get(resourceCacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return structuredClone(cached.data as object);
+    return structuredClone(cached.data as Record<string, unknown>);
   }
   const andWhere = isAdmin ? "" : ' AND "company" = ?';
   const companyParam = isAdmin ? [] : [company];
@@ -456,7 +498,7 @@ export async function getResourceDetails(name: string) {
     suites: suites.map(s => ({ ...s, type: 'Suite' })),
   };
   resourceCache.set(resourceCacheKey, { data, expiresAt: Date.now() + 30000 });
-  return structuredClone(data as object);
+  return structuredClone(data as Record<string, unknown>);
 }
 
 export async function getExecutiveData() {
@@ -464,17 +506,17 @@ export async function getExecutiveData() {
   const andWhere = isAdmin ? "" : ' AND "company" = ?';
   const qp = isAdmin ? [] : [company];
 
-  const [critRes, totalBugs, openT, tcPass, testCaseTotal] = await Promise.all([
-    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed'${andWhere}`, qp) as Promise<any>,
-    countRows("Bug", isAdmin ? undefined : company),
-    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE "status" != 'done'${andWhere}`, qp) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "TestCase" WHERE "status" IN ('Passed', 'Success')${andWhere}`, qp) as Promise<any>,
-    countRows("TestCase", isAdmin ? undefined : company),
-  ]);
+    const [critRes, totalBugs, openT, tcPass, testCaseTotal] = await Promise.all([
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed'${andWhere}`, qp),
+      countRows("Bug", isAdmin ? undefined : company),
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Task" WHERE "status" != 'done'${andWhere}`, qp),
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "TestCase" WHERE "status" IN ('Passed', 'Success')${andWhere}`, qp),
+      countRows("TestCase", isAdmin ? undefined : company),
+    ]);
 
-  const criticalBugs = Number(critRes.count);
-  const openTasks = Number(openT.count);
-  const testCasePass = Number(tcPass.count);
+  const criticalBugs = Number(critRes?.count ?? 0);
+  const openTasks = Number(openT?.count ?? 0);
+  const testCasePass = Number(tcPass?.count ?? 0);
   
   const readiness = testCaseTotal > 0 ? Math.round((testCasePass / testCaseTotal) * 100) : 0;
   const bugDensity = totalBugs > 0 ? parseFloat((criticalBugs / totalBugs).toFixed(2)) : 0;
@@ -486,16 +528,16 @@ export async function getExecutiveData() {
     { label: "Blockers", value: openTasks, trend: "down", status: openTasks > 10 ? "warning" : "success" },
   ];
 
-  const [trend, notes, totalTasks, fBugs, cTasks] = await Promise.all([
-    getQualityTrend(),
-    getReleaseNotes(),
-    countRows("Task", isAdmin ? undefined : company),
-    db.get(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" IN ('fixed', 'closed')${andWhere}`, qp) as Promise<any>,
-    db.get(`SELECT COUNT(*) as count FROM "Task" WHERE "status" = 'completed'${andWhere}`, qp) as Promise<any>
-  ]);
+    const [trend, notes, totalTasks, fBugs, cTasks] = await Promise.all([
+      getQualityTrend(),
+      getReleaseNotes(),
+      countRows("Task", isAdmin ? undefined : company),
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Bug" WHERE "status" IN ('fixed', 'closed')${andWhere}`, qp),
+      db.get<CompletionCountsRow>(`SELECT COUNT(*) as count FROM "Task" WHERE "status" = 'completed'${andWhere}`, qp)
+    ]);
 
-  const fixedBugs = Number(fBugs.count);
-  const completedTasks = Number(cTasks.count);
+  const fixedBugs = Number(fBugs?.count ?? 0);
+  const completedTasks = Number(cTasks?.count ?? 0);
   const totalActions = totalBugs + totalTasks;
   const totalSuccess = fixedBugs + completedTasks;
   const personalSuccessRate = totalActions > 0 ? Math.round((totalSuccess / totalActions) * 100) : 100;
@@ -515,8 +557,8 @@ export async function getExecutiveData() {
         : (isHealthy 
            ? "The project is currently in a stable state with a high pass rate." 
            : "Action required: Several high-severity defects are pending or pass rate is low."),
-      planName: (await db.get(`SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp) as any)?.title || "Master Test Strategy",
-      projectName: (await db.get(`SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp) as any)?.project || "All Active Projects"
+      planName: (await db.get<{ title: string | null }>(`SELECT "title" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp))?.title || "Master Test Strategy",
+      projectName: (await db.get<{ project: string | null }>(`SELECT "project" FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere} ORDER BY "updatedAt" DESC LIMIT 1`, qp))?.project || "All Active Projects"
     }
   };
 }

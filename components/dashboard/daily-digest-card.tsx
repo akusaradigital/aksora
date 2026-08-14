@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bug, CalendarBlank, Sparkle, Kanban, ArrowsClockwise, X, Warning } from "@phosphor-icons/react";
+import { Bug, CalendarBlank, SunHorizon, Kanban, ArrowsClockwise, X, Warning } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 type DigestItem = {
@@ -100,7 +100,7 @@ export function DailyDigestCard() {
     return (
       <div className=" border border-gray-200 bg-white p-5" data-testid="daily-digest-card-loading">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-          <Sparkle size={14} weight="bold" /> Preparing your morning digest…
+          <SunHorizon size={14} weight="bold" /> Preparing your morning digest…
         </div>
       </div>
     );
@@ -138,23 +138,23 @@ export function DailyDigestCard() {
 
   return (
     <section
-      className=" border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm"
+      className="border border-slate-200 border-l-4 border-l-blue-600 bg-white p-5 shadow-sm animate-in fade-in duration-300"
       data-testid="daily-digest-card"
     >
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center  bg-blue-100 text-blue-600">
-            <Sparkle size={13} weight="bold" />
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center bg-blue-600 text-white">
+            <SunHorizon size={16} weight="bold" />
           </span>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-blue-900">Morning Digest</h3>
-            <p className="text-[11px] text-gray-500">Updates since your last session</p>
+            <h3 className="text-sm font-black text-slate-900">Morning Digest</h3>
+            <p className="text-[11px] text-slate-500">Updates since your last session</p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          className="flex h-7 w-7 items-center justify-center  text-gray-400 hover:bg-white hover:text-gray-600"
+          className="flex h-7 w-7 items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           aria-label="Dismiss digest"
         >
           <X size={12} weight="bold" />
@@ -170,7 +170,7 @@ export function DailyDigestCard() {
         />
         <DigestSection
           title="Your Items"
-          icon={<Kanban size={12} weight="bold" className="text-blue-500" />}
+          icon={<Kanban size={12} weight="bold" className="text-blue-600" />}
           items={data.assignedItems}
           empty="No assigned items"
         />
@@ -182,7 +182,7 @@ export function DailyDigestCard() {
         />
         <DigestSection
           title="Upcoming Deadlines"
-          icon={<CalendarBlank size={12} weight="bold" className="text-emerald-500" />}
+          icon={<CalendarBlank size={12} weight="bold" className="text-emerald-600" />}
           items={data.upcomingDeadlines}
           empty="No deadlines in 2 days"
         />

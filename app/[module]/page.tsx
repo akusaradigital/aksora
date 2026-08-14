@@ -11,21 +11,25 @@ import { getItemTitleField, buildOgDescription } from "@/lib/og-helpers";
 
 export const dynamic = "force-dynamic";
 
-type ModuleRow = any;
-type PlanRow = ModuleRow & {
-  id: any;
-  title?: any;
-  project?: any;
-  publicToken?: any;
-};
-type SuiteRow = ModuleRow & {
-  id: any;
-  title?: any;
-  testPlanId?: any;
-  publicToken?: any;
-  project?: any;
+type RowData = Record<string, unknown> & {
+  id?: string | number;
+  title?: string | null;
+  project?: string | null;
+  publicToken?: string;
+  testPlanId?: string | number;
   testPlanLabel?: string;
+  testPlanRowSpan?: number;
+  projectRowSpan?: number;
+  version?: string;
 };
+type PlanRow = {
+  id?: string | number;
+  title?: string;
+  project?: string;
+  publicToken?: string;
+};
+type AssigneeOption = { value: string; label: string; role?: string };
+type RelatedSuite = { id?: string | number; title?: string; token: string; publicToken: string };
 
 export async function generateMetadata({
   params,
@@ -133,7 +137,7 @@ function compareVersions(left: string, right: string) {
   return Number(leftPatch) - Number(rightPatch);
 }
 
-function getLatestDeploymentVersion(rows: Record<string, unknown>[]) {
+function getLatestDeploymentVersion(rows: RowData[]) {
   return rows
     .map((row) => String(row.version ?? "").trim())
     .filter(Boolean)
@@ -165,8 +169,8 @@ export default async function ModulePage({
   const sortBy = String(Array.isArray(query.sortBy) ? query.sortBy[0] : query.sortBy ?? "").trim() || undefined;
   const sortDir = String(Array.isArray(query.sortDir) ? query.sortDir[0] : query.sortDir ?? "").trim() as "asc" | "desc" | undefined;
 
-  let rows: Record<string, unknown>[] = [];
-  let kanbanRows: Record<string, unknown>[] = [];
+  let rows: RowData[] = [];
+  let kanbanRows: RowData[] = [];
   let totalItems = 0;
   let relatedOptions: Record<string, Array<{ label: string; value: string }>> = {};
   const initialFormValues: Record<string, string> = {};
@@ -199,24 +203,27 @@ export default async function ModulePage({
     }
 
     if (moduleKey === "test-suites") {
-      const plans = await getTestPlanReferenceRows();
+      const plans = (await getTestPlanReferenceRows()) as PlanRow[];
       const planMap = new Map<string, { project: string; title: string; publicToken: string }>();
       for (const plan of plans) {
-        const row = plan as PlanRow;
-        const id = String(row.id ?? "");
+        const id = String(plan.id ?? "");
         if (!id) continue;
-        planMap.set(id, row);
+        planMap.set(id, {
+          project: String(plan.project ?? ""),
+          title: String(plan.title ?? ""),
+          publicToken: String(plan.publicToken ?? ""),
+        });
       }
 
       relatedOptions = {
-        testPlanId: plans.map((plan: any) => ({
+        testPlanId: plans.map((plan) => ({
           value: String(plan.id ?? ""),
           label: String(plan.title ?? ""),
         })),
       };
-      const suiteStats = await getTestCaseStatsBySuiteIds(rows.map((suite: any) => suite.id));
+      const suiteStats = await getTestCaseStatsBySuiteIds(rows.map((suite) => suite.id ?? ""));
 
-      rows = rows.map((suite: any) => {
+      rows = rows.map((suite) => {
         const suiteId = String(suite.id ?? "");
         const planId = String(suite.testPlanId ?? "");
         const plan = planMap.get(planId);
@@ -234,43 +241,44 @@ export default async function ModulePage({
         };
       });
 
-      rows.sort((a: any, b: any) => {
-        if (a.testPlanLabel !== b.testPlanLabel) return a.testPlanLabel.localeCompare(b.testPlanLabel);
+      rows.sort((a, b) => {
+        const leftPlan = String(a.testPlanLabel ?? "");
+        const rightPlan = String(b.testPlanLabel ?? "");
+        if (leftPlan !== rightPlan) return leftPlan.localeCompare(rightPlan);
         return String(a.title ?? "").localeCompare(String(b.title ?? ""));
       });
 
       const grouped = new Map<string, { start: number; count: number }>();
-      rows.forEach((row: any, index) => {
-        const key = row.testPlanLabel;
+      rows.forEach((row, index) => {
+        const key = String(row.testPlanLabel ?? "");
         const current = grouped.get(key);
         if (!current) grouped.set(key, { start: index, count: 1 });
         else current.count += 1;
       });
-      rows = rows.map((row: any, index) => {
-        const key = row.testPlanLabel;
+      rows = rows.map((row, index) => {
+        const key = String(row.testPlanLabel ?? "");
         const group = grouped.get(key);
         return { ...row, testPlanRowSpan: group && group.start === index ? group.count : 0 };
       });
     }
 
     if (moduleKey === "test-plans") {
-      const suites = await getTestSuitesByPlanIds(rows.map((plan: any) => plan.id));
-      const suitesByPlan = new Map<string, any[]>();
-      for (const suite of suites) {
-        const row = suite as any;
-        const planId = String(row.testPlanId ?? "");
+      const suites = await getTestSuitesByPlanIds(rows.map((plan) => plan.id ?? ""));
+      const suitesByPlan = new Map<string, RelatedSuite[]>();
+      for (const suite of suites as RowData[]) {
+        const planId = String(suite.testPlanId ?? "");
         if (!planId) continue;
         const list = suitesByPlan.get(planId) ?? [];
-        const token = String(row.token ?? row.publicToken ?? "");
-        list.push({ id: row.id, title: row.title, token, publicToken: token });
+        const token = String(suite.token ?? suite.publicToken ?? "");
+        list.push({ id: suite.id, title: String(suite.title ?? ""), token, publicToken: token });
         suitesByPlan.set(planId, list);
       }
-      rows = rows.map((row: any) => ({
+      rows = rows.map((row) => ({
         ...row,
         relatedSuites: suitesByPlan.get(String(row.id)) ?? [],
       }));
 
-      rows.sort((a: any, b: any) => {
+      rows.sort((a, b) => {
         const projA = String(a.project ?? "");
         const projB = String(b.project ?? "");
         if (projA !== projB) return projA.localeCompare(projB);
@@ -278,13 +286,13 @@ export default async function ModulePage({
       });
 
       const groupedProj = new Map<string, { start: number; count: number }>();
-      rows.forEach((row: any, index) => {
+      rows.forEach((row, index) => {
         const key = String(row.project ?? "");
         const current = groupedProj.get(key);
         if (!current) groupedProj.set(key, { start: index, count: 1 });
         else current.count += 1;
       });
-      rows = rows.map((row: any, index) => {
+      rows = rows.map((row, index) => {
         const key = String(row.project ?? "");
         const group = groupedProj.get(key);
         return { ...row, projectRowSpan: group && group.start === index ? group.count : 0 };
@@ -304,7 +312,7 @@ export default async function ModulePage({
       }
     }
 
-    const teamOptionsRaw = await getAssigneeOptions() as Array<{ value: string; label: string; role?: string }>;
+    const teamOptionsRaw = (await getAssigneeOptions()) as AssigneeOption[];
     const devRoles = new Set(["fe", "be", "fullstack", "ai"]);
     const qaRoles = new Set(["qa"]);
     const qaPmRoles = new Set(["qa", "pm"]);

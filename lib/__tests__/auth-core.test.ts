@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -14,11 +14,12 @@ vi.mock("@/lib/db", () => ({
 import {
   authEnabled,
   createSessionToken,
+  getCurrentUser,
   getInviteRoleOptions,
   getRoleLabel,
   getPublicRoleOptions,
   hashPassword,
-  isAdminUser,
+  isPlatformSuperAdmin,
   normalizeRole,
   registerUser,
   sessionCookieName,
@@ -26,6 +27,7 @@ import {
   verifyPassword,
   verifySessionToken,
 } from "@/lib/auth-core";
+import { apiUserContext } from "@/lib/auth-context";
 import { getCompanyLabel } from "@/lib/roles";
 
 beforeEach(() => {
@@ -61,8 +63,8 @@ describe("auth-core", () => {
       "Software Architect",
     ]);
     expect(getCompanyLabel("Magnus", "admin")).toBe("Magnus");
-    expect(isAdminUser("superadmin", "")).toBe(true);
-    expect(isAdminUser("superadmin", "acme")).toBe(false);
+    expect(isPlatformSuperAdmin("superadmin", "")).toBe(true);
+    expect(isPlatformSuperAdmin("superadmin", "acme")).toBe(false);
   });
 
   it("detects auth config availability", () => {
@@ -102,6 +104,21 @@ describe("auth-core", () => {
     vi.restoreAllMocks();
   });
 
+  it("returns the api-local user when set", async () => {
+    await apiUserContext.run(
+      { id: 7, name: "API User", email: "api@example.com", role: "superadmin", company: "acme" },
+      async () => {
+        await expect(getCurrentUser()).resolves.toMatchObject({
+          id: 7,
+          name: "API User",
+          email: "api@example.com",
+          role: "superadmin",
+          company: "acme",
+        });
+      },
+    );
+  });
+
   it("validates credentials and upgrades legacy password hashes", async () => {
     const legacyHash = "2bb80d537b1da3e38bd30361aa855686bde0eacd7162fef6a25fe97bf527a25b";
     const mockUser = {
@@ -138,11 +155,16 @@ describe("auth-core", () => {
       ["user@example.com", expect.stringMatching(/^scrypt\$/), "User", "fullstack", "acme"],
     );
 
-    mocks.db.run.mockRejectedValueOnce({ message: "UNIQUE constraint failed", code: "SQLITE_CONSTRAINT" });
+    mocks.db.run.mockRejectedValueOnce({ code: "23505" });
+    await expect(registerUser("user@example.com", "secret")).resolves.toEqual({ error: "Email address is already registered. Please use a different email." });
+
+    mocks.db.run.mockRejectedValueOnce({ message: "UNIQUE constraint failed" });
     await expect(registerUser("user@example.com", "secret")).resolves.toEqual({ error: "Email address is already registered. Please use a different email." });
   });
-
   it("exposes the cookie name", () => {
     expect(sessionCookieName()).toBe("aksora_session");
   });
 });
+
+
+

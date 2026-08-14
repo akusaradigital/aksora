@@ -1,16 +1,38 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 
 const notificationsCache = new Map<string, { expiresAt: number; payload: { notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] } }>();
+
+type OverdueBugRow = {
+  id: string;
+  publicToken: string | null;
+  title: string;
+  severity: string | null;
+  createdAt: string | Date;
+};
+
+type SprintDeadlineRow = {
+  id: string;
+  publicToken: string | null;
+  name: string;
+  endDate: string | Date;
+};
+
+type TestPlanDeadlineRow = {
+  id: string;
+  publicToken: string | null;
+  title: string;
+  endDate: string | Date;
+};
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const cacheKey = `${company}|${isAdmin ? "admin" : "user"}`;
   const cached = notificationsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
@@ -28,11 +50,11 @@ export async function GET() {
   const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
 
   const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
-    db.query(
+    db.query<OverdueBugRow>(
       `SELECT id, "publicToken", title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
       [...cp]
-    ) as Promise<any[]>,
-    db.query(
+    ),
+    db.query<SprintDeadlineRow>(
       `SELECT id, "publicToken", name, "endDate" FROM "Sprint"
        WHERE status != 'completed'
          AND status != 'closed'
@@ -42,8 +64,8 @@ export async function GET() {
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
       [todayIso, plus3Iso, ...cp]
-    ) as Promise<any[]>,
-    db.query(
+    ),
+    db.query<TestPlanDeadlineRow>(
       `SELECT id, "publicToken", title, "endDate" FROM "TestPlan"
        WHERE status != 'closed'
          AND status != 'completed'
@@ -54,7 +76,7 @@ export async function GET() {
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
       [todayIso, plus2Iso, ...cp]
-    ) as Promise<any[]>,
+    ),
   ]);
 
   for (const b of overdueBugs) {

@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/shared/badge";
 import { cn, formatDate, formatDisplayText } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { WarningCircle, Clock } from "@phosphor-icons/react";
 import { Panel } from "./report-shared";
 import type { WeeklyReportData, DetailModal } from "./report-types";
@@ -206,6 +207,8 @@ export function DetailModalView({
   setDetailModal: (modal: DetailModal) => void;
   fieldIcons: Record<string, React.ReactNode>;
 }) {
+  const router = useRouter();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4  animate-in fade-in duration-200 sm:items-center"
@@ -245,9 +248,8 @@ export function DetailModalView({
           {detailModal.id > 0 && (
             <button
               onClick={() => {
-                if (typeof window === "undefined") return;
                 setDetailModal(null);
-                window.location.href = `/${detailModal.module}?edit=${detailModal.id}`;
+                router.push(`/${detailModal.module}?edit=${detailModal.id}`);
               }}
               className="h-8  bg-blue-600 px-4 text-xs font-bold text-white transition-all duration-150 hover:bg-blue-500  hover:shadow-md"
             >

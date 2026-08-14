@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Metadata } from "next";
 import { buildOgDescription, getItemTitleField } from "@/lib/og-helpers";
-import type { ModuleKey } from "@/lib/modules";
 
 // Mocks for generateMetadata tests
 const mocks = vi.hoisted(() => ({
@@ -43,6 +43,13 @@ vi.mock("@/lib/modules", async (importOriginal) => {
 });
 
 import { generateMetadata } from "@/app/[module]/page";
+
+type OpenGraphMetadata = NonNullable<Metadata["openGraph"]> & { type?: string };
+
+function getOpenGraph(result: Awaited<ReturnType<typeof generateMetadata>>) {
+  expect(result.openGraph).toBeDefined();
+  return result.openGraph as OpenGraphMetadata;
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -218,15 +225,15 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "tasks" }),
         searchParams: Promise.resolve({ view: "42" }),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("[Tasks] Fix login bug");
-      expect(result.openGraph).toBeDefined();
-      expect((result.openGraph as any).title).toBe("[Tasks] Fix login bug");
-      expect((result.openGraph as any).description).toContain("Status: doing");
-      expect((result.openGraph as any).description).toContain("Priority: P1");
-      expect((result.openGraph as any).url).toBe("/tasks?view=42");
-      expect((result.openGraph as any).type).toBe("article");
-      expect((result.openGraph as any).siteName).toBe("Aksora");
+      expect(openGraph.title).toBe("[Tasks] Fix login bug");
+      expect(openGraph.description).toContain("Status: doing");
+      expect(openGraph.description).toContain("Priority: P1");
+      expect(openGraph.url).toBe("/tasks?view=42");
+      expect(openGraph.type).toBe("article");
+      expect(openGraph.siteName).toBe("Aksora");
     });
 
     it("uses caseName for test-cases module title", async () => {
@@ -255,9 +262,10 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "test-cases" }),
         searchParams: Promise.resolve({ view: "10" }),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("[Test Cases] Valid Login Test");
-      expect((result.openGraph as any).title).toBe("[Test Cases] Valid Login Test");
+      expect(openGraph.title).toBe("[Test Cases] Valid Login Test");
     });
 
     it("falls back to module-level metadata when item is not found", async () => {
@@ -281,11 +289,12 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "bugs" }),
         searchParams: Promise.resolve({ view: "999" }),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("Bugs - Aksora");
-      expect((result.openGraph as any).title).toBe("Bugs - Aksora");
-      expect((result.openGraph as any).description).toBe("View and manage bugs");
-      expect((result.openGraph as any).type).toBe("website");
+      expect(openGraph.title).toBe("Bugs - Aksora");
+      expect(openGraph.description).toBe("View and manage bugs");
+      expect(openGraph.type).toBe("website");
     });
 
     it("falls back to module-level metadata when view param is non-numeric", async () => {
@@ -293,9 +302,10 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "tasks" }),
         searchParams: Promise.resolve({ view: "abc" }),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("Tasks - Aksora");
-      expect((result.openGraph as any).type).toBe("website");
+      expect(openGraph.type).toBe("website");
     });
   });
 
@@ -305,13 +315,13 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "bugs" }),
         searchParams: Promise.resolve({}),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("Bugs - Aksora");
-      expect(result.openGraph).toBeDefined();
-      expect((result.openGraph as any).title).toBe("Bugs - Aksora");
-      expect((result.openGraph as any).description).toBe("View and manage bugs");
-      expect((result.openGraph as any).type).toBe("website");
-      expect((result.openGraph as any).siteName).toBe("Aksora");
+      expect(openGraph.title).toBe("Bugs - Aksora");
+      expect(openGraph.description).toBe("View and manage bugs");
+      expect(openGraph.type).toBe("website");
+      expect(openGraph.siteName).toBe("Aksora");
     });
 
     it("returns module-level OG tags for test-plans module", async () => {
@@ -319,10 +329,11 @@ describe("generateMetadata", () => {
         params: Promise.resolve({ module: "test-plans" }),
         searchParams: Promise.resolve({}),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("Test Plans - Aksora");
-      expect((result.openGraph as any).title).toBe("Test Plans - Aksora");
-      expect((result.openGraph as any).description).toBe("View and manage test plans");
+      expect(openGraph.title).toBe("Test Plans - Aksora");
+      expect(openGraph.description).toBe("View and manage test plans");
     });
 
     it("returns generic title for invalid module", async () => {
@@ -338,9 +349,10 @@ describe("generateMetadata", () => {
       const result = await generateMetadata({
         params: Promise.resolve({ module: "tasks" }),
       });
+      const openGraph = getOpenGraph(result);
 
       expect(result.title).toBe("Tasks - Aksora");
-      expect((result.openGraph as any).type).toBe("website");
+      expect(openGraph.type).toBe("website");
     });
   });
 });

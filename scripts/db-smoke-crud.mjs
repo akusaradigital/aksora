@@ -1,5 +1,3 @@
-import fs from "node:fs";
-
 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
 const email = process.env.SMOKE_EMAIL || "superadmin@akusaradigital.com";
 const password = process.env.SMOKE_PASSWORD || "admin123";

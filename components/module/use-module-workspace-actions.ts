@@ -5,21 +5,20 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
 import { type Attachment } from "@/components/shared/attachment-uploader";
 import type { FormField } from "@/components/module/module-workspace-form-field";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 import { scrollToFormSection } from "@/components/module/use-module-workspace-actions-helpers";
 import { createCrudActions } from "@/components/module/use-module-workspace-actions-crud";
-
-type Row = Record<string, string | number> & { id: string | number };
 
 type ActionArgs = {
   module: ModuleKey;
   configFields: FormField[];
-  rows: Row[];
+  rows: TableRow[];
   initialFormValues: Record<string, string>;
   router: { refresh: () => void };
   toast: (message: string, type?: "success" | "error" | "info", options?: Record<string, unknown>) => void;
   startTransition: (callback: () => void) => void;
   showForm: boolean;
-  editingRow: Row | null;
+  editingRow: TableRow | null;
   deleteId: string | number | null;
   pendingDeleteId: string | number | null;
   undoTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
@@ -27,10 +26,10 @@ type ActionArgs = {
   openSelectField: string | null;
   setSelectValues: Dispatch<SetStateAction<Record<string, string>>>;
   setRefreshing: Dispatch<SetStateAction<boolean>>;
-  setRows: Dispatch<SetStateAction<Row[]>>;
+  setRows: Dispatch<SetStateAction<TableRow[]>>;
   setShowForm: Dispatch<SetStateAction<boolean>>;
-  setEditingRow: Dispatch<SetStateAction<Row | null>>;
-  setViewingRow: Dispatch<SetStateAction<Row | null>>;
+  setEditingRow: Dispatch<SetStateAction<TableRow | null>>;
+  setViewingRow: Dispatch<SetStateAction<TableRow | null>>;
   setFieldErrors: Dispatch<SetStateAction<Record<string, string>>>;
   setDuplicates: Dispatch<SetStateAction<Array<{ id: number; code: string; title: string; status: string }>>>;
   setSprintDuplicate: Dispatch<SetStateAction<boolean>>;
@@ -41,7 +40,7 @@ type ActionArgs = {
   setOpenSelectField: Dispatch<SetStateAction<string | null>>;
   setPendingDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setDeleteId: Dispatch<SetStateAction<string | number | null>>;
-  setKanbanRows: Dispatch<SetStateAction<Row[]>>;
+  setKanbanRows: Dispatch<SetStateAction<TableRow[]>>;
 };
 
 export function useModuleWorkspaceActions(args: ActionArgs) {
@@ -190,7 +189,7 @@ export function useModuleWorkspaceActions(args: ActionArgs) {
     if (!showForm) setFormDirty(false);
   }, [showForm, setFormDirty]);
 
-  function openFormEditor(row: Row | null = null) {
+  function openFormEditor(row: TableRow | null = null) {
     setEditingRow(row);
     setFieldErrors({});
     setDuplicates([]);

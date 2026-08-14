@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   getTaskResults: vi.fn().mockResolvedValue([]),
   getBugResults: vi.fn().mockResolvedValue([]),
   getPlanResults: vi.fn().mockResolvedValue([]),
@@ -24,7 +24,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("../search-query-builders", () => ({
@@ -53,7 +53,7 @@ import { GET } from "../route";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getCurrentUser.mockResolvedValue({ company: "acme", role: "qa" });
-  mocks.isAdminUser.mockReturnValue(false);
+  mocks.isPlatformSuperAdmin.mockReturnValue(false);
   mocks.getScope.mockReturnValue("all");
 });
 

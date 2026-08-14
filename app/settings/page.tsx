@@ -16,15 +16,24 @@ export default async function SettingsPage() {
  title:"Personal",
  description:"Manage your own account information and preferences.",
  items: [
- {
- title:"My Profile",
- description:"Update your name, role, and view your account details.",
- href:"/settings/profile",
- icon: Gear,
- color:"text-indigo-600",
- bg:"bg-indigo-50",
- disabled: false,
- },
+        {
+          title: "My Profile",
+          description: "Update your name, role, and view your account details.",
+          href: "/settings/profile",
+          icon: Gear,
+          color: "text-indigo-600",
+          bg: "bg-indigo-50",
+          disabled: false,
+        },
+        {
+          title: "API Keys",
+          description: "Manage personal API keys for REST API integrations and scripts.",
+          href: "/settings/api-keys",
+          icon: Lock,
+          color: "text-emerald-600",
+          bg: "bg-emerald-50",
+          disabled: false,
+        },
  {
  title:"Notifications",
  description:"Choose what alerts you receive and how often.",

@@ -1,4 +1,4 @@
-type Row = Record<string, string | number> & { id: string | number };
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 export function compareVersions(left: string, right: string) {
   const matchLeft = String(left ?? "").trim().match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
@@ -18,7 +18,7 @@ export function compareVersions(left: string, right: string) {
   return Number(leftPatch) - Number(rightPatch);
 }
 
-export function getLatestVersion(rows: Row[]) {
+export function getLatestVersion(rows: TableRow[]) {
   return rows
     .map((row) => String(row.version ?? "").trim())
     .filter(Boolean)

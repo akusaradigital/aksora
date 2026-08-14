@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { company: _company, isAdmin, params } = getAccessScope(user);
+  const { isAdmin, params } = getAccessScope(user);
   const companyFilter = isAdmin ? "" : ' AND "company" = ?';
 
   try {
@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { company, isAdmin, params: _params } = getAccessScope(user);
+  const { company, isAdmin } = getAccessScope(user);
   const actor = user?.name || user?.email || "";
 
   try {
     const body = await request.json();
-    const { testCaseId, action, reason, autoReactivateAfter: _autoReactivateAfter } = body;
+    const { testCaseId, action, reason } = body;
 
     if (!testCaseId) {
       return NextResponse.json({ error: "testCaseId is required" }, { status: 400 });

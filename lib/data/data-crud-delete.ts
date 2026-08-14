@@ -11,7 +11,7 @@ import {
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 import { getModuleRows } from "@/lib/data-module-read";
 
-async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
+async function selectAll(sqlStr: string, params: Array<string | number | null | undefined> = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
 }
 
@@ -200,7 +200,7 @@ export async function clearModuleRecords(module: ModuleKey) {
   return res;
 }
 
-export async function replaceModuleRecords(module: ModuleKey, rows: any[]) {
+export async function replaceModuleRecords(module: ModuleKey, rows: Array<Record<string, unknown>>) {
   const { createModuleRecord } = await import("@/lib/data/data-crud-create");
   for (const row of rows) {
     await createModuleRecord(module, row);

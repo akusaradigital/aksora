@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, type ChangeEvent, type FormEvent, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeSlash, ShieldCheck } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { FormFieldError } from "@/components/shared/form-field-error";
@@ -11,10 +11,16 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { getPublicRoleOptions } from "@/lib/roles";
 import { GoogleSignInButton } from "@/components/oauth/google-signin-button";
 
+const inputClass =
+  "w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-blue-500 focus:outline-none";
+const selectClass =
+  "w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none";
+
 function LoginContent() {
   const router = useRouter();
-  const [nextUrl, setNextUrl] = useState("/dashboard");
-  const [inviteToken, setInviteToken] = useState("");
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next") || "/dashboard";
+  const inviteToken = searchParams.get("inviteToken") || "";
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [formData, setFormData] = useState({
@@ -30,22 +36,25 @@ function LoginContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    setNextUrl(new URLSearchParams(window.location.search).get("next") || "/dashboard");
-    setInviteToken(new URLSearchParams(window.location.search).get("inviteToken") || "");
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((current) => ({ ...current, [name]: value }));
     setFieldErrors((current) => {
       const next = { ...current };
-      delete next[e.target.name];
+      delete next[name];
       return next;
     });
     setError("");
   };
 
-  const submit = async (event: React.FormEvent) => {
+  const handleModeChange = (nextMode: typeof mode) => {
+    setMode(nextMode);
+    setShowPassword(false);
+    setError("");
+    setFieldErrors({});
+  };
+
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
 
     const nextErrors: Record<string, string> = {};
@@ -80,8 +89,7 @@ function LoginContent() {
       setTimeout(() => {
         toast("If an account exists with that email, a reset link has been sent.", "info");
         setPending(false);
-        setFieldErrors({});
-        setMode("signin");
+        handleModeChange("signin");
       }, 1000);
       return;
     }
@@ -109,15 +117,12 @@ function LoginContent() {
       if (mode === "signup") {
         setShowSuccessModal(true);
         setFormData({ name: "", email: "", password: "", role: "", company: "" });
-        setMode("signin");
+        handleModeChange("signin");
         return;
       }
 
-      // Superadmin goes directly to admin overview
-      const isSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
-      const redirectTo = isSuperAdmin ? "/admin/overview" : nextUrl;
-
-      router.push(redirectTo);
+      const isPlatformSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
+      router.push(isPlatformSuperAdmin ? "/admin/overview" : nextUrl);
       router.refresh();
       toast("Welcome back!", "success");
     } catch (err) {
@@ -128,208 +133,233 @@ function LoginContent() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full bg-slate-50 font-sans text-slate-900">
-      <div className="hidden lg:flex w-1/2 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.16),transparent_32%),linear-gradient(135deg,#020617_0%,#0f172a_55%,#111827_100%)] p-12">
-        <div className="relative z-10 max-w-md">
-          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-sky-200">Aksora</p>
-          <h1 className="text-5xl font-black leading-tight tracking-tight text-slate-50 sm:text-6xl">
-            Quality control, made sharp.
-          </h1>
-          <p className="mt-6 text-xl font-medium leading-relaxed text-slate-200">
-            One Team. One Flow.
-          </p>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <main className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-5 py-10 lg:py-14">
+        <div className="mb-6 flex items-center justify-between gap-4 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">
+          <Link href="/" className="inline-flex items-center gap-2 text-slate-600 transition hover:text-slate-950">
+            <ArrowLeft size={12} weight="bold" />
+            Back to homepage
+          </Link>
+          <span className="inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5">
+            <ShieldCheck size={14} weight="bold" className="text-blue-600" />
+            Workspace access
+          </span>
         </div>
-      </div>
 
-      <div className="flex max-h-screen w-full items-center justify-center overflow-y-auto p-6 sm:p-8 md:p-12 lg:w-1/2">
-        <div className="w-full max-w-md">
-          <div className="mb-10 text-center lg:text-left">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-slate-500">
+        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+          <section className="border border-slate-200 bg-white p-6 lg:p-8">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-600">
               {mode === "signup" ? "Create account" : mode === "forgot" ? "Recover access" : "Sign in"}
             </p>
-            <h2 className="text-3xl font-black tracking-tight text-slate-900">
-              {mode === "signup" ? "Get started now" : mode === "forgot" ? "Reset password" : "Welcome back"}
-            </h2>
-            <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+              {mode === "signup" ? "Create your workspace account" : mode === "forgot" ? "Reset your password" : "Welcome back"}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
               {mode === "signup"
-                ? "Set up your workspace account to get started."
+                ? "Create an account for the team member who needs access."
                 : mode === "forgot"
-                ? "Enter your email and we'll send a password reset link."
-                : "Sign in to access your Aksora workspace."}
+                  ? "Enter your email and we will send a reset link if the account exists."
+                  : "Use Google or email to enter your workspace."}
             </p>
-          </div>
 
-          {mode !== "forgot" && (
-            <div className="mb-6">
-              <GoogleSignInButton inviteToken={inviteToken} />
-              <div className="my-6 flex items-center gap-3">
-                <span className="h-px flex-1 bg-slate-200" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  or continue with email
-                </span>
-                <span className="h-px flex-1 bg-slate-200" />
+            <div className="mt-8 space-y-3">
+              <div className="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4">
+                <Check size={16} weight="bold" className="mt-0.5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">Google sign-in</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">Use the button below if your account already exists.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4">
+                <Check size={16} weight="bold" className="mt-0.5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">Email sign-in</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">The form supports sign in, sign up, and password reset in one place.</p>
+                </div>
               </div>
             </div>
-          )}
 
-          <form noValidate onSubmit={submit} className="space-y-6">
-            {mode === "signup" && (
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="John Doe"
-                  className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                />
-                <FormFieldError message={fieldErrors.name} className="px-1" />
+            {mode !== "forgot" && (
+              <button
+                type="button"
+                onClick={() => handleModeChange(mode === "signin" ? "signup" : "signin")}
+                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
+              >
+                <ArrowRight size={14} weight="bold" className={mode === "signin" ? "rotate-0" : "rotate-180"} />
+                <span>{mode === "signin" ? "Switch to create account" : "Use sign in"}</span>
+              </button>
+            )}
+          </section>
+
+          <section className="border border-slate-200 bg-white p-6 lg:p-8">
+            {mode !== "forgot" && (
+              <div className="border border-slate-200 bg-slate-50 p-4">
+                <GoogleSignInButton inviteToken={inviteToken} />
+                <div className="my-4 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-slate-200" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">or use email</span>
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
+                  <span className="inline-flex items-center gap-1 border border-slate-200 bg-white px-2.5 py-1">
+                    <Check size={12} weight="bold" className="text-emerald-600" />
+                    Google
+                  </span>
+                  <span className="inline-flex items-center gap-1 border border-slate-200 bg-white px-2.5 py-1">
+                    <Check size={12} weight="bold" className="text-emerald-600" />
+                    Email
+                  </span>
+                </div>
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Email Address</label>
+            <form noValidate onSubmit={submit} className="mt-6 space-y-5">
+              {mode === "signup" && (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    className={inputClass}
+                  />
+                  <FormFieldError message={fieldErrors.name} className="px-1" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Email Address</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="name@company.com"
-                  className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                  className={inputClass}
                 />
                 <FormFieldError message={fieldErrors.email} className="px-1" />
               </div>
 
-            {mode !== "forgot" && (
-              <>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Password</label>
-                    {mode === "signin" && (
+              {mode !== "forgot" && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Password</label>
+                      {mode === "signin" && (
+                        <button
+                          type="button"
+                          onClick={() => handleModeChange("forgot")}
+                          className="text-[11px] font-bold uppercase tracking-[0.25em] text-blue-600 transition hover:text-blue-700"
+                        >
+                          Forgot?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="????????"
+                        className={`${inputClass} pr-12`}
+                      />
                       <button
                         type="button"
-                        onClick={() => {
-                          setFieldErrors({});
-                          setError("");
-                          setMode("forgot");
-                        }}
-                        className="text-[11px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute inset-y-0 right-0 inline-flex items-center px-4 text-slate-400 transition hover:text-slate-700"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        Forgot?
+                        {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
                       </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="••••••••"
-                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-blue-600"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
-                    </button>
                     </div>
                     <FormFieldError message={fieldErrors.password} className="px-1" />
                   </div>
 
-                {mode === "signup" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Software Role</label>
-                      <select
-                        name="role"
-                        value={formData.role}
-                        onChange={handleInputChange}
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      >
-                        <option value="">Select your role</option>
-                        {getPublicRoleOptions().map((role) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </select>
-                      <FormFieldError message={fieldErrors.role} className="px-1" />
-                    </div>
+                  {mode === "signup" && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Software Role</label>
+                        <select
+                          name="role"
+                          value={formData.role}
+                          onChange={handleInputChange}
+                          className={selectClass}
+                        >
+                          <option value="">Select your role</option>
+                          {getPublicRoleOptions().map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                        <FormFieldError message={fieldErrors.role} className="px-1" />
+                      </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Company Name</label>
-                      <input
-                        type="text"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Acme Corp"
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      />
-                      <FormFieldError message={fieldErrors.company} className="px-1" />
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Company Name</label>
+                        <input
+                          type="text"
+                          name="company"
+                          value={formData.company}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Acme Corp"
+                          className={inputClass}
+                        />
+                        <FormFieldError message={fieldErrors.company} className="px-1" />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
-            {error && <InlineAlert variant="error" message={error} compact className="px-1" />}
+              {error && <InlineAlert variant="error" message={error} compact className="px-1" />}
 
-            <button
-              type="submit"
-              disabled={pending}
-              className="mt-1 inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 hover:-translate-y-0.5 disabled:opacity-50"
-            >
-              <span>
-                {pending
-                  ? "Processing..."
-                  : mode === "signup"
-                  ? "Create Account"
-                  : mode === "forgot"
-                  ? "Send Reset Link"
-                  : "Sign In"}
-              </span>
-              {!pending && <ArrowRight size={16} weight="bold" />}
-            </button>
+              <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <span>
+                    {pending
+                      ? "Processing..."
+                      : mode === "signup"
+                        ? "Create Account"
+                        : mode === "forgot"
+                          ? "Send Reset Link"
+                          : "Sign In"}
+                  </span>
+                  {!pending && <ArrowRight size={16} weight="bold" />}
+                </button>
 
-            {mode === "forgot" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFieldErrors({});
-                  setError("");
-                  setMode("signin");
-                }}
-                className="flex items-center gap-2 text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
-              >
-                <ArrowLeft size={14} weight="bold" />
-                <span>Back to sign in</span>
-              </button>
-            )}
-          </form>
+                <p className="text-xs leading-5 text-slate-500">
+                  {mode === "signup"
+                    ? "Creating an account without an invite sets up your own new workspace."
+                    : "Google sign-in and email sign-in share the same form."}
+                </p>
+              </div>
 
-          {mode !== "forgot" && (
-            <p className="mt-8 text-xs font-semibold text-slate-500">
-              {mode === "signup"
-                ? "Creating an account sets up your own workspace."
-                : "Access is managed by your workspace administrator."}
-            </p>
-          )}
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={() => handleModeChange("signin")}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
+                >
+                  <ArrowLeft size={14} weight="bold" />
+                  <span>Back to sign in</span>
+                </button>
+              )}
+            </form>
 
-          <Link
-            href="/"
-            className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-500 transition-colors hover:text-blue-600"
-          >
-            <ArrowLeft size={12} weight="bold" />
-            Back to homepage
-          </Link>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+              <span>Aksora</span>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
 
       <ConfirmModal
         isOpen={showSuccessModal}
@@ -341,12 +371,6 @@ function LoginContent() {
         onConfirm={() => setShowSuccessModal(false)}
         onCancel={() => setShowSuccessModal(false)}
       />
-
-      <footer className="absolute bottom-4 inset-x-0 text-center">
-        <p className="text-[11px] font-medium text-slate-400">
-          © 2026 — Aksora by <a href="https://akusaradigital.com" className="text-slate-500 hover:text-blue-600" target="_blank" rel="noopener noreferrer">Akusara Digital</a>
-        </p>
-      </footer>
     </div>
   );
 }
@@ -355,7 +379,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 font-black text-3xl tracking-tighter text-blue-600">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 text-3xl font-black tracking-tighter text-blue-600">
           Aksora
         </div>
       }

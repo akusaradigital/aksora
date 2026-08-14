@@ -12,16 +12,17 @@ import {
   CheckCircle,
   Shield,
   ShieldCheck,
+  FileArrowDown,
 } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 
 const FlakyProjectChart = dynamic(() => import("./flaky-chart").then(m => m.FlakyProjectChart), { ssr: false });
 import { cn } from "@/lib/utils";
-import type { FlakyData, FlakyTest } from "./flaky-types";
+import { EMPTY_FLAKY_DATA, type FlakyData, type FlakyTest } from "./flaky-types";
 import { VerdictTimeline, FlakinessGauge } from "./flaky-components";
 
-export function FlakyTestsClient({ initialData }: { initialData: FlakyData | null }) {
-  const [data, setData] = useState<FlakyData | null>(initialData);
+export function FlakyTestsClient({ initialData }: { initialData: FlakyData }) {
+  const [data, setData] = useState<FlakyData>(initialData);
   const [loading, setLoading] = useState(false);
   const [threshold, setThreshold] = useState(20);
   const [minRuns, setMinRuns] = useState(3);
@@ -33,9 +34,9 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData | nul
   const fetchData = () => {
     setLoading(true);
     fetch(`/api/reports/flaky-tests?threshold=${threshold}&minRuns=${minRuns}`)
-      .then((r) => r.json())
+      .then(async (r) => (r.ok ? r.json() : EMPTY_FLAKY_DATA))
       .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(() => { setData(EMPTY_FLAKY_DATA); setLoading(false); });
   };
 
   const fetchQuarantined = () => {
@@ -74,13 +75,12 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData | nul
 
   useEffect(() => {
     fetchQuarantined();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const projects = [...new Set(data?.flakyTests.map((t) => t.project) ?? [])];
+  const projects = [...new Set(data.flakyTests.map((t) => t.project))];
   const filteredTests = projectFilter === "all"
-    ? (data?.flakyTests ?? [])
-    : (data?.flakyTests ?? []).filter((t) => t.project === projectFilter);
+    ? data.flakyTests
+    : data.flakyTests.filter((t) => t.project === projectFilter);
 
   return (
     <PageShell
@@ -88,6 +88,15 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData | nul
       title="Flaky Test Tracker"
       description="Identify and monitor test cases with inconsistent results across execution runs."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Flaky Tests" }]}
+      actions={
+        <a
+          href="/api/reports/flaky-tests/export"
+          className="inline-flex h-9 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+        >
+          <FileArrowDown size={14} weight="bold" />
+          Export
+        </a>
+      }
       controls={
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -116,8 +125,6 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData | nul
         <div className="flex items-center justify-center py-20">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
         </div>
-      ) : !data ? (
-        <p className="py-10 text-center text-sm text-gray-500">Failed to load flaky test data.</p>
       ) : (
         <div className="space-y-6">
           {/* Summary Cards */}
@@ -155,7 +162,7 @@ export function FlakyTestsClient({ initialData }: { initialData: FlakyData | nul
               </div>
               <div>
                 <p className="text-xs text-gray-500">Threshold</p>
-                <p className="text-lg font-bold text-gray-700">≥{data.summary.threshold}%</p>
+                <p className="text-lg font-bold text-gray-700">&gt;={data.summary.threshold}%</p>
                 <p className="text-[10px] text-gray-400">min {data.summary.minRuns} runs</p>
               </div>
             </div>

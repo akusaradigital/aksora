@@ -24,7 +24,6 @@ export function ModernDatePicker({
  name,
  value,
  onChange,
- required: _required,
  disabled}: {
  name: string;
  value?: string;
@@ -57,16 +56,18 @@ export function ModernDatePicker({
  }, []);
 
  useEffect(() => {
- setMounted(true);
- if (disabled) setIsOpen(false);
+ queueMicrotask(() => setMounted(true));
+ if (disabled) queueMicrotask(() => setIsOpen(false));
  
  // Sync with value or set to now only on client side
  if (value) {
  const d = new Date(value);
- setCurrentDate(d);
- setSelectedDate(d);
+  queueMicrotask(() => {
+  setCurrentDate(d);
+  setSelectedDate(d);
+  });
  } else {
- setCurrentDate(new Date());
+  queueMicrotask(() => setCurrentDate(new Date()));
  }
 
  function handleClickOutside(event: MouseEvent) {

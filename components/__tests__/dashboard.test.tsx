@@ -72,27 +72,27 @@ describe("ResolutionRateMetric in Dashboard", () => {
     expect(html).toContain("N/A");
   });
 
-  it("applies amber color (text-amber-500) when rate < 70%", () => {
+  it("applies amber color (text-amber-600) when rate < 70%", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 50, previousWeek: null, delta: null }} />,
     );
-    expect(html).toContain("text-amber-500");
-    expect(html).toContain("bg-amber-50");
+    expect(html).toContain("text-amber-600");
+    expect(html).toContain("bg-amber-50/60");
   });
 
-  it("applies emerald color (text-emerald-500) when rate >= 70%", () => {
+  it("applies emerald color (text-emerald-600) when rate >= 70%", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: 60, delta: 10 }} />,
     );
-    expect(html).toContain("text-emerald-500");
-    expect(html).toContain("bg-emerald-50");
+    expect(html).toContain("text-emerald-600");
+    expect(html).toContain("bg-emerald-50/60");
   });
 
   it("applies emerald color at exactly 70%", () => {
     const html = renderToStaticMarkup(
       <Dashboard {...baseProps} resolutionRate={{ current: 70, previousWeek: null, delta: null }} />,
     );
-    expect(html).toContain("text-emerald-500");
+    expect(html).toContain("text-emerald-600");
   });
 
   it("displays positive delta as +X", () => {

@@ -221,6 +221,52 @@ function border() {
   } as ExcelJS.Borders;
 }
 
+export type GenericSheetConfig = {
+  sheetName: string;
+  columns: { header: string; key: string; width?: number }[];
+  rows: Record<string, any>[];
+};
+
+export async function buildGenericWorkbook(
+  sheets: GenericSheetConfig[] | GenericSheetConfig,
+) {
+  const workbook = new ExcelJS.Workbook();
+  const sheetConfigs = Array.isArray(sheets) ? sheets : [sheets];
+
+  for (const config of sheetConfigs) {
+    const worksheet = workbook.addWorksheet(config.sheetName);
+
+    worksheet.columns = config.columns.map((col) => ({
+      header: col.header,
+      key: col.key,
+      width: col.width || Math.max(16, col.header.length + 6),
+    }));
+    worksheet.views = [{ state: "frozen", ySplit: 1 }];
+
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFF8FAFC" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF0F172A" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+      cell.border = border();
+    });
+
+    for (const row of config.rows) {
+      const excelRow = worksheet.addRow(row);
+      styleDataRow(excelRow);
+    }
+
+    autoFitColumns(worksheet);
+    autoFitRowHeights(worksheet);
+    applyAutoBorders(worksheet, config.rows.length);
+  }
+
+  return workbook;
+}
+
 export async function parseWorkbook(file: Uint8Array) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file as never);

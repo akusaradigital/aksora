@@ -3,8 +3,8 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useCallback, type KeyboardEvent as ReactKeyboardEvent } from"react";
 import { createPortal } from"react-dom";
 import { useRouter } from"next/navigation";
-import { ArrowRight, ArrowSquareOut, Bug, CalendarBlank, CaretLeft, CaretRight, Checks, CircleNotch, ClipboardText, ClockCounterClockwise, CopySimple, Kanban, MagnifyingGlass, Note, PlayCircle, RocketLaunch, SlidersHorizontal, Table, User, X } from"@phosphor-icons/react";
-import { cn, formatDisplayText } from"@/lib/utils";
+import { CaretLeft, CaretRight, CircleNotch, ClockCounterClockwise, MagnifyingGlass, SlidersHorizontal, X } from"@phosphor-icons/react";
+import { cn } from"@/lib/utils";
 import { toast } from"@/components/ui/toast";
 import { buildSearchParams, groupResults, RECENT_LIMIT, RECENTS_KEY, SEARCH_SCOPES, SCOPE_KEY, readStringArray } from"./global-search-queries";
 import { GlobalSearchResults } from"./global-search-results";
@@ -69,9 +69,6 @@ export function GlobalSearch({
  const [loading, setLoading] = useState(false);
  const [mounted, setMounted] = useState(false);
  const [activeIndex, setActiveIndex] = useState(-1);
- const [draggingScopes, setDraggingScopes] = useState(false);
- const [scopeDragStartX, setScopeDragStartX] = useState(0);
- const [scopeDragStartScroll, setScopeDragStartScroll] = useState(0);
  const [scopeCanScrollLeft, setScopeCanScrollLeft] = useState(false);
  const [scopeCanScrollRight, setScopeCanScrollRight] = useState(false);
  const inputRef = useRef<HTMLInputElement>(null);
@@ -226,28 +223,6 @@ export function GlobalSearch({
  node.scrollBy({ left: direction ==="left" ? -240 : 240, behavior:"smooth" });
  }
 
- function startScopeDrag(event: React.PointerEvent<HTMLDivElement>) {
- const node = scopeRef.current;
- if (!node) return;
- if (event.target !== event.currentTarget) return;
- node.setPointerCapture(event.pointerId);
- setDraggingScopes(true);
- setScopeDragStartX(event.clientX);
- setScopeDragStartScroll(node.scrollLeft);
- }
-
- function moveScopeDrag(event: React.PointerEvent<HTMLDivElement>) {
- if (!draggingScopes) return;
- const node = scopeRef.current;
- if (!node) return;
- event.preventDefault();
- node.scrollLeft = scopeDragStartScroll - (event.clientX - scopeDragStartX);
- }
-
- function stopScopeDrag() {
- setDraggingScopes(false);
- }
-
  function clearRecentQueries() {
  setRecentQueries([]);
  try {
@@ -277,13 +252,6 @@ export function GlobalSearch({
  }
  }
 
- const filterSummary = [
- status &&`Status: ${formatDisplayText(status)}`,
- assignee &&`Assignee: ${formatDisplayText(assignee)}`,
- from &&`From: ${from}`,
- to &&`To: ${to}`,
- ].filter(Boolean).join(" ·");
-
  const modal = (
  <div className="fixed inset-0 z-[500] flex items-start justify-center px-3 pt-[6vh]">
  <button type="button" aria-label="Close search" onClick={() => setOpen(false)} className="absolute inset-0 bg-slate-950/55" />
@@ -291,7 +259,7 @@ export function GlobalSearch({
  <div className="border-b border-gray-100 px-4 py-3"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center bg-sky-50 text-sky-600"><MagnifyingGlass size={16} weight="bold" /></div><div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gray-400">Global Search</p><p className="mt-0.5 text-xs text-gray-500">Fast search. Filters are behind More.</p></div></div></div>
  <div className="space-y-3 px-4 py-3">
  <div className="flex items-center gap-2"><div className="flex flex-1 items-center gap-2 border border-gray-200 bg-white px-3 py-2.5"><MagnifyingGlass size={15} weight="bold" className="shrink-0 text-gray-400" /><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKeyDown} placeholder="Search..." autoComplete="off" autoCorrect="off" spellCheck="false" className="w-full border-none bg-transparent text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-none focus:outline-none focus:ring-0" />{query && (<button type="button" onClick={() => setQuery("")} className="p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700"><X size={14} weight="bold" /></button>)}</div><div className="border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-500 shadow-sm">{scopeLabel}</div><button type="button" onClick={() => setShowFilters((current) => !current)} className="inline-flex h-10 items-center gap-1.5 border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 shadow-sm hover:border-sky-300 hover:text-sky-700"><SlidersHorizontal size={13} weight="bold" />More</button></div>
- <div className="relative"><button type="button" onClick={() => scrollScopes("left")} aria-label="Scroll scopes left" className={cn("flex h-8 w-8 shrink-0 items-center justify-center self-center border shadow-sm transition-all", scopeCanScrollLeft ? "border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700" : "border-gray-100 bg-white text-gray-300 cursor-default")}><CaretLeft size={12} weight="bold" /></button><div ref={scopeRef} className={cn("flex items-center gap-2 overflow-x-auto scroll-smooth py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", draggingScopes ? "cursor-grabbing" : "cursor-grab")}>{SEARCH_SCOPES.map((option) => { const active = option.value === scope; return <button key={option.value} type="button" onClick={() => setScope(option.value)} className={cn("inline-flex h-8 items-center whitespace-nowrap border px-3 text-xs font-semibold leading-none transition", active ? scopeColors[option.value].active : scopeColors[option.value].idle)}>{option.label}</button>; })}</div><button type="button" onClick={() => scrollScopes("right")} aria-label="Scroll scopes right" className={cn("flex h-8 w-8 shrink-0 items-center justify-center self-center border shadow-sm transition-all", scopeCanScrollRight ? "border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700" : "border-gray-100 bg-white text-gray-300 cursor-default")}><CaretRight size={12} weight="bold" /></button></div>
+ <div className="relative"><button type="button" onClick={() => scrollScopes("left")} aria-label="Scroll scopes left" className={cn("flex h-8 w-8 shrink-0 items-center justify-center self-center border shadow-sm transition-all", scopeCanScrollLeft ? "border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700" : "border-gray-100 bg-white text-gray-300 cursor-default")}><CaretLeft size={12} weight="bold" /></button><div ref={scopeRef} className="flex items-center gap-2 overflow-x-auto scroll-smooth py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden cursor-grab">{SEARCH_SCOPES.map((option) => { const active = option.value === scope; return <button key={option.value} type="button" onClick={() => setScope(option.value)} className={cn("inline-flex h-8 items-center whitespace-nowrap border px-3 text-xs font-semibold leading-none transition", active ? scopeColors[option.value].active : scopeColors[option.value].idle)}>{option.label}</button>; })}</div><button type="button" onClick={() => scrollScopes("right")} aria-label="Scroll scopes right" className={cn("flex h-8 w-8 shrink-0 items-center justify-center self-center border shadow-sm transition-all", scopeCanScrollRight ? "border-gray-200 bg-white text-gray-500 hover:border-sky-400 hover:text-sky-700" : "border-gray-100 bg-white text-gray-300 cursor-default")}><CaretRight size={12} weight="bold" /></button></div>
  {showFilters && (<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><input value={status} onChange={(event) => setStatus(event.target.value)} placeholder="Status" className="h-9 border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-400 transition-all focus:ring-0" /><input value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Assignee" className="h-9 border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-400 transition-all focus:ring-0" /><input value={from} onChange={(event) => setFrom(event.target.value)} type="date" className="h-9 border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none transition-all focus:ring-0" /><input value={to} onChange={(event) => setTo(event.target.value)} type="date" className="h-9 border border-gray-200 bg-white px-3 text-xs font-medium text-gray-700 outline-none transition-all focus:ring-0" /></div>)}
  <div><div className="min-w-0">{!query.trim() ? (<div className="space-y-3 flex-1 flex flex-col">{recentQueries.length > 0 ? (<><div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-400"><div className="flex items-center gap-2"><ClockCounterClockwise size={13} weight="bold" />Recent searches</div><button type="button" onClick={clearRecentQueries} className="inline-flex items-center gap-1 border border-gray-200 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 shadow-sm hover:border-rose-300 hover:text-rose-600" aria-label="Clear recent searches" title="Clear recent searches"><X size={11} weight="bold" />Clear</button></div><div className="flex flex-wrap gap-2">{recentQueries.map((item) => (<button key={item} type="button" onClick={() => setQuery(item)} className="border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm hover:border-sky-400 hover:text-sky-700">{item}</button>))}</div></>) : (<div className="flex flex-1 items-center border border-dashed border-gray-200 bg-white px-3 py-4 text-sm text-gray-500">Search once to populate recent queries.</div>)}</div>) : loading ? (<div className="space-y-2"><div className="flex items-center gap-2 px-1 pb-1"><CircleNotch size={12} className="animate-spin text-gray-400" weight="bold" /><span className="text-xs text-gray-400">Searching&hellip;</span></div><ResultSkeleton /></div>) : flatResults.length === 0 ? (<div className="border border-dashed border-gray-200 bg-white px-4 py-6"><p className="text-sm font-semibold text-gray-700">No results for <span className="text-sky-600">&ldquo;{query}&rdquo;</span></p><p className="mt-1 text-xs text-gray-500">Try:</p><ul className="mt-2 space-y-1 text-xs text-gray-500">{scope !== "all" && (<li><button type="button" onClick={() => setScope("all")} className="text-sky-600 hover:underline">Switch to All scopes</button>{""} instead of &ldquo;{scopeLabel}&rdquo;</li>)}{(status || assignee || from || to) && (<li><button type="button" onClick={() => { setStatus(""); setAssignee(""); setFrom(""); setTo(""); }} className="text-sky-600 hover:underline">Clear active filters</button>{""} (status / assignee / date)</li>)}<li>Try a shorter or different keyword</li><li>Check spelling</li></ul></div>) : (<div ref={resultsRef} className="max-h-[52vh] space-y-2 overflow-y-auto pr-1"><GlobalSearchResults groupedResults={groupedResults} query={query} activeIndex={activeIndex} activeItemRef={activeItemRef} onCopyCode={copyCode} onOpenNewTab={openResultNewTab} onOpenResult={openResult} onSelectIndex={setActiveIndex} /></div>)}</div></div>
  </div>

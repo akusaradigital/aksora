@@ -40,16 +40,16 @@ export function TrialBanner() {
   if (showExpiredModal && (status.expired || status.suspended)) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
-        <div className="w-full max-w-md border border-gray-200 bg-white p-6 shadow-2xl mx-4">
+        <div className="mx-4 w-full max-w-md border border-slate-200 bg-white p-6 shadow-2xl">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center bg-rose-100 text-rose-600">
+            <div className="flex h-12 w-12 items-center justify-center bg-rose-50 text-rose-600">
               <ShieldCheck size={24} weight="bold" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900">
+              <h3 className="text-base font-black text-slate-900">
                 {status.suspended ? "Account Suspended" : "Plan Expired"}
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs leading-5 text-slate-500">
                 {status.suspended
                   ? "Your workspace has been suspended by the administrator."
                   : "Your plan has expired. Please contact your administrator to renew."}
@@ -57,33 +57,33 @@ export function TrialBanner() {
             </div>
           </div>
 
-          <div className="border border-rose-100 bg-rose-50 px-4 py-3 mb-5">
+          <div className="mb-5 border border-rose-100 bg-rose-50 px-4 py-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700">Plan</span>
-              <span className="font-bold text-gray-900 capitalize">{status.plan}</span>
+              <span className="text-slate-600">Plan</span>
+              <span className="font-bold text-slate-900 capitalize">{status.plan}</span>
             </div>
             {status.planExpiry && (
               <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-gray-700">Expired on</span>
+                <span className="text-slate-600">Expired on</span>
                 <span className="font-bold text-rose-700">{status.planExpiry}</span>
               </div>
             )}
           </div>
 
-          <p className="text-xs text-gray-600 mb-4">
+          <p className="mb-4 text-xs leading-5 text-slate-600">
             You can still view data in read-only mode, but creating or editing content is disabled until the plan is renewed.
           </p>
 
           <div className="flex gap-2">
             <button
               onClick={() => setShowExpiredModal(false)}
-              className="flex-1 h-9 border border-gray-200 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+              className="flex-1 h-9 border border-slate-200 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Continue (Read-only)
             </button>
             <a
               href="mailto:admin@akusaradigital.com?subject=Plan Renewal Request"
-              className="flex-1 flex h-9 items-center justify-center bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-700"
+              className="flex h-9 flex-1 items-center justify-center bg-sky-600 text-xs font-bold text-white transition hover:bg-sky-500"
             >
               Contact Admin
             </a>
@@ -102,7 +102,7 @@ export function TrialBanner() {
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <div className="flex items-center gap-2">
           <Clock size={14} weight="bold" className="text-amber-600" />
-          <p className="text-xs font-semibold text-amber-800">
+          <p className="text-xs font-semibold text-amber-900">
             {status.daysLeft <= 0
               ? "Your plan has expired. Some features may be restricted."
               : `Your plan expires in ${status.daysLeft} day${status.daysLeft !== 1 ? "s" : ""}. Contact your admin to renew.`}
@@ -110,7 +110,7 @@ export function TrialBanner() {
         </div>
         <button
           onClick={() => setDismissed(true)}
-          className="flex h-5 w-5 items-center justify-center text-amber-600 hover:text-amber-800"
+          className="flex h-5 w-5 items-center justify-center text-amber-600 hover:text-amber-900"
         >
           <X size={12} weight="bold" />
         </button>

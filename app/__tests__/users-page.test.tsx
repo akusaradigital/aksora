@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   moduleWorkspace: vi.fn(() => <div data-testid="module-workspace" />),
   getCurrentUser: vi.fn(),
   getModuleRows: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   redirect: vi.fn(() => {
     throw new Error("REDIRECT");
   }),
@@ -24,7 +24,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -41,7 +41,7 @@ describe("users page", () => {
       company: "",
       email: "admin@example.com",
     });
-    mocks.isAdminUser.mockReturnValueOnce(true);
+    mocks.isPlatformSuperAdmin.mockReturnValueOnce(true);
     mocks.getModuleRows.mockResolvedValueOnce([{ id: 1, name: "Alice" }]);
 
     const element = await UserManagementPage();
@@ -65,7 +65,7 @@ describe("users page", () => {
       company: "acme",
       email: "qa@example.com",
     });
-    mocks.isAdminUser.mockReturnValueOnce(false);
+    mocks.isPlatformSuperAdmin.mockReturnValueOnce(false);
 
     await expect(UserManagementPage()).rejects.toThrow("REDIRECT");
     expect(mocks.redirect).toHaveBeenCalledWith("/");

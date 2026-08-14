@@ -24,8 +24,8 @@ describe("Sidebar", () => {
     );
 
     expect(html).toContain('href="/test-execution"');
-    expect(html).toMatch(/href="\/test-execution"[^>]*bg-blue-50[\s\S]*?Test Sessions/);
-    expect(html).not.toMatch(/href="\/test-suites"[^>]*bg-blue-50/);
+    expect(html).toMatch(/href="\/test-execution"[^>]*bg-sky-50[\s\S]*?Test Sessions/);
+    expect(html).not.toMatch(/href="\/test-suites"[^>]*bg-sky-50/);
   });
 });
 

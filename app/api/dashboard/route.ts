@@ -4,6 +4,25 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { logger } from "@/lib/logger";
 
+type DashboardResponse = ReturnType<typeof emptyDashboardData> & {
+  bugSeverityCounts?: { critical: number; high: number; medium: number; low: number };
+  qualityHealthScore?: {
+    score: number;
+    components: {
+      resolutionRate: number | null;
+      inverseCriticalRatio: number | null;
+      testPassRate: number | null;
+    };
+  };
+  userRole?: string;
+  resolutionRate?: {
+    current?: number | null;
+    previousWeek?: number | null;
+    delta?: number | null;
+  };
+  [key: string]: unknown;
+};
+
 function emptyDashboardData() {
   return {
     metrics: [
@@ -57,14 +76,14 @@ export async function GET(request: Request) {
     const timeoutMs = 2500;
     let timedOut = false;
     const data = await Promise.race([
-      getDashboardData(project),
-      new Promise<any>((resolve) => {
+      getDashboardData(project) as Promise<DashboardResponse>,
+      new Promise<DashboardResponse>((resolve) => {
         setTimeout(() => {
           timedOut = true;
           resolve(emptyDashboardData());
         }, timeoutMs);
       }),
-    ]);
+    ]) as DashboardResponse;
     if (timedOut) {
       return NextResponse.json(data, {
         headers: { "X-Dashboard-Timeout": "true" },
@@ -76,7 +95,7 @@ export async function GET(request: Request) {
     try {
       const { company, isAdmin } = getAccessScope(user);
       bugSeverityCounts = await getBugSeverityCounts(company, isAdmin);
-      (data as any).bugSeverityCounts = bugSeverityCounts;
+      data.bugSeverityCounts = bugSeverityCounts;
     } catch {
       // Omit bugSeverityCounts from response without error
     }
@@ -86,7 +105,7 @@ export async function GET(request: Request) {
       const { company, isAdmin } = getAccessScope(user);
 
       // Get resolution rate from the data already computed
-      const resolutionRateValue: number | null = (data as any).resolutionRate?.current ?? null;
+      const resolutionRateValue: number | null = data.resolutionRate?.current ?? null;
 
       // Compute inverse critical ratio from bug severity counts
       // When totalOpen is 0 (no bugs at all), treat as null (no data) instead of 100
@@ -107,7 +126,7 @@ export async function GET(request: Request) {
       if (hasAnyData) {
         const score = computeQualityHealthScore(resolutionRateValue, inverseCriticalRatio, testPassRate);
 
-        (data as any).qualityHealthScore = {
+        data.qualityHealthScore = {
           score,
           components: {
             resolutionRate: resolutionRateValue,
@@ -121,7 +140,7 @@ export async function GET(request: Request) {
     }
 
     // Include user role for client-side role-based UI decisions
-    (data as any).userRole = user.role;
+    data.userRole = user.role;
 
     return NextResponse.json(data, {
       headers: {

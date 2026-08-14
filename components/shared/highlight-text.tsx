@@ -36,7 +36,6 @@ export function HighlightText({
     ? new RegExp(`(${escapedQuery})|\\b((?:TASK|BUG|TC|SES|PLAN|SUITE)-\\d+)\\b`, "gi")
     : TRACE_REGEX;
 
-  const _parts = text.split(combinedRegex);
   // parts will contain: [text_before, match1, match2, text_after...]
   // Since we have two capturing groups in combinedRegex (if query exists), 
   // we need to be careful with the mapping.
