@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mapVariantIdToPlan, upgradeCompanyPlan, downgradeCompanyToFree, verifyWebhookSignature } from "@/lib/lemonsqueezy";
@@ -40,6 +41,23 @@ export async function POST(request: NextRequest) {
   if (!verifyWebhookSignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
+
+  // Idempotency guard: Lemon Squeezy retries webhooks on non-2xx/timeout.
+  // Dedup on a hash of the verified raw body so a genuine retry (identical
+  // payload) is skipped, while a later, different event for the same
+  // subscription (different renews_at/ends_at, etc.) still processes.
+  const eventId = createHash("sha256").update(rawBody).digest("hex");
+  const alreadyProcessed = await db.get<{ eventId: string }>(
+    'SELECT "eventId" FROM "WebhookEventLog" WHERE "source" = ? AND "eventId" = ?',
+    ["lemonsqueezy", eventId],
+  );
+  if (alreadyProcessed) {
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+  await db.run(
+    'INSERT INTO "WebhookEventLog" ("source", "eventId") VALUES (?, ?)',
+    ["lemonsqueezy", eventId],
+  );
 
   let payload: LemonSqueezyWebhookPayload;
   try {

@@ -117,13 +117,38 @@ describe("DELETE workspace data endpoint", () => {
     );
 
     expect(mocks.db.run).toHaveBeenCalledWith(
+      `DELETE FROM "ApiKey" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "company" = ?)`,
+      ["Acme Corp"]
+    );
+
+    expect(mocks.db.run).toHaveBeenCalledWith(
       `DELETE FROM "User" WHERE "company" = ? AND "id" != CAST(? AS INTEGER)`,
       ["Acme Corp", 1]
+    );
+
+    expect(mocks.db.run).toHaveBeenCalledWith(
+      `DELETE FROM "SearchToken" WHERE "company" = ?`,
+      ["Acme Corp"]
+    );
+
+    expect(mocks.db.run).toHaveBeenCalledWith(
+      `DELETE FROM "Invite" WHERE "company" = ?`,
+      ["Acme Corp"]
     );
 
     expect(mocks.db.run).toHaveBeenCalledWith(
       `UPDATE "Company" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "name" = ?`,
       ["deleted", "Acme Corp"]
     );
+
+    // ApiKey rows must be deleted before the User rows that own them.
+    const apiKeyCallIndex = mocks.db.run.mock.calls.findIndex(
+      ([sql]) => sql === `DELETE FROM "ApiKey" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "company" = ?)`
+    );
+    const userCallIndex = mocks.db.run.mock.calls.findIndex(
+      ([sql]) => sql === `DELETE FROM "User" WHERE "company" = ? AND "id" != CAST(? AS INTEGER)`
+    );
+    expect(apiKeyCallIndex).toBeGreaterThanOrEqual(0);
+    expect(apiKeyCallIndex).toBeLessThan(userCallIndex);
   });
 });

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   authEnabled,
   createSessionToken,
+  createTempMfaToken,
   registerUser,
   sessionCookieName,
 } from "@/lib/auth";
@@ -23,7 +24,7 @@ type GoogleTokenInfo = {
   exp?: string;
 };
 
-type UserRow = { id: number; name: string; email: string; role: string; company: string; avatar: string };
+type UserRow = { id: number; name: string; email: string; role: string; company: string; avatar: string; mfaEnabled: number };
 
 function getClientIp(request: NextRequest): string {
   return (
@@ -66,7 +67,7 @@ function respondWithToken(token: string, role: string, company: string) {
 
 async function findUserByEmail(email: string) {
   return db.get<UserRow>(
-    'SELECT "id", "name", "email", "role", "company", "avatar" FROM "User" WHERE "email" = ?',
+    'SELECT "id", "name", "email", "role", "company", "avatar", "mfaEnabled" FROM "User" WHERE "email" = ?',
     [email],
   );
 }
@@ -126,13 +127,19 @@ export async function POST(request: NextRequest) {
     const existing = await findUserByEmail(email);
     if (existing) {
       await clearRateLimit(key);
+      await updateUserProfile(existing.id, name, avatar);
+
+      if (existing.mfaEnabled) {
+        const tempToken = await createTempMfaToken(existing.id);
+        return NextResponse.json({ requiresMfa: true, tempToken });
+      }
+
       const token = await createSessionToken(email, {
         id: existing.id,
         name,
         role: normalizeRole(existing.role),
         company: existing.company || "",
       });
-      await updateUserProfile(existing.id, name, avatar);
       return respondWithToken(token, existing.role, existing.company || "");
     }
 

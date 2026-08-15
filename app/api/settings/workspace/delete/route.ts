@@ -53,6 +53,11 @@ export async function POST(request: NextRequest) {
         if (!table) continue;
 
         if (table === "User") {
+          // API keys belong to users of this company; delete them before the users are gone.
+          await db.run(
+            `DELETE FROM "ApiKey" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "company" = ?)`,
+            [company]
+          );
           // Delete all users except the active admin performing the action
           await db.run(
             `DELETE FROM "User" WHERE "company" = ? AND "id" != CAST(? AS INTEGER)`,
@@ -62,6 +67,10 @@ export async function POST(request: NextRequest) {
           await db.run(`DELETE FROM "${table}" WHERE "company" = ?`, [company]);
         }
       }
+
+      // Search index entries and pending invites for this company
+      await db.run(`DELETE FROM "SearchToken" WHERE "company" = ?`, [company]);
+      await db.run(`DELETE FROM "Invite" WHERE "company" = ?`, [company]);
 
       // Update Company status to 'deleted'
       await db.run(
