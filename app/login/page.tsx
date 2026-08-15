@@ -263,7 +263,7 @@ function LoginContent() {
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        placeholder="????????"
+                        placeholder="••••••••"
                         className={`${inputClass} pr-12`}
                       />
                       <button

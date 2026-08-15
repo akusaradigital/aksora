@@ -268,10 +268,11 @@ export const tables = [
   {
     name: "WebhookEventLog",
     schema: `
+      "id" SERIAL_OR_PK,
       "source" TEXT NOT NULL,
       "eventId" TEXT NOT NULL,
       "processedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY ("source", "eventId")
+      UNIQUE ("source", "eventId")
     `
   },
   {

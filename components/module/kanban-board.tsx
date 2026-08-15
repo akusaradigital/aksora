@@ -284,7 +284,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" data-testid="kanban-board">
       <DndContext
         id={dndId}
         sensors={sensors}

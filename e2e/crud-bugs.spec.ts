@@ -47,8 +47,9 @@ test.describe("Bug CRUD", () => {
       const bugTitle = `[E2E] Bug ${Date.now()}`;
       await titleInput.fill(bugTitle);
 
-      // Submit the form
-      const submitBtn = page.getByRole("button", { name: /save|submit|create/i }).first();
+      // Submit the form (scoped to the form drawer — a "Create"-labelled
+      // button can also exist in the page's empty state behind the modal)
+      const submitBtn = page.locator("#module-form-section").getByRole("button", { name: /save|add/i }).first();
       if (await submitBtn.isVisible()) {
         await submitBtn.click();
         // Wait for success indication (toast or form close)
@@ -67,7 +68,7 @@ test.describe("Bug CRUD", () => {
       await kanbanBtn.click();
       await page.waitForTimeout(500);
       // Kanban board should be visible
-      await expect(page.locator("[data-testid='kanban'], [class*='kanban']").first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByTestId("kanban-board")).toBeVisible({ timeout: 5_000 });
     }
   });
 });
