@@ -205,7 +205,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { id, status, sortOrder, entry, ids, reorder } = body;
+    const { id, status, sortOrder, entry, ids, reorder, field, value } = body;
 
     // Batch reorder: [{ id, sortOrder, status? }, ...]
     if (Array.isArray(reorder) && reorder.length > 0) {
@@ -232,10 +232,26 @@ export async function PATCH(
       });
     }
 
+    // Bulk status update
     if (Array.isArray(ids) && ids.length > 0 && status) {
       const { updateModuleStatus } = await import("@/lib/data");
       for (const itemId of ids) {
         await updateModuleStatus(moduleKey, itemId, status, sortOrder);
+      }
+
+      revalidatePath("/");
+      revalidatePath(`/${moduleKey}`);
+
+      return NextResponse.json({
+        message: `${ids.length} items updated successfully.`,
+      });
+    }
+
+    // Bulk field update (e.g. bulk assign, priority)
+    if (Array.isArray(ids) && ids.length > 0 && typeof field === "string" && typeof value !== "undefined") {
+      const { updateModuleRecord } = await import("@/lib/data");
+      for (const itemId of ids) {
+        await updateModuleRecord(moduleKey, itemId, { [field]: value });
       }
 
       revalidatePath("/");

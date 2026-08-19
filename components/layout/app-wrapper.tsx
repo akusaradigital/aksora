@@ -14,6 +14,7 @@ import { TrialBanner } from "@/components/layout/trial-banner";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 import { CommandPalette } from "@/components/shared/search/command-palette";
 import { OnboardingTour } from "@/components/layout/onboarding-tour";
+import { useAssignmentNotifications } from "@/hooks/use-assignment-notifications";
 
 type AppWrapperProps = {
   children: React.ReactNode;
@@ -48,6 +49,9 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security"];
   const isAuthScreen = marketingPaths.includes(pathname);
   const isSuperadminScreen = pathname.startsWith("/admin/overview");
+
+  // Real-time assignment notifications via SSE (only when logged in)
+  useAssignmentNotifications(!isAuthScreen && !!user);
 
   const refreshUser = async () => {
     try {

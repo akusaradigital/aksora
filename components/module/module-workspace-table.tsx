@@ -49,8 +49,10 @@ type ModuleWorkspaceTableProps = {
   onToggleSelectAll?: () => void;
   onBulkDelete?: () => void;
   onBulkStatusChange?: (status: string) => void;
+  onBulkAssign?: (assignee: string) => void;
   onInlineUpdate?: (rowId: string | number, field: string, value: string) => void;
   statusOptions?: Array<{ value: string; label: string }>;
+  assigneeOptions?: Array<{ value: string; label: string }>;
   priorityOptions?: Array<{ value: string; label: string }>;
   onReorder?: (rowId: string | number, newIndex: number) => void;
   reorderable?: boolean;
@@ -81,8 +83,11 @@ export function ModuleWorkspaceTable({
   onToggleSelect,
   onToggleSelectAll,
   onBulkDelete,
+  onBulkStatusChange,
+  onBulkAssign,
   onInlineUpdate,
   statusOptions,
+  assigneeOptions,
   priorityOptions,
   onReorder,
   reorderable,
@@ -287,11 +292,55 @@ export function ModuleWorkspaceTable({
     >
       {/* Bulk action toolbar */}
       {hasSelection && (
-        <div className="mb-3 flex items-center gap-3 border border-blue-200 bg-blue-50 px-4 py-2 animate-in fade-in duration-100">
+        <div className="mb-3 flex flex-wrap items-center gap-3 border border-blue-200 bg-blue-50 px-4 py-2 animate-in fade-in duration-100">
           <span className="text-xs font-semibold text-blue-700">
             {selectedIds.size} selected
           </span>
           <div className="h-4 w-px bg-blue-200" />
+          {canEdit && statusOptions && statusOptions.length > 0 && onBulkStatusChange && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-blue-900 font-medium">Status:</span>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onBulkStatusChange(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                defaultValue=""
+                className="border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="" disabled>Change status...</option>
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {canEdit && assigneeOptions && assigneeOptions.length > 0 && onBulkAssign && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-blue-900 font-medium">Assign:</span>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onBulkAssign(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                defaultValue=""
+                className="border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="" disabled>Assign to...</option>
+                {assigneeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {canDelete && onBulkDelete && (
             <button
               type="button"

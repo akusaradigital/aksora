@@ -112,6 +112,8 @@ export function ModuleWorkspace({
     handleToggleSelect,
     handleToggleSelectAll,
     handleBulkDelete,
+    handleBulkStatusChange,
+    handleBulkAssign,
     handleInlineUpdate,
     handleReorder,
   } = useWorkspaceRowHandlers({
@@ -164,6 +166,10 @@ export function ModuleWorkspace({
     const f = resolvedConfig.fields.find((f) => f.name === "severity");
     return f && "options" in f ? f.options : [];
   }, [resolvedConfig.fields]);
+
+  const assigneeOptions = useMemo(() => {
+    return relatedOptions.assignee || relatedOptions.suggestedDev || [];
+  }, [relatedOptions]);
 
   // Build filter options from module config
   const filterOptions = useMemo(() => {
@@ -367,6 +373,7 @@ export function ModuleWorkspace({
         totalPages={totalPages}
         totalItems={totalItems}
         statusOptions={statusOptions}
+        assigneeOptions={assigneeOptions}
         pendingDeleteId={pendingDeleteId}
         deleteOpen={deleteId !== null}
         reopenOpen={reopenId !== null}
@@ -408,6 +415,8 @@ export function ModuleWorkspace({
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}
         onBulkDelete={handleBulkDelete}
+        onBulkStatusChange={handleBulkStatusChange}
+        onBulkAssign={handleBulkAssign}
         onInlineUpdate={handleInlineUpdate}
         onReorder={handleReorder}
         reorderable={reorderable}

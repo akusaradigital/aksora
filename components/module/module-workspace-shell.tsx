@@ -78,6 +78,7 @@ type Props = {
  totalPages: number;
  totalItems: number;
  statusOptions: Array<{ label: string; value: string }>;
+ assigneeOptions?: Array<{ label: string; value: string }>;
  pendingDeleteId: string | number | null;
  deleteOpen: boolean;
  reopenOpen: boolean;
@@ -110,6 +111,8 @@ type Props = {
  onToggleSelect?: (id: string | number) => void;
  onToggleSelectAll?: () => void;
  onBulkDelete?: () => void;
+ onBulkStatusChange?: (status: string) => void;
+ onBulkAssign?: (assignee: string) => void;
  onInlineUpdate?: (rowId: string | number, field: string, value: string) => void;
  onReorder?: (rowId: string | number, newIndex: number) => void;
  reorderable?: boolean;
@@ -168,6 +171,7 @@ export function ModuleWorkspaceShell({
  totalPages,
  totalItems,
  statusOptions,
+ assigneeOptions,
  pendingDeleteId,
  deleteOpen,
  reopenOpen,
@@ -200,6 +204,8 @@ export function ModuleWorkspaceShell({
  onToggleSelect,
  onToggleSelectAll,
  onBulkDelete,
+ onBulkStatusChange,
+ onBulkAssign,
  onInlineUpdate,
  onReorder,
  reorderable,
@@ -286,8 +292,11 @@ export function ModuleWorkspaceShell({
  onToggleSelect={onToggleSelect}
  onToggleSelectAll={onToggleSelectAll}
  onBulkDelete={onBulkDelete}
+ onBulkStatusChange={onBulkStatusChange}
+ onBulkAssign={onBulkAssign}
  onInlineUpdate={onInlineUpdate}
  statusOptions={statusOptions}
+ assigneeOptions={assigneeOptions}
  onReorder={onReorder}
  reorderable={reorderable}
  />

@@ -64,6 +64,55 @@ export function useWorkspaceRowHandlers({
     }
   }, [selectedIds, module, router]);
 
+  const handleBulkStatusChange = useCallback(async (status: string) => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    setLocalRows((prev) => prev.map((row) => ids.includes(row.id) ? { ...row, status } : row));
+    setLocalKanbanRows((prev) => prev.map((row) => ids.includes(String(row.id)) || ids.includes(row.id) ? { ...row, status } : row));
+    try {
+      const res = await fetch(`/api/items/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status }),
+      });
+      if (res.ok) {
+        toast(`${ids.length} item(s) updated`, "success");
+        setSelectedIds(new Set());
+        router.refresh();
+      } else {
+        toast("Failed to update status", "error");
+        router.refresh();
+      }
+    } catch {
+      toast("Failed to update status", "error");
+      router.refresh();
+    }
+  }, [selectedIds, module, router, setLocalRows, setLocalKanbanRows]);
+
+  const handleBulkAssign = useCallback(async (assignee: string) => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    setLocalRows((prev) => prev.map((row) => ids.includes(row.id) ? { ...row, assignee } : row));
+    try {
+      const res = await fetch(`/api/items/${module}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, field: "assignee", value: assignee }),
+      });
+      if (res.ok) {
+        toast(`${ids.length} item(s) assigned`, "success");
+        setSelectedIds(new Set());
+        router.refresh();
+      } else {
+        toast("Failed to assign items", "error");
+        router.refresh();
+      }
+    } catch {
+      toast("Failed to assign items", "error");
+      router.refresh();
+    }
+  }, [selectedIds, module, router, setLocalRows]);
+
   // Inline cell update (status, priority, etc.)
   const handleInlineUpdate = useCallback(async (rowId: string | number, field: string, value: string) => {
     // Optimistic update both views
@@ -139,6 +188,8 @@ export function useWorkspaceRowHandlers({
     handleToggleSelect,
     handleToggleSelectAll,
     handleBulkDelete,
+    handleBulkStatusChange,
+    handleBulkAssign,
     handleInlineUpdate,
     handleReorder,
   };
