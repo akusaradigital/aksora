@@ -18,9 +18,6 @@ import { getLatestVersion, getNextVersion } from "@/components/module/module-wor
 import { useWorkspaceRowHandlers, useColumnVisibility } from "@/components/module/module-workspace-content-handlers";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = TableRow;
-
-
 export type ModuleWorkspaceProps = {
   module: ModuleKey;
   rows: TableRow[];

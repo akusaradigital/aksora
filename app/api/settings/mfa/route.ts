@@ -6,7 +6,7 @@ import { generateTotpSecret, generateTotpUri, verifyTotpCode } from "@/lib/totp"
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

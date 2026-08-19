@@ -21,8 +21,11 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") || "/dashboard";
   const inviteToken = searchParams.get("inviteToken") || "";
+  const initialMode = searchParams.get("mode");
 
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(() =>
+    initialMode === "signup" || initialMode === "forgot" ? initialMode : "signin"
+  );
   const [formData, setFormData] = useState({
     name: "",
     email: "",
