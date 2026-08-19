@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  Bug,
   TrendUp,
   TrendDown,
   Minus,
