@@ -73,7 +73,7 @@ describe("invites route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       invite: { token: "tok-123", company: "acme", role: "qa", expiresAt: "2026-05-05T00:00:00.000Z" },
-      link: "http://localhost/register?inviteToken=tok-123",
+      link: "http://localhost/login?mode=signup&inviteToken=tok-123",
     });
   });
 });

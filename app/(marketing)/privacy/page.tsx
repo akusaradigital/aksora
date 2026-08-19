@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <div className="space-y-10">
             <PolicySection title="1. Information We Collect">
               <h4>Account Information</h4>
-              <p>When you create an account, we collect your full name, email address, company name, and selected role. This information is required to provision your workspace and manage access.</p>
+              <p>When you create an account, we collect your full name, email address, workspace name, and selected role. This information is required to provision your workspace and manage access.</p>
               <h4>Usage Data</h4>
               <p>We collect anonymized usage data including pages visited, features used, and session duration. This data helps us understand how teams use the platform and prioritize improvements.</p>
               <h4>Content Data</h4>

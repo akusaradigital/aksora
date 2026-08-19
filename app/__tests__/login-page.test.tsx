@@ -34,7 +34,7 @@ describe("login page", () => {
     const html = renderToStaticMarkup(<LoginPage />);
 
     expect(html).toContain("Welcome back");
-    expect(html).toContain("Sign in to access your Aksora workspace.");
+    expect(html).toContain("Sign in to continue your Aksora workspace.");
     expect(html).toContain("Sign In");
     expect(mocks.routerPush).not.toHaveBeenCalled();
   });

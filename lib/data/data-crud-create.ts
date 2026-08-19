@@ -7,6 +7,7 @@ import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { generateTestPlanNotes } from "@/lib/test-plan-notes";
 import {
   getWriteCompany,
+  getWriteWorkspaceId,
   logActivity,
   makePublicToken,
   runInsert,
@@ -14,10 +15,10 @@ import {
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 
-async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>) {
+async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>, workspaceId?: number | null) {
   if (!shouldIndexModule(module)) return;
   try {
-    await syncSearchTokens(module, company, entityId, data);
+    await syncSearchTokens(module, company, entityId, data, workspaceId);
   } catch (e) {
     console.warn(`syncSearchIndex failed for ${module}/${entityId} (non-critical):`, e);
   }
@@ -26,6 +27,7 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
 export async function createModuleRecord(module: ModuleKey, data: any) {
   const user = await getCurrentUser();
   const company = getWriteCompany(user, data.company);
+  const workspaceId = getWriteWorkspaceId(user, data.workspaceId);
   const actor = user?.name || user?.email || "";
 
   // Sanitize: prevent literal "undefined"/"null" strings (from String(undefined)) being
@@ -42,35 +44,35 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const publicToken = data.publicToken || makePublicToken();
       const notes = data.notes?.trim() ? data.notes : generateTestPlanNotes(data);
       const res = await runInsert(
-        `INSERT INTO "TestPlan" ("company", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, notes, data.assignee ?? ""]
+        `INSERT INTO "TestPlan" ("company", "workspaceId", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, notes, data.assignee ?? ""]
       );
-      await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor, publicToken);
+      await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       try {
-        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title, workspaceId });
       } catch (e) {
         console.warn("syncSprintFromTestPlan failed (non-critical):", e);
       }
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestPlan" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("test-plans", company, Number(created.id), data);
+        await syncSearchIndex("test-plans", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "test-cases": {
       const publicToken = data.publicToken || makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+        `INSERT INTO "TestCase" ("company", "workspaceId", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
-      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`, actor, publicToken);
+      await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestCase" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("test-cases", company, Number(created.id), data);
+        await syncSearchIndex("test-cases", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
@@ -79,69 +81,69 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const lastDevRes = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]) as any;
       const suggestedDev = data.suggestedDev || lastDevRes?.suggestedDev || "";
       const res = await runInsert(
-        `INSERT INTO "Bug" ("company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
+        `INSERT INTO "Bug" ("company", "workspaceId", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
-      await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`, actor, publicToken);
+      await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Bug" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("bugs", company, Number(created.id), data);
+        await syncSearchIndex("bugs", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "tasks": {
       const publicToken = makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "Task" ("company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "notes", "evidence", "relatedItems", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
+        `INSERT INTO "Task" ("company", "workspaceId", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "notes", "evidence", "relatedItems", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
       );
-      await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`, actor, publicToken);
+      await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Task" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("tasks", company, Number(created.id), data);
+        await syncSearchIndex("tasks", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "test-sessions": {
       const publicToken = makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "TestSession" ("company", "publicToken", "date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
+        `INSERT INTO "TestSession" ("company", "workspaceId", "publicToken", "date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
-      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`, actor, publicToken);
+      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`, actor, publicToken, workspaceId);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSession" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("test-sessions", company, Number(created.id), data);
+        await syncSearchIndex("test-sessions", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "test-suites": {
       const publicToken = data.publicToken || makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "TestSuite" ("company", "publicToken", "testPlanId", "title", "assignee", "status", "notes")
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
+        `INSERT INTO "TestSuite" ("company", "workspaceId", "publicToken", "testPlanId", "title", "assignee", "status", "notes")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
-      await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`, actor, publicToken);
+      await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSuite" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("test-suites", company, Number(created.id), data);
+        await syncSearchIndex("test-suites", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "assignees": {
       const res = await runInsert(
-        `INSERT INTO "Assignee" ("company", "name", "role", "email", "skills", "status")
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [company, data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status]
+        `INSERT INTO "Assignee" ("company", "workspaceId", "name", "role", "email", "skills", "status")
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status]
       );
-      await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`, actor);
+      await logActivity(company, "Assignee", String(data.name), "Added", `New team member: ${data.name}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       return res;
     }
@@ -153,9 +155,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const { hashPassword } = await import("@/lib/auth-core");
       const hashedPassword = await hashPassword(data.password || "password123");
       const res = await runInsert(
-        `INSERT INTO "User" ("company", "name", "email", "password", "role")
-         VALUES (?, ?, ?, ?, ?)`,
-        [company, data.name || data.email, data.email, hashedPassword, data.role || "user"]
+        `INSERT INTO "User" ("company", "workspaceId", "name", "email", "password", "role")
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, data.name || data.email, data.email, hashedPassword, data.role || "user"]
       );
       const user2 = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
         'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
@@ -163,10 +165,10 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       );
       if (user2) {
         await syncAssigneeFromUser(user2);
-        await syncSearchIndex("users", company, user2.id, user2);
-        await syncSearchIndex("assignees", company, user2.id, { ...user2, status: "active" });
+        await syncSearchIndex("users", company, user2.id, user2, workspaceId);
+        await syncSearchIndex("assignees", company, user2.id, { ...user2, status: "active" }, workspaceId);
       }
-      await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`, actor);
+      await logActivity(company, "User", String(data.email), "Created", `Access granted for ${data.email}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       return res;
     }
@@ -180,30 +182,30 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       }
       const publicToken = makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "Sprint" ("company", "publicToken", "name", "startDate", "endDate", "status", "goal")
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
+        `INSERT INTO "Sprint" ("company", "workspaceId", "publicToken", "name", "startDate", "endDate", "status", "goal")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
       );
-      await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`, actor, publicToken);
+      await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Sprint" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("sprints", company, Number(created.id), data);
+        await syncSearchIndex("sprints", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
     case "meeting-notes": {
       const publicToken = data.publicToken || makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "MeetingNote" ("company", "publicToken", "date", "project", "title", "attendees", "content", "summary", "actionItems", "relatedItems")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
+        `INSERT INTO "MeetingNote" ("company", "workspaceId", "publicToken", "date", "project", "title", "attendees", "content", "summary", "actionItems", "relatedItems")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
       );
-      await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`, actor, publicToken);
+      await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "MeetingNote" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("meeting-notes", company, Number(created.id), data);
+        await syncSearchIndex("meeting-notes", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
@@ -213,15 +215,15 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const env = String(data.environment ?? "").trim() || "";
       const dev = String(data.developer ?? "").trim() || "";
       const res = await runInsert(
-        `INSERT INTO "Deployment" ("company", "publicToken", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.date, data.version, data.project, env, dev, data.changelog ?? "", data.status, notes]
+        `INSERT INTO "Deployment" ("company", "workspaceId", "publicToken", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.date, data.version, data.project, env, dev, data.changelog ?? "", data.status, notes]
       );
-      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${env || "N/A"}: ${data.status}`, actor, publicToken);
+      await logActivity(company, "Deployment", String(data.version), "Deployed", `Deployment ${data.version} to ${env || "N/A"}: ${data.status}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Deployment" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("deployments", company, Number(created.id), data);
+        await syncSearchIndex("deployments", company, Number(created.id), data, workspaceId);
       }
       return res;
     }
@@ -229,15 +231,15 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       const publicToken = makePublicToken();
       const assignee = data.assignee || actor;
       const res = await runInsert(
-        `INSERT INTO "WorkLog" ("company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, publicToken, data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
+        `INSERT INTO "WorkLog" ("company", "workspaceId", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
       );
-      await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${data.startTime}-${data.endTime} ${data.category} (${data.project})`, actor, publicToken);
+      await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${data.startTime}-${data.endTime} ${data.category} (${data.project})`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "WorkLog" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
-        await syncSearchIndex("work-logs", company, Number(created.id), data);
+        await syncSearchIndex("work-logs", company, Number(created.id), data, workspaceId);
       }
       return res;
     }

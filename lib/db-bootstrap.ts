@@ -141,7 +141,7 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 6;
+const CURRENT_MIGRATION_VERSION = 9;
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
@@ -159,6 +159,74 @@ async function setMigrationVersion(deps: DbBootstrapDeps, version: number): Prom
   const pool = await deps.getPostgresPool();
   await pool.query(createSql);
   await pool.query(insertSql, [version]);
+}
+
+async function backfillWorkspaceIds(deps: DbBootstrapDeps) {
+  const pool = await deps.getPostgresPool();
+  const tablesToBackfill = [
+    "Task", "Bug", "TestCase", "TestPlan", "TestSession", "TestSuite", "Sprint",
+    "MeetingNote", "Assignee", "User", "Deployment", "ExecutionRun", "CaseVerdict",
+    "DashboardComment", "PresenceHeartbeat", "DashboardFilter", "WorkLog", "ModuleView",
+    "NotificationPreference", "CollaborationPresence", "ActivityLog", "SearchToken",
+  ];
+
+  // 1. Collect distinct non-empty company values across all tables and ensure Workspace rows exist
+  for (const table of tablesToBackfill) {
+    try {
+      const res: any = await pool.query(
+        `SELECT DISTINCT "company" FROM "${table}" WHERE COALESCE("company", '') != ''`,
+      );
+      const rows = res?.rows || [];
+      for (const row of rows) {
+        const name = String((row as any)?.company || "").trim();
+        if (!name) continue;
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "workspace";
+        try {
+          await pool.query(
+            `INSERT INTO "Workspace" ("name", "slug") VALUES ($1, $2) ON CONFLICT ("name") DO NOTHING`,
+            [name, slug],
+          );
+        } catch {
+          const altSlug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
+          await pool.query(
+            `INSERT INTO "Workspace" ("name", "slug") VALUES ($1, $2) ON CONFLICT ("name") DO NOTHING`,
+            [name, altSlug],
+          ).catch(() => {});
+        }
+      }
+    } catch {
+      // Table might not exist yet
+    }
+  }
+
+  // 2. Set workspaceId on each table by matching company name to Workspace.name
+  for (const table of tablesToBackfill) {
+    try {
+      await pool.query(`
+        UPDATE "${table}" t
+        SET "workspaceId" = w."id"
+        FROM "Workspace" w
+        WHERE w."name" = t."company"
+          AND t."workspaceId" IS NULL
+          AND COALESCE(t."company", '') != ''
+      `);
+    } catch {
+      // Ignore if table/column not ready
+    }
+  }
+
+  // 3. Ensure WorkspaceMembership rows exist for all User rows with a workspaceId
+  try {
+    await pool.query(`
+      INSERT INTO "WorkspaceMembership" ("workspaceId", "userId", "role", "status")
+      SELECT u."workspaceId", u."id", COALESCE(NULLIF(u."role", ''), 'qa'), 'active'
+      FROM "User" u
+      WHERE u."workspaceId" IS NOT NULL
+      ON CONFLICT ("workspaceId", "userId") DO NOTHING
+    `);
+  } catch {
+    // Ignore if constraint or columns not ready
+  }
 }
 
 async function migrateTaskDueDateToStartEnd(deps: DbBootstrapDeps) {
@@ -197,6 +265,7 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
             await backfillPublicTokens(deps);
             await backfillSortOrder(deps);
             await migrateTaskDueDateToStartEnd(deps);
+            await backfillWorkspaceIds(deps);
             await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
           }
           globalBootstrap.__schemaBootstrapDone = true;

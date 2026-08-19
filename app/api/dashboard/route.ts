@@ -74,8 +74,8 @@ export async function GET(request: Request) {
     // Graceful fallback: if severity counts query fails, omit from response
     let bugSeverityCounts: { critical: number; high: number; medium: number; low: number } | null = null;
     try {
-      const { company, isAdmin } = getAccessScope(user);
-      bugSeverityCounts = await getBugSeverityCounts(company, isAdmin);
+      const { company, isAdmin, workspaceId } = getAccessScope(user);
+      bugSeverityCounts = await getBugSeverityCounts(company, isAdmin, workspaceId);
       (data as any).bugSeverityCounts = bugSeverityCounts;
     } catch {
       // Omit bugSeverityCounts from response without error
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
 
     // Quality Health Score computation
     try {
-      const { company, isAdmin } = getAccessScope(user);
+      const { company, isAdmin, workspaceId } = getAccessScope(user);
 
       // Get resolution rate from the data already computed
       const resolutionRateValue: number | null = (data as any).resolutionRate?.current ?? null;
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       }
 
       // Get test pass rate
-      const testPassRate = await getTestPassRate(company, isAdmin);
+      const testPassRate = await getTestPassRate(company, isAdmin, workspaceId);
 
       // Only compute and include health score when at least one component has data
       const hasAnyData = resolutionRateValue !== null || inverseCriticalRatio !== null || testPassRate !== null;

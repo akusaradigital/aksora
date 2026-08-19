@@ -15,7 +15,7 @@ import {
 
 export async function getDashboardData(filterProject?: string): Promise<any> {
   const user = await getCurrentUser();
-  const { company, isAdmin } = getAccessScope(user);
+  const { company, isAdmin, where: scopeWhere, andWhere: scopeAndWhere, params: scopeParams } = getAccessScope(user);
   const userRole = user?.role || "user";
   const rolePersona = userRole;
   const normalizedProject = String(filterProject ?? "").trim();
@@ -25,17 +25,17 @@ export async function getDashboardData(filterProject?: string): Promise<any> {
     return structuredClone(cached.data as object);
   }
 
-  const companyWhere = isAdmin ? "" : `WHERE "company" = ?`;
-  const companyAndWhere = isAdmin ? "" : `AND "company" = ?`;
-  const companyParams = isAdmin ? [] : [company];
+  const companyWhere = scopeWhere;
+  const companyAndWhere = scopeAndWhere;
+  const companyParams = scopeParams;
   const projectWhere = normalizedProject
-    ? (isAdmin ? ` WHERE "project" = ?` : ` WHERE "company" = ? AND "project" = ?`)
+    ? (isAdmin ? ` WHERE "project" = ?` : `${scopeWhere} AND "project" = ?`)
     : companyWhere;
   const projectAndWhere = normalizedProject
-    ? (isAdmin ? ` AND "project" = ?` : ` AND "company" = ? AND "project" = ?`)
+    ? `${scopeAndWhere} AND "project" = ?`
     : companyAndWhere;
   const projectParams = normalizedProject
-    ? (isAdmin ? [normalizedProject] : [company, normalizedProject])
+    ? [...scopeParams, normalizedProject]
     : companyParams;
 
   const [

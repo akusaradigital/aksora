@@ -27,38 +27,37 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  const [drag, setDrag] = useState(false);
  const fileInputRef = useRef<HTMLInputElement>(null);
 
+ const uploadFile = useCallback(async (file: File) => {
+   if (disabled) return;
+   setUploading(true);
+   try {
+     const compressed = await compressImage(file);
+     const fd = new FormData();
+     fd.append("file", compressed);
+     const res = await fetch("/api/upload", { method: "POST", body: fd });
+     const data = await res.json();
+     if (data.url) {
+       onChange([...value, { type: "file", url: data.url, name: file.name }]);
+     }
+   } catch { /* ignore */ }
+   setUploading(false);
+ }, [value, onChange, disabled]);
+
  // Ctrl+V paste from clipboard
  useEffect(() => {
- const handler = async (e: ClipboardEvent) => {
- const items = e.clipboardData?.items;
- if (!items) return;
- for (const item of Array.from(items)) {
- if (item.type.startsWith("image/")) {
- const file = item.getAsFile();
- if (file) await uploadFile(file);
- }
- }
- };
- document.addEventListener("paste", handler);
- return () => document.removeEventListener("paste", handler);
- // eslint-disable-next-line react-hooks/exhaustive-deps
- }, [value]);
-
- const uploadFile = useCallback(async (file: File) => {
- if (disabled) return;
- setUploading(true);
- try {
- const compressed = await compressImage(file);
- const fd = new FormData();
- fd.append("file", compressed);
- const res = await fetch("/api/upload", { method:"POST", body: fd });
- const data = await res.json();
- if (data.url) {
- onChange([...value, { type:"file", url: data.url, name: file.name }]);
- }
- } catch { /* ignore */ }
- setUploading(false);
- }, [value, onChange, disabled]);
+   const handler = async (e: ClipboardEvent) => {
+     const items = e.clipboardData?.items;
+     if (!items) return;
+     for (const item of Array.from(items)) {
+       if (item.type.startsWith("image/")) {
+         const file = item.getAsFile();
+         if (file) await uploadFile(file);
+       }
+     }
+   };
+   document.addEventListener("paste", handler);
+   return () => document.removeEventListener("paste", handler);
+ }, [uploadFile]);
 
  const addLink = () => {
  const url = linkInput.trim();

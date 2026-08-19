@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Eye, EyeSlash } from "@phosphor-icons/react";
@@ -8,7 +8,6 @@ import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { FormFieldError } from "@/components/shared/form-field-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { getPublicRoleOptions } from "@/lib/roles";
 import { GoogleSignInButton } from "@/components/oauth/google-signin-button";
 
 function LoginContent() {
@@ -31,8 +30,13 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setNextUrl(new URLSearchParams(window.location.search).get("next") || "/dashboard");
-    setInviteToken(new URLSearchParams(window.location.search).get("inviteToken") || "");
+    const params = new URLSearchParams(window.location.search);
+    setNextUrl(params.get("next") || "/dashboard");
+    const token = params.get("inviteToken") || "";
+    setInviteToken(token);
+    if (params.get("mode") === "signup" || token) {
+      setMode("signup");
+    }
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -57,8 +61,7 @@ function LoginContent() {
       requireField("name", "Name is required.");
       requireField("email", "Email address is required.");
       requireField("password", "Password is required.");
-      requireField("role", "Role is required.");
-      requireField("company", "Company name is required.");
+      requireField("company", "Workspace name is required.");
     } else if (mode === "forgot") {
       requireField("email", "Email address is required.");
     } else {
@@ -107,6 +110,17 @@ function LoginContent() {
       if (!res.ok) throw new Error(data.error || "Authentication failed");
 
       if (mode === "signup") {
+        if (inviteToken) {
+          const acceptRes = await fetch(`/api/invites/${encodeURIComponent(inviteToken)}/accept`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: formData.email }),
+          });
+          if (!acceptRes.ok) {
+            const acceptData = await acceptRes.json().catch(() => null);
+            throw new Error(acceptData?.error || "Invite activation failed.");
+          }
+        }
         setShowSuccessModal(true);
         setFormData({ name: "", email: "", password: "", role: "", company: "" });
         setMode("signin");
@@ -148,14 +162,14 @@ function LoginContent() {
               {mode === "signup" ? "Create account" : mode === "forgot" ? "Recover access" : "Sign in"}
             </p>
             <h2 className="text-3xl font-black tracking-tight text-slate-900">
-              {mode === "signup" ? "Get started now" : mode === "forgot" ? "Reset password" : "Welcome back"}
+              {mode === "signup" ? "Start a workspace" : mode === "forgot" ? "Reset password" : "Welcome back"}
             </h2>
             <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500">
               {mode === "signup"
-                ? "Set up your workspace account to get started."
+                ? "Set up your workspace and keep QA in one place."
                 : mode === "forgot"
-                ? "Enter your email and we'll send a password reset link."
-                : "Sign in to access your Aksora workspace."}
+                ? "Enter your email and we'll send a reset link."
+                : "Sign in to continue your Aksora workspace."}
             </p>
           </div>
 
@@ -165,7 +179,7 @@ function LoginContent() {
               <div className="my-6 flex items-center gap-3">
                 <span className="h-px flex-1 bg-slate-200" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  or continue with email
+                  or use email
                 </span>
                 <span className="h-px flex-1 bg-slate-200" />
               </div>
@@ -195,7 +209,7 @@ function LoginContent() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="name@company.com"
+                  placeholder="name@team.com"
                   className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                 />
                 <FormFieldError message={fieldErrors.email} className="px-1" />
@@ -242,38 +256,18 @@ function LoginContent() {
                   </div>
 
                 {mode === "signup" && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Software Role</label>
-                      <select
-                        name="role"
-                        value={formData.role}
-                        onChange={handleInputChange}
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      >
-                        <option value="">Select your role</option>
-                        {getPublicRoleOptions().map((role) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </select>
-                      <FormFieldError message={fieldErrors.role} className="px-1" />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Company Name</label>
-                      <input
-                        type="text"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Acme Corp"
-                        className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                      />
-                      <FormFieldError message={fieldErrors.company} className="px-1" />
-                    </div>
-                  </>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Workspace Name</label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={formData.company}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Product Team"
+                      className="w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm font-medium text-slate-900 outline-none appearance-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+                    />
+                    <FormFieldError message={fieldErrors.company} className="px-1" />
+                  </div>
                 )}
               </>
             )}
@@ -316,7 +310,7 @@ function LoginContent() {
           {mode !== "forgot" && (
             <p className="mt-8 text-xs font-semibold text-slate-500">
               {mode === "signup"
-                ? "Creating an account sets up your own workspace."
+                ? "Creating an account sets up your workspace admin access."
                 : "Access is managed by your workspace administrator."}
             </p>
           )}

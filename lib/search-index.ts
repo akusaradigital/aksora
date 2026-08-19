@@ -31,11 +31,13 @@ function buildBulkInsertSql(
   entityType: string,
   entityId: string,
   tokens: string[],
+  workspaceId?: number | null,
 ) {
-  const placeholders = tokens.map(() => "(?, ?, ?, ?, ?)").join(", ");
+  const wsId = workspaceId ?? null;
+  const placeholders = tokens.map(() => "(?, ?, ?, ?, ?, ?)").join(", ");
   return {
-    sql: `INSERT INTO "SearchToken" ("company", "entityType", "entityId", "entityIdInt", "token") VALUES ${placeholders}`,
-    params: tokens.flatMap((token) => [company, entityType, entityId, Number(entityId) || 0, token]),
+    sql: `INSERT INTO "SearchToken" ("company", "workspaceId", "entityType", "entityId", "entityIdInt", "token") VALUES ${placeholders}`,
+    params: tokens.flatMap((token) => [company, wsId, entityType, entityId, Number(entityId) || 0, token]),
   };
 }
 
@@ -74,7 +76,7 @@ export function shouldIndexModule(module: string) {
   return indexedModules.has(module);
 }
 
-export async function syncSearchTokens(module: string, company: string, entityId: string | number, data: Record<string, unknown>) {
+export async function syncSearchTokens(module: string, company: string, entityId: string | number, data: Record<string, unknown>, workspaceId?: number | null) {
   if (!shouldIndexModule(module)) return;
   const tokens = collectSearchTokens(buildSearchText(module, data));
   const entityType = module;
@@ -85,12 +87,12 @@ export async function syncSearchTokens(module: string, company: string, entityId
     [company, entityType, normalizedEntityIdInt, normalizedEntityId],
   );
   if (tokens.length === 0) return;
-  const bulkInsert = buildBulkInsertSql(company, entityType, normalizedEntityId, tokens);
+  const bulkInsert = buildBulkInsertSql(company, entityType, normalizedEntityId, tokens, workspaceId);
   await db.run(bulkInsert.sql, bulkInsert.params);
 }
 
 export async function syncSearchTokensBulk(
-  rows: Array<{ module: string; company: string; entityId: string | number; data: Record<string, unknown> }>,
+  rows: Array<{ module: string; company: string; entityId: string | number; data: Record<string, unknown>; workspaceId?: number | null }>,
 ) {
   if (rows.length === 0) return;
   // Process in batches of 10 to avoid overly large SQL statements
@@ -98,7 +100,7 @@ export async function syncSearchTokensBulk(
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
     await Promise.all(batch.map((row) =>
-      syncSearchTokens(row.module, row.company, row.entityId, row.data),
+      syncSearchTokens(row.module, row.company, row.entityId, row.data, row.workspaceId),
     ));
   }
 }

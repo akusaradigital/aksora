@@ -13,6 +13,8 @@ type SessionRow = {
   totalCases: number | string; passed: number | string; failed: number | string;
   blocked: number | string; result: string;
 };
+type BlockerRow = { count: number | string };
+type BugAgingRow = { avgDays: number | string; blockers: number | string };
 type ActivityRow = { entityType: string; action: string; summary: string; createdAt: string };
 
 export type WeeklyDigest = {
@@ -22,6 +24,7 @@ export type WeeklyDigest = {
     newBugs: number; closedBugs: number; openBugs: number;
     newTasks: number; doneTasks: number; openTasks: number;
     sessions: number; testCasesRun: number; passRate: number | null;
+    blockedBugs: number; avgBugAgeDays: number | null;
   };
   newBugs: Array<{ code: string; title: string; severity: string; status: string }>;
   closedBugs: Array<{ code: string; title: string; severity: string }>;
@@ -57,6 +60,8 @@ export async function getWeeklyDigestForCompany(company: string, from: string, t
     sessions,
     testCasesRun,
     recentActivity,
+    blockerCount,
+    bugAging,
   ] = await Promise.all([
     db.query<BugRow>(
       `SELECT id, title, severity, priority, project, status
@@ -103,6 +108,16 @@ export async function getWeeklyDigestForCompany(company: string, from: string, t
        ORDER BY "createdAt" DESC LIMIT 15`,
       [...dp, ...cp],
     ),
+    db.query<BlockerRow>(
+      `SELECT COUNT(*) as count FROM "Bug" WHERE "deletedAt" IS NULL AND status = 'blocked' AND date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}`,
+      [...dp, ...cp],
+    ),
+    db.query<BugAgingRow>(
+      `SELECT COALESCE(AVG(julianday(COALESCE("updatedAt", "createdAt")) - julianday("createdAt")), 0) as avgDays,
+              COUNT(CASE WHEN status = 'blocked' THEN 1 END) as blockers
+       FROM "Bug" WHERE "deletedAt" IS NULL AND date("createdAt") >= ? AND date("createdAt") <= ?${andCompany}`,
+      [...dp, ...cp],
+    ),
   ]);
 
   const totalSessionPassed = sessions.reduce((sum, row) => sum + Number(row.passed ?? 0), 0);
@@ -121,6 +136,8 @@ export async function getWeeklyDigestForCompany(company: string, from: string, t
       sessions: sessions.length,
       testCasesRun: Number(testCasesRun[0]?.count ?? 0),
       passRate: totalSessionCases > 0 ? Math.round((totalSessionPassed / totalSessionCases) * 100) : null,
+      blockedBugs: Number(blockerCount[0]?.count ?? 0),
+      avgBugAgeDays: Number.isFinite(Number(bugAging[0]?.avgDays)) ? Math.round(Number(bugAging[0]?.avgDays) * 10) / 10 : null,
     },
     newBugs: newBugs.map((b) => ({ code: codeFromId("BUG", Number(b.id)), title: b.title, severity: b.severity, status: b.status })),
     closedBugs: closedBugs.map((b) => ({ code: codeFromId("BUG", Number(b.id)), title: b.title, severity: b.severity })),
@@ -154,10 +171,11 @@ export function renderDigestHtml(digest: WeeklyDigest): string {
           ["New Bugs", summary.newBugs],
           ["Closed", summary.closedBugs],
           ["Open Bugs", summary.openBugs],
+          ["Blocked", summary.blockedBugs],
           ["New Tasks", summary.newTasks],
           ["Done Tasks", summary.doneTasks],
-          ["Sessions", summary.sessions],
           ["Pass Rate", summary.passRate === null ? "-" : `${summary.passRate}%`],
+          ["Bug Age", summary.avgBugAgeDays === null ? "-" : `${summary.avgBugAgeDays}d`],
         ]
           .map(
             ([label, value]) =>

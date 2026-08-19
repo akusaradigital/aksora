@@ -58,13 +58,13 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     if (plan?.sprint) {
       const stillReferenced = await db.get<{ cnt: number }>(
         `SELECT COUNT(*) as cnt FROM "TestPlan"
-         WHERE "sprint" = ? AND "company" = ? AND "deletedAt" IS NULL AND "id" != CAST(? AS INTEGER)`,
-        [plan.sprint, company, id],
+         WHERE "sprint" = ? AND "deletedAt" IS NULL AND "id" != CAST(? AS INTEGER)${companyFilter}`,
+        [plan.sprint, id, ...companyParam],
       );
       if (Number(stillReferenced?.cnt ?? 0) === 0) {
         await db.run(
-          `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" = ? AND "company" = ? AND "deletedAt" IS NULL`,
-          [plan.sprint, company],
+          `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" = ? AND "deletedAt" IS NULL${companyFilter}`,
+          [plan.sprint, ...companyParam],
         );
       }
     }
@@ -105,16 +105,16 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
       const idPlaceholders = ids.map(() => "?").join(", ");
       const stillReferenced = await db.query<{ name: string }>(
         `SELECT DISTINCT "sprint" as name FROM "TestPlan"
-         WHERE "sprint" IN (${sprintPlaceholders}) AND "company" = ? AND "deletedAt" IS NULL AND "id" NOT IN (${idPlaceholders})`,
-        [...sprintNames, company, ...ids],
+         WHERE "sprint" IN (${sprintPlaceholders}) AND "deletedAt" IS NULL AND "id" NOT IN (${idPlaceholders})${companyFilter}`,
+        [...sprintNames, ...ids, ...companyParam],
       );
       const referencedNames = new Set(stillReferenced.map((r) => r.name));
       const deletable = sprintNames.filter((name) => !referencedNames.has(name));
       if (deletable.length > 0) {
         const deletePlaceholders = deletable.map(() => "?").join(", ");
         await db.run(
-          `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" IN (${deletePlaceholders}) AND "company" = ? AND "deletedAt" IS NULL`,
-          [...deletable, company],
+          `UPDATE "Sprint" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "name" IN (${deletePlaceholders}) AND "deletedAt" IS NULL${companyFilter}`,
+          [...deletable, ...companyParam],
         );
       }
     }

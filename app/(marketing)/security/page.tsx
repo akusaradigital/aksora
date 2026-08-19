@@ -56,7 +56,7 @@ export default function SecurityPage() {
             <SecurityCard
               icon={<Database size={22} weight="bold" />}
               title="Data Isolation"
-              items={["Logical tenant isolation per workspace", "Company-scoped queries on every request", "No cross-workspace data leakage possible", "Independent data export per organization"]}
+              items={["Logical tenant isolation per workspace", "Workspace-scoped queries on every request", "No cross-workspace data leakage possible", "Independent data export per organization"]}
             />
             <SecurityCard
               icon={<Users size={22} weight="bold" />}

@@ -19,9 +19,9 @@ import {
   Confetti,
 } from "@phosphor-icons/react";
 
-const ONBOARDING_KEY = "aksora:onboarding:completed";
-const ONBOARDING_STEP_KEY = "aksora:onboarding:step";
-const ONBOARDING_DISMISSED_KEY = "aksora:onboarding:dismissed";
+const ONBOARDING_KEY_PREFIX = "aksora:onboarding:completed";
+const ONBOARDING_STEP_KEY_PREFIX = "aksora:onboarding:step";
+const ONBOARDING_DISMISSED_KEY_PREFIX = "aksora:onboarding:dismissed";
 
 type TourStep = {
   id: string;
@@ -34,7 +34,7 @@ type TourStep = {
   action?: string;
 };
 
-const tourSteps: TourStep[] = [
+const defaultTourSteps: TourStep[] = [
   {
     id: "welcome",
     title: "Welcome to Aksora!",
@@ -94,24 +94,54 @@ const tourSteps: TourStep[] = [
   },
 ];
 
-export function OnboardingTour() {
+const roleTourMap: Record<string, TourStep[]> = {
+  qa: defaultTourSteps,
+  pm: [
+    { id: "welcome", title: "Welcome to Aksora!", description: "Quick tour for keeping sprint health and quality in view.", icon: <Rocket size={20} weight="bold" /> },
+    { id: "dashboard", title: "Watch the dashboard", description: "See bug counts, test pass rates, sprint progress, and team activity at a glance.", icon: <SquaresFour size={20} weight="bold" />, targetHref: "/dashboard" },
+    { id: "reporting", title: "Use weekly reports", description: "Check the weekly digest to spot blocked work, bug aging, and risks before they grow.", icon: <ClipboardText size={20} weight="bold" />, targetHref: "/weekly-report" },
+    { id: "tasks", title: "Track delivery", description: "Keep follow-ups and sprint work in one place so the team stays aligned.", icon: <Kanban size={20} weight="bold" />, targetHref: "/tasks" },
+    { id: "shortcuts", title: "Pro Tips", description: "Use Ctrl+K for quick navigation and N to create new entries from module pages.", icon: <Lightning size={20} weight="bold" /> },
+  ],
+  fe: [
+    { id: "welcome", title: "Welcome to Aksora!", description: "Quick tour for QA handoff, bugs, and delivery flow.", icon: <Rocket size={20} weight="bold" /> },
+    { id: "dashboard", title: "Watch the dashboard", description: "See what is blocked, what passed, and what still needs attention.", icon: <SquaresFour size={20} weight="bold" />, targetHref: "/dashboard" },
+    { id: "bugs", title: "Track bugs", description: "Review bugs with steps, severity, and evidence so fixes stay focused.", icon: <Bug size={20} weight="bold" />, targetHref: "/bugs" },
+    { id: "tasks", title: "Manage tasks", description: "Keep follow-up work visible instead of letting it disappear in chat.", icon: <Kanban size={20} weight="bold" />, targetHref: "/tasks" },
+    { id: "shortcuts", title: "Pro Tips", description: "Use Ctrl+K for quick navigation and N to create new entries from module pages.", icon: <Lightning size={20} weight="bold" /> },
+  ],
+  be: [
+    { id: "welcome", title: "Welcome to Aksora!", description: "Quick tour for bug intake and QA handoff.", icon: <Rocket size={20} weight="bold" /> },
+    { id: "bugs", title: "Triage bugs", description: "Open bugs with clear context and evidence so fixes are easier to ship.", icon: <Bug size={20} weight="bold" />, targetHref: "/bugs" },
+    { id: "test-execution", title: "Check execution", description: "Review failed cases and blocked sessions before they become rework.", icon: <PlayCircle size={20} weight="bold" />, targetHref: "/test-execution" },
+    { id: "tasks", title: "Track tasks", description: "Use tasks to keep follow-up work visible across the team.", icon: <Kanban size={20} weight="bold" />, targetHref: "/tasks" },
+    { id: "shortcuts", title: "Pro Tips", description: "Use Ctrl+K for quick navigation and N to create new entries from module pages.", icon: <Lightning size={20} weight="bold" /> },
+  ],
+};
+
+export function OnboardingTour({ role = "" }: { role?: string }) {
   const [visible, setVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const normalizedRole = (role || "qa").toLowerCase();
+  const tourSteps = roleTourMap[normalizedRole] || defaultTourSteps;
+  const completedKey = `${ONBOARDING_KEY_PREFIX}:${normalizedRole}`;
+  const stepKey = `${ONBOARDING_STEP_KEY_PREFIX}:${normalizedRole}`;
+  const dismissedKey = `${ONBOARDING_DISMISSED_KEY_PREFIX}:${normalizedRole}`;
 
   useEffect(() => {
     setMounted(true);
     try {
-      const isDone = window.localStorage.getItem(ONBOARDING_KEY) === "true";
-      const isDismissed = window.localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
+      const isDone = window.localStorage.getItem(completedKey) === "true";
+      const isDismissed = window.localStorage.getItem(dismissedKey) === "true";
       if (isDone || isDismissed) {
         setVisible(false);
         return;
       }
-      const savedStep = window.localStorage.getItem(ONBOARDING_STEP_KEY);
+      const savedStep = window.localStorage.getItem(stepKey);
       if (savedStep) setCurrentStep(Number(savedStep) || 0);
       // Show tour after a short delay to let the page settle
       const timer = setTimeout(() => setVisible(true), 1500);
@@ -124,7 +154,7 @@ export function OnboardingTour() {
   useEffect(() => {
     if (!mounted) return;
     try {
-      window.localStorage.setItem(ONBOARDING_STEP_KEY, String(currentStep));
+      window.localStorage.setItem(stepKey, String(currentStep));
     } catch {
       // ignore
     }
@@ -133,7 +163,7 @@ export function OnboardingTour() {
   const dismiss = useCallback(() => {
     setVisible(false);
     try {
-      window.localStorage.setItem(ONBOARDING_DISMISSED_KEY, "true");
+      window.localStorage.setItem(dismissedKey, "true");
     } catch {
       // ignore
     }
@@ -142,7 +172,7 @@ export function OnboardingTour() {
   const complete = useCallback(() => {
     setCompleted(true);
     try {
-      window.localStorage.setItem(ONBOARDING_KEY, "true");
+      window.localStorage.setItem(completedKey, "true");
     } catch {
       // ignore
     }
@@ -279,18 +309,19 @@ export function OnboardingTour() {
  * Hook to check if onboarding is completed.
  * Useful for conditionally showing help hints.
  */
-export function useOnboardingStatus() {
+export function useOnboardingStatus(role = "") {
   const [isCompleted, setIsCompleted] = useState(true);
 
   useEffect(() => {
     try {
-      const done = window.localStorage.getItem(ONBOARDING_KEY) === "true";
-      const dismissed = window.localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
+      const normalizedRole = (role || "qa").toLowerCase();
+      const done = window.localStorage.getItem(`${ONBOARDING_KEY_PREFIX}:${normalizedRole}`) === "true";
+      const dismissed = window.localStorage.getItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}:${normalizedRole}`) === "true";
       setIsCompleted(done || dismissed);
     } catch {
       setIsCompleted(true);
     }
-  }, []);
+  }, [role]);
 
   return { isCompleted };
 }
@@ -298,11 +329,19 @@ export function useOnboardingStatus() {
 /**
  * Reset onboarding state (useful for settings page)
  */
-export function resetOnboarding() {
+export function resetOnboarding(role = "") {
   try {
-    window.localStorage.removeItem(ONBOARDING_KEY);
-    window.localStorage.removeItem(ONBOARDING_STEP_KEY);
-    window.localStorage.removeItem(ONBOARDING_DISMISSED_KEY);
+    if (role) {
+      const normalizedRole = role.toLowerCase();
+      window.localStorage.removeItem(`${ONBOARDING_KEY_PREFIX}:${normalizedRole}`);
+      window.localStorage.removeItem(`${ONBOARDING_STEP_KEY_PREFIX}:${normalizedRole}`);
+      window.localStorage.removeItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}:${normalizedRole}`);
+      return;
+    }
+
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith(`${ONBOARDING_KEY_PREFIX}:`) || key.startsWith(`${ONBOARDING_STEP_KEY_PREFIX}:`) || key.startsWith(`${ONBOARDING_DISMISSED_KEY_PREFIX}:`))
+      .forEach((key) => window.localStorage.removeItem(key));
   } catch {
     // ignore
   }

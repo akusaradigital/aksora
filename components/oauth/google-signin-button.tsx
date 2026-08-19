@@ -111,20 +111,24 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
 
   if (!GOOGLE_CLIENT_ID) {
     return (
-      <p className="text-center text-xs font-bold text-slate-400">
-        Google sign-in is not configured. Please sign in with email instead.
-      </p>
+      <div className="space-y-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center">
+        <p className="text-xs font-semibold text-slate-700">Continue with Google</p>
+        <p className="text-[11px] text-slate-500">Google sign-in is not configured yet. Use email to sign in.</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {!scriptLoaded && (
-        <p className="text-center text-[11px] font-semibold text-slate-400">
-          Loading Google sign-in…
+    <div className="space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          Continue with Google
         </p>
-      )}
-      <div ref={buttonHostRef} />
+        {!scriptLoaded && (
+          <p className="mb-2 text-[11px] font-semibold text-slate-400">Loading Google sign-in…</p>
+        )}
+        <div ref={buttonHostRef} />
+      </div>
       {pending && (
         <p className="text-center text-[11px] font-semibold text-blue-600">
           Signing you in…

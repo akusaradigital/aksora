@@ -4,11 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser, isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
+import { ensureWorkspace, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
 
 type InviteRow = {
   id: number;
   token: string;
   company: string;
+  workspaceId?: number | null;
   role: string;
   status: string;
   createdBy: string;
@@ -20,6 +22,7 @@ type InviteRow = {
 
 type InviteInput = {
   company?: string;
+  workspaceId?: number;
   role: string;
   expiresInDays?: number;
 };
@@ -44,7 +47,6 @@ export async function listInvites() {
 
 export async function createInvite(input: InviteInput) {
   const user = await getCurrentUser();
-  const company = String(input.company ?? "").trim();
   const role = normalizeRole(input.role) || "qa";
   const expiresInDays = Number.isFinite(input.expiresInDays ?? NaN) ? Number(input.expiresInDays) : 7;
   if (!user || !isManagementAdmin(user.role, user.company)) {
@@ -54,8 +56,19 @@ export async function createInvite(input: InviteInput) {
     return { error: "Role is not allowed." } as const;
   }
 
-  // Check user limit for the company
-  const inviteCompany = company || String(user.company ?? "").trim();
+  const memberships = await import("@/lib/workspace-memberships").then(({ getWorkspaceMembershipsForUser }) => getWorkspaceMembershipsForUser(user.id));
+  const selectedWorkspaceId = Number(input.workspaceId || 0);
+  const selectedMembership = selectedWorkspaceId ? memberships.find((item) => Number(item.workspaceId) === selectedWorkspaceId) : null;
+  const inviteCompany = String(input.company ?? selectedMembership?.name ?? user.company ?? "").trim();
+  if (!inviteCompany) {
+    return { error: "Workspace is required." } as const;
+  }
+
+  if (selectedMembership && !["admin", "superadmin"].includes(normalizeRole(selectedMembership.role))) {
+    return { error: "Unauthorized" } as const;
+  }
+
+  // Check user limit for the workspace
   if (inviteCompany) {
     const limitCheck = await checkCompanyUserLimit(inviteCompany);
     if (!limitCheck.allowed) {
@@ -65,14 +78,15 @@ export async function createInvite(input: InviteInput) {
 
   const token = makeToken();
   const expiresAt = addDays(Math.max(1, Math.min(expiresInDays, 30)));
+  const workspace = await ensureWorkspace(inviteCompany, user.id || null);
   await db.run(
-    'INSERT INTO "Invite" ("token", "company", "role", "status", "createdBy", "expiresAt") VALUES (?, ?, ?, ?, ?, ?)',
-    [token, company, role, "pending", user.email || "", expiresAt],
+    'INSERT INTO "Invite" ("token", "company", "workspaceId", "role", "status", "createdBy", "expiresAt") VALUES (?, ?, CAST(? AS INTEGER), ?, ?, ?, ?)',
+    [token, inviteCompany, (workspace?.id ?? selectedWorkspaceId) || null, role, "pending", user.email || "", expiresAt],
   );
 
   return {
     token,
-    company,
+    company: inviteCompany,
     role,
     expiresAt,
   } as const;
@@ -129,6 +143,12 @@ export async function acceptInvite(token: string, email: string) {
     [email],
   );
   if (updatedUser) {
+    const workspace = invite.workspaceId
+      ? { id: invite.workspaceId }
+      : await ensureWorkspace(invite.company, updatedUser.id);
+    if (workspace?.id) {
+      await ensureWorkspaceMembership(workspace.id, updatedUser.id, invite.role);
+    }
     await syncAssigneeFromUser(updatedUser);
   }
   return markInviteAccepted(token, email);

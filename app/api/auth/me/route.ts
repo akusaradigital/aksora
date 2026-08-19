@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authEnabled, getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -22,9 +23,11 @@ export async function GET() {
     avatar = row?.avatar || "";
   } catch { /* avatar column may not exist yet */ }
 
+  const memberships = user.id ? await getWorkspaceMembershipsForUser(user.id) : [];
+
   return NextResponse.json({
     authEnabled: authEnabled(),
     authenticated: true,
-    user: { ...user, avatar },
+    user: { ...user, avatar, memberships },
   });
 }

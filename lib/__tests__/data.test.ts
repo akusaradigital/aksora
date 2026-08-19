@@ -233,7 +233,7 @@ describe("module data access", () => {
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "Task"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "Task" && params?.[2] === "Task 1" && params?.[3] === "Created")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "Task" && params?.[3] === "Task 1" && params?.[4] === "Created")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
@@ -255,7 +255,7 @@ describe("module data access", () => {
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "Task"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "Task" && params?.[2] === "Task 1" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "Task" && params?.[3] === "Task 1" && params?.[4] === "Updated")).toBe(true);
   });
 
   it("updates bugs and assignees and sprints", async () => {
@@ -275,7 +275,7 @@ describe("module data access", () => {
       relatedItems: "",
     });
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "Bug"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "Bug" && params?.[2] === "Button shift" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "Bug" && params?.[3] === "Button shift" && params?.[4] === "Updated")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
@@ -287,7 +287,7 @@ describe("module data access", () => {
       status: "active",
     });
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "Assignee"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "Assignee" && params?.[2] === "Rina" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "Assignee" && params?.[3] === "Rina" && params?.[4] === "Updated")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
@@ -299,7 +299,7 @@ describe("module data access", () => {
       goal: "Goal",
     });
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "Sprint"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "Sprint" && params?.[2] === "Sprint 1" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "Sprint" && params?.[3] === "Sprint 1" && params?.[4] === "Updated")).toBe(true);
   });
 
   it("updates users with and without passwords", async () => {
@@ -312,7 +312,7 @@ describe("module data access", () => {
 
     expect(mocks.hashPassword).toHaveBeenCalledWith("secret");
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "User"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "rina@example.com" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "User" && params?.[3] === "rina@example.com" && params?.[4] === "Updated")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
@@ -323,27 +323,27 @@ describe("module data access", () => {
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "User"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "rina@example.com" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "User" && params?.[3] === "rina@example.com" && params?.[4] === "Updated")).toBe(true);
   });
 
   it("soft deletes archived tables", async () => {
     await deleteModuleRecord("test-plans", 11);
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "TestPlan" SET "deletedAt" = CURRENT_TIMESTAMP');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestPlan" && params?.[2] === "11" && params?.[3] === "Deleted")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestPlan" && params?.[3] === "11" && params?.[4] === "Deleted")).toBe(true);
   });
 
   it("hard deletes non-archived tables and soft deletes notes/suites/cases", async () => {
     await deleteModuleRecord("users", 7);
     expect(mocks.db.run.mock.calls[0][0]).toBe('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?');
-    expect(mocks.db.run.mock.calls[1][0]).toBe('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER) AND "company" = ?');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "User" && params?.[2] === "7" && params?.[3] === "Deleted")).toBe(true);
+    expect(mocks.db.run.mock.calls[1][0]).toContain('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)');
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "User" && params?.[3] === "7" && params?.[4] === "Deleted")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
     await deleteModuleRecord("test-cases", 8);
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "TestCase" SET "deletedAt" = CURRENT_TIMESTAMP');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestCase" && params?.[2] === "8" && params?.[3] === "Deleted")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestCase" && params?.[3] === "8" && params?.[4] === "Deleted")).toBe(true);
   });
 
   it("creates test plans and syncs sprint rows", async () => {
@@ -364,9 +364,10 @@ describe("module data access", () => {
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "TestPlan"');
     expect(mocks.db.run.mock.calls[0][1][0]).toBe("acme");
-    expect(mocks.db.run.mock.calls[0][1][1]).toBe("plan-token");
+    expect(mocks.db.run.mock.calls[0][1][1]).toBeNull();
+    expect(mocks.db.run.mock.calls[0][1][2]).toBe("plan-token");
     expect(mocks.db.run.mock.calls.some(([sql]) => sql.includes('UPDATE "Sprint" SET'))).toBe(true);
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestPlan" && params?.[2] === "Plan A" && params?.[3] === "Created")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestPlan" && params?.[3] === "Plan A" && params?.[4] === "Created")).toBe(true);
   });
 
   it("creates test cases with default priority and logging", async () => {
@@ -385,9 +386,9 @@ describe("module data access", () => {
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "TestCase"');
-    expect(mocks.db.run.mock.calls[0][1][1]).toMatch(/^.{0,}$/);
-    expect(mocks.db.run.mock.calls[0][1][13]).toBe("Medium");
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestCase" && params?.[2] === "TC-1" && params?.[3] === "Created")).toBe(true);
+    expect(mocks.db.run.mock.calls[0][1][0]).toBe("acme");
+    expect(mocks.db.run.mock.calls[0][1][14]).toBe("Medium");
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestCase" && params?.[3] === "TC-1" && params?.[4] === "Created")).toBe(true);
   });
 
   it("updates test plans and syncs sprint rows", async () => {
@@ -420,7 +421,7 @@ describe("module data access", () => {
       11,
       "acme",
     ]);
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestPlan" && params?.[2] === "Plan A v2" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestPlan" && params?.[3] === "Plan A v2" && params?.[4] === "Updated")).toBe(true);
   });
 
   it("updates test cases and hard deletes non-soft-delete tables", async () => {
@@ -439,7 +440,7 @@ describe("module data access", () => {
     });
 
     expect(mocks.db.run.mock.calls[0][0]).toContain('UPDATE "TestCase"');
-    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[1] === "TestCase" && params?.[2] === "Login works" && params?.[3] === "Updated")).toBe(true);
+    expect(mocks.db.run.mock.calls.some(([, params]) => params?.[2] === "TestCase" && params?.[3] === "Login works" && params?.[4] === "Updated")).toBe(true);
 
     vi.clearAllMocks();
     mocks.db.run.mockResolvedValueOnce({ changes: 1 });
@@ -447,7 +448,7 @@ describe("module data access", () => {
     await deleteModuleRecord("users", 9);
 
     expect(mocks.db.run.mock.calls[0][0]).toBe('UPDATE "Assignee" SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE "userId" = ?');
-    expect(mocks.db.run.mock.calls[1][0]).toBe('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER) AND "company" = ?');
+    expect(mocks.db.run.mock.calls[1][0]).toContain('UPDATE "User" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)');
     expect(mocks.db.run.mock.calls[1][1]).toEqual([9, "acme"]);
   });
 
@@ -464,6 +465,7 @@ describe("module data access", () => {
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "Assignee"');
     expect(mocks.db.run.mock.calls[0][1]).toEqual([
       "acme",
+      null,
       "Rina",
       "QA Engineer",
       "rina@example.com",
@@ -473,6 +475,7 @@ describe("module data access", () => {
     expect(mocks.db.run.mock.calls[1][0]).toContain('INSERT INTO "ActivityLog"');
     expect(mocks.db.run.mock.calls[1][1]).toEqual([
       "acme",
+      null,
       "Assignee",
       "Rina",
       "Added",
@@ -496,6 +499,7 @@ describe("module data access", () => {
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "User"');
     expect(mocks.db.run.mock.calls[0][1]).toEqual([
       "beta",
+      null,
       "Budi",
       "budi@example.com",
       "hashed:secret",
@@ -512,6 +516,7 @@ describe("module data access", () => {
     expect(mocks.db.run.mock.calls[0][1]).toEqual(["closed", 7, "acme"]);
     expect(mocks.db.run.mock.calls[1][1]).toEqual([
       "acme",
+      null,
       "Bug",
       "7",
       "Status Update",
@@ -553,8 +558,8 @@ describe("module data access", () => {
       ["Login", "acme"],
     );
     expect(mocks.db.run.mock.calls[0][0]).toContain('INSERT INTO "Bug"');
-    // suggestedDev is the last insert param (index 15: company,publicToken,...relatedItems,suggestedDev)
-    expect(mocks.db.run.mock.calls[0][1][15]).toBe("Tomo");
+    // suggestedDev is the last insert param (index 16: company, workspaceId, publicToken,...relatedItems,suggestedDev)
+    expect(mocks.db.run.mock.calls[0][1][16]).toBe("Tomo");
   });
 });
 

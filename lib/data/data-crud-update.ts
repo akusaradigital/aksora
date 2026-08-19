@@ -13,10 +13,10 @@ import {
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 
-async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>) {
+async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>, workspaceId?: number | null) {
   if (!shouldIndexModule(module)) return;
   try {
-    await syncSearchTokens(module, company, entityId, data);
+    await syncSearchTokens(module, company, entityId, data, workspaceId);
   } catch (e) {
     console.warn(`syncSearchIndex failed for ${module}/${entityId} (non-critical):`, e);
   }
@@ -25,7 +25,7 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
-  const { company, where: _where, andWhere: companyFilter, params: companyParam } = scope;
+  const { company, where: _where, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
   // Sanitize: prevent literal "undefined"/"null" strings (from String(undefined)) being
@@ -79,7 +79,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
       invalidateDashboardCache(company);
       try {
-        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title });
+        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title, workspaceId: scope.workspaceId });
       } catch (e) {
         console.warn("syncSprintFromTestPlan failed (non-critical):", e);
       }

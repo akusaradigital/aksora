@@ -42,7 +42,8 @@ export async function getModuleRows(module: ModuleKey) {
     case "tasks":
       return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
     case "test-suites": {
-      const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
+      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (ts."workspaceId" = ? OR (ts."workspaceId" IS NULL AND ts."company" = ?))' : ' AND ts."company" = ?');
+      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (tc."workspaceId" = ? OR (tc."workspaceId" IS NULL AND tc."company" = ?))' : ' AND tc."company" = ?');
       return (await selectAll(
         `WITH case_stats AS (
           SELECT tc."testSuiteId" as suiteId,
@@ -50,14 +51,14 @@ export async function getModuleRows(module: ModuleKey) {
             SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'failed' THEN 1 ELSE 0 END) as failed,
             SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
           FROM "TestCase" tc
-          WHERE tc."deletedAt" IS NULL${isAdmin ? "" : ' AND tc."company" = ?'}
+          WHERE tc."deletedAt" IS NULL${tcCompanyWhere}
           GROUP BY tc."testSuiteId"
         )
         SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
          FROM "TestSuite" ts
           LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id
          WHERE ts."deletedAt" IS NULL${suiteCompanyWhere} ORDER BY ts."updatedAt" DESC`,
-        isAdmin ? [] : [company, company]
+        isAdmin ? [] : [...qParams, ...qParams]
       )).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
@@ -70,7 +71,7 @@ export async function getModuleRows(module: ModuleKey) {
       const assigneeRows = await selectAll(`SELECT u."id", u."name", u."role", u."email", COALESCE(a."skills", '') as "skills", 'active' as "status"
         FROM "User" u
         LEFT JOIN "Assignee" a ON a."userId" = u."id"
-        WHERE u."deletedAt" IS NULL${isAdmin ? "" : ' AND u."company" = ?'}
+        WHERE u."deletedAt" IS NULL ${andWhere}
         ORDER BY u."name" ASC`, qParams);
       return assigneeRows
         .filter((item: Record<string, string | number | null>) => normalizeRole(String(item.role ?? "")) !== "admin")
@@ -86,9 +87,8 @@ export async function getModuleRows(module: ModuleKey) {
     case "users":
       return await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC`, qParams);
     case "sprints": {
-      const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
-      const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
-      const subParams = isAdmin ? [] : [company];
+      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' WHERE s."company" = ?');
+      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND (tp2."workspaceId" = ? OR (tp2."workspaceId" IS NULL AND tp2."company" = ?))' : ' AND tp2."company" = ?');
       const sprintRows = await selectAll(`
         SELECT s.*,
           (SELECT tp2."title" || '|||' || tp2."project" FROM "TestPlan" tp2
@@ -101,7 +101,7 @@ export async function getModuleRows(module: ModuleKey) {
         FROM "Sprint" s
         ${sprintWhere}
         ORDER BY s."startDate" DESC
-      `, [...subParams, ...qParams]);
+      `, isAdmin ? [] : [...qParams, ...qParams]);
       return sprintRows.map((row) => {
         const info = String(row._planInfo ?? "");
         const sep = info.indexOf("|||");
@@ -182,7 +182,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
 
   switch (module) {
     case "test-plans": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestPlan" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestPlan" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const rows = (await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee", "createdAt", "updatedAt", "deletedAt" FROM "TestPlan" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map((item) => {
         const normalized = normalizeTestPlanRow(item);
@@ -219,8 +219,9 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "test-suites": {
-      const suiteCompanyWhere = isAdmin ? "" : ' AND ts."company" = ?';
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${isAdmin ? "" : ' AND ts."company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (ts."workspaceId" = ? OR (ts."workspaceId" IS NULL AND ts."company" = ?))' : ' AND ts."company" = ?');
+      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (tc."workspaceId" = ? OR (tc."workspaceId" IS NULL AND tc."company" = ?))' : ' AND tc."company" = ?');
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${suiteCompanyWhere}${searchClause}`, [...(isAdmin ? [] : qParams), ...searchParams]) as { total?: number } | undefined;
       const rows = (await selectAll(
         `WITH case_stats AS (
           SELECT tc."testSuiteId" as suiteId,
@@ -228,14 +229,14 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
             SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'failed' THEN 1 ELSE 0 END) as failed,
             SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
           FROM "TestCase" tc
-          WHERE tc."deletedAt" IS NULL${isAdmin ? "" : ' AND tc."company" = ?'}
+          WHERE tc."deletedAt" IS NULL${tcCompanyWhere}
           GROUP BY tc."testSuiteId"
         )
         SELECT ts.*, COALESCE(cs.passed, 0) as passed, COALESCE(cs.failed, 0) as failed, COALESCE(cs.blocked, 0) as blocked
          FROM "TestSuite" ts
           LEFT JOIN case_stats cs ON CAST(cs.suiteId AS INTEGER) = ts.id
          WHERE ts."deletedAt" IS NULL${suiteCompanyWhere}${searchClause}${orderClause}${limitClause}`,
-        isAdmin ? [...searchParams] : [company, company, ...searchParams]
+        isAdmin ? [...searchParams] : [...qParams, ...qParams, ...searchParams]
       )).map((item) => ({
         ...normalizeTestSuiteRow(item),
         code: codeFromId("SUITE", Number(item.id)),
@@ -246,14 +247,14 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total: Number(totalRow?.total ?? 0) };
     }
     case "assignees": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "User" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "User" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const rows = await selectAll(`SELECT id, name, role, email, '' as skills, 'active' as status, "createdAt", "updatedAt"
         FROM "User" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "meeting-notes": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "MeetingNote" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const rows = (await selectAll(`SELECT "id", "company", "title", "date", "project", "relatedItems", "summary", "actionItems", "publicToken", "createdAt", "updatedAt", "deletedAt" FROM "MeetingNote" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map((item) => ({
         ...item,
@@ -268,11 +269,11 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "sprints": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Sprint" s WHERE s."deletedAt" IS NULL${isAdmin ? "" : ' AND s."company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' WHERE s."company" = ?');
+      const sprintAndWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' AND s."company" = ?');
+      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND (tp2."workspaceId" = ? OR (tp2."workspaceId" IS NULL AND tp2."company" = ?))' : ' AND tp2."company" = ?');
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Sprint" s WHERE s."deletedAt" IS NULL${sprintAndWhere}${searchClause}`, [...(isAdmin ? [] : qParams), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const sprintWhere = isAdmin ? "" : ' WHERE s."company" = ?';
-      const tpCompanyFilter = isAdmin ? "" : ' AND tp2."company" = ?';
-      const subParams = isAdmin ? [] : [company];
       const sprintRows = await selectAll(`
         SELECT s.*,
           (SELECT tp2."title" || '|||' || tp2."project" FROM "TestPlan" tp2
@@ -285,7 +286,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
         FROM "Sprint" s
         ${sprintWhere}${isAdmin ? ' WHERE s."deletedAt" IS NULL' : ' AND s."deletedAt" IS NULL'}${searchClause}
         ${sortBy ? orderClause : ' ORDER BY s."startDate" DESC'}${limitClause}
-      `, [...subParams, ...qParams, ...searchParams]);
+      `, [...(isAdmin ? [] : [...qParams, ...qParams]), ...searchParams]);
       const rows = sprintRows.map((row) => {
         const info = String(row._planInfo ?? "");
         const sep = info.indexOf("|||");
@@ -300,7 +301,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "deployments": {
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Deployment" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${searchClause}`, [...(isAdmin ? [] : [company]), ...searchParams]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Deployment" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const rows = (await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "version", "environment", "developer", "changelog", "status", "notes", "createdAt", "updatedAt", "deletedAt" FROM "Deployment" WHERE "deletedAt" IS NULL ${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams])).map(hydrateDeploymentNotes);
       return { rows, total };
@@ -310,7 +311,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       // Admin sees all company data, regular user sees only their own
       const userFilter = isAdmin || isWsAdmin ? "" : ' AND "assignee" = ?';
       const userParams = isAdmin || isWsAdmin ? [] : [String(currentUser?.name ?? "").trim()];
-      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "WorkLog" WHERE "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}${userFilter}${searchClause}`, [...(isAdmin ? [] : [company]), ...userParams, ...searchParams]) as { total?: number } | undefined;
+      const totalRow = await db.get(`SELECT COUNT(*) as total FROM "WorkLog" WHERE "deletedAt" IS NULL${andWhere}${userFilter}${searchClause}`, [...qParams, ...userParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const rows = await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter}${searchClause}${orderClause}${limitClause}`, [...qParams, ...userParams, ...searchParams]);
       return { rows, total };

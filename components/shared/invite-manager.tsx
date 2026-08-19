@@ -8,11 +8,23 @@ import { cn } from"@/lib/utils";
 
 type Invite = {
  token: string;
- company: string;
+ workspace: string;
  role: string;
  status: string;
  expiresAt: string;
  createdAt: string;
+};
+
+type WorkspaceOption = {
+ id: number;
+ name: string;
+ role: string;
+};
+
+type AuthMeMembership = {
+  workspaceId: number;
+  name: string;
+  role: string;
 };
 
 export function InviteManager({ embedded = false, compact = false }: { embedded?: boolean; compact?: boolean } = {}) {
@@ -22,6 +34,8 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  const [loading, setLoading] = useState(false);
  const [showInviteForm, setShowInviteForm] = useState(!embedded);
  const [limitModal, setLimitModal] = useState<{ current: number; max: number; plan: string } | null>(null);
+ const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
+ const [workspaceId, setWorkspaceId] = useState<string>("");
 
  const loadInvites = async () => {
  const res = await fetch("/api/invites");
@@ -30,20 +44,31 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  };
 
  useEffect(() => {
- void loadInvites();
+   void loadInvites();
+   fetch("/api/auth/me")
+     .then((r) => r.json())
+     .then((data) => {
+       const memberships = Array.isArray(data?.user?.memberships) ? (data.user.memberships as AuthMeMembership[]) : [];
+       setWorkspaces(memberships.map((m) => ({ id: Number(m.workspaceId), name: m.name, role: String(m.role || "") })));
+       const active = Number(data?.user?.activeWorkspaceId || memberships[0]?.workspaceId || 0);
+       if (active) setWorkspaceId(String(active));
+     })
+     .catch(() => {});
  }, []);
 
  const createInvite = async () => {
  setLoading(true);
  try {
  const res = await fetch("/api/invites", {
- method:"POST",
- headers: {"Content-Type":"application/json" },
- body: JSON.stringify({
- role,
- expiresInDays: Number(expiresInDays) || 7,
- }),
+  method:"POST",
+  headers: {"Content-Type":"application/json" },
+  body: JSON.stringify({
+   role,
+   expiresInDays: Number(expiresInDays) || 7,
+   workspaceId: workspaceId ? Number(workspaceId) : undefined,
+  }),
  });
+
  const data = await res.json().catch(() => null);
  if (!res.ok) {
  if (data?.error === "USER_LIMIT_REACHED") {
@@ -77,7 +102,7 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
 
  const copyInviteLink = async (token: string) => {
  try {
- await navigator.clipboard.writeText(`${window.location.origin}/register?inviteToken=${token}`);
+ await navigator.clipboard.writeText(`${window.location.origin}/login?mode=signup&inviteToken=${token}`);
  toast("Invite link copied","success");
  } catch {
  toast("Copy failed","error");
@@ -164,12 +189,30 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
 
  {!compact && showInviteForm && (
  <div className={embedded ?"mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]" :"mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]"}>
- <div className="relative min-w-0">
+<div className="relative min-w-0">
  <select
- value={role}
- onChange={(e) => setRole(e.target.value)}
- className="h-11 w-full appearance-none  border border-gray-200 bg-white px-3 pr-10 text-sm outline-none"
+  value={workspaceId}
+  onChange={(e) => setWorkspaceId(e.target.value)}
+  className="h-11 w-full appearance-none border border-gray-200 bg-white px-3 pr-10 text-sm outline-none"
  >
+  <option value="" disabled hidden>
+   Select workspace
+  </option>
+  {workspaces.map((workspace) => (
+   <option key={workspace.id} value={workspace.id}>
+    {workspace.name}
+   </option>
+  ))}
+ </select>
+ <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+</div>
+<div className="relative min-w-0">
+ <select
+  value={role}
+  onChange={(e) => setRole(e.target.value)}
+  className="h-11 w-full appearance-none  border border-gray-200 bg-white px-3 pr-10 text-sm outline-none"
+ >
+
  <option value="" disabled hidden>
  Select a role
  </option>

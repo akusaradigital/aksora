@@ -89,9 +89,9 @@ export function invalidateDashboardCache(company?: string) {
   }
 }
 
-export async function getBugSeverityCounts(company: string, isAdmin: boolean): Promise<{ critical: number; high: number; medium: number; low: number }> {
-  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-  const params = isAdmin ? [] : [company];
+export async function getBugSeverityCounts(company: string, isAdmin: boolean, workspaceId?: number | null): Promise<{ critical: number; high: number; medium: number; low: number }> {
+  const andCompany = isAdmin ? "" : (workspaceId ? ` AND ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))` : ` AND "company" = ?`);
+  const params = isAdmin ? [] : (workspaceId ? [workspaceId, company] : [company]);
 
   const rows = await selectAll(
     `SELECT LOWER(COALESCE("severity", '')) as sev, COUNT(*) as count
@@ -116,9 +116,9 @@ export async function getBugSeverityCounts(company: string, isAdmin: boolean): P
  * Get test pass rate: (passed / total executed tests) * 100.
  * Returns null when total executed tests is 0.
  */
-export async function getTestPassRate(company: string, isAdmin: boolean): Promise<number | null> {
-  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-  const params = isAdmin ? [] : [company];
+export async function getTestPassRate(company: string, isAdmin: boolean, workspaceId?: number | null): Promise<number | null> {
+  const andCompany = isAdmin ? "" : (workspaceId ? ` AND ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))` : ` AND "company" = ?`);
+  const params = isAdmin ? [] : (workspaceId ? [workspaceId, company] : [company]);
 
   const row = await db.get<{ totalPassed: number | string | null; totalExecuted: number | string | null }>(
     `SELECT
@@ -140,23 +140,21 @@ export async function getDashboardProjects() {
   const user = await getCurrentUser();
   if (!user) return [] as string[];
 
-  const { company, isAdmin } = getAccessScope(user);
+  const { company, isAdmin, andWhere, params } = getAccessScope(user);
   const cacheKey = `${company}|${isAdmin ? "admin" : "user"}`;
   const cached = dashboardProjectsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return structuredClone(cached.data as string[]);
   }
 
-  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-  const cp = isAdmin ? [] : [company];
   const rows = await db.query(
-    `SELECT DISTINCT project FROM "TestPlan" WHERE COALESCE(project, '') != '' AND "deletedAt" IS NULL${andCompany}
+    `SELECT DISTINCT project FROM "TestPlan" WHERE COALESCE(project, '') != '' AND "deletedAt" IS NULL${andWhere}
      UNION
-     SELECT DISTINCT project FROM "Bug" WHERE COALESCE(project, '') != ''${andCompany}
+     SELECT DISTINCT project FROM "Bug" WHERE COALESCE(project, '') != ''${andWhere}
      UNION
-     SELECT DISTINCT project FROM "Task" WHERE COALESCE(project, '') != ''${andCompany}
+     SELECT DISTINCT project FROM "Task" WHERE COALESCE(project, '') != ''${andWhere}
      ORDER BY project ASC`,
-    [...cp, ...cp, ...cp],
+    [...params, ...params, ...params],
   ) as Array<{ project: string }>;
 
   const projects = rows.map((row) => String(row.project));
@@ -165,24 +163,24 @@ export async function getDashboardProjects() {
 }
 
 export async function getProjectOptions() {
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const { andWhere, params } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
     `SELECT DISTINCT "project" as value FROM "TestPlan"
-     WHERE COALESCE("project", '') != '' AND "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}
+     WHERE COALESCE("project", '') != '' AND "deletedAt" IS NULL${andWhere}
      ORDER BY "project" ASC`,
-    isAdmin ? [] : [company],
+    params,
   );
   return rows.map((row) => ({ value: String(row.value ?? ""), label: String(row.value ?? "") }));
 }
 
 export async function getBacklogOptions() {
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const { andWhere, params } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
     `SELECT id, title, "project"
      FROM "TestPlan"
-     WHERE COALESCE(title, '') != '' AND "deletedAt" IS NULL${isAdmin ? "" : ' AND "company" = ?'}
+     WHERE COALESCE(title, '') != '' AND "deletedAt" IS NULL${andWhere}
      ORDER BY "updatedAt" DESC`,
-    isAdmin ? [] : [company],
+    params,
   );
   return rows.map((row) => ({
     value: String(row.title ?? ""),
@@ -191,14 +189,14 @@ export async function getBacklogOptions() {
 }
 
 export async function getAssigneeOptions() {
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const { andWhere, params } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
     `SELECT DISTINCT COALESCE("name", "email") as value, "role"
      FROM "User"
      WHERE (COALESCE("name", '') != '' OR COALESCE("email", '') != '') AND "deletedAt" IS NULL
-     ${isAdmin ? "" : ' AND "company" = ?'}
+     ${andWhere}
      ORDER BY COALESCE("name", "email") ASC`,
-    isAdmin ? [] : [company],
+    params,
   );
   return rows
     .filter((row) => normalizeRole(String(row.role ?? "")) !== "admin")
@@ -215,7 +213,7 @@ export async function getAssigneeOptions() {
 }
 
 export async function getTestPlanReferenceRows() {
-  const { company: _company, isAdmin: _isAdmin, andWhere, params: qParams } = getAccessScope(await getCurrentUser());
+  const { andWhere, params: qParams } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
     `SELECT "id", "title", "project", "publicToken", "sprint", "updatedAt"
      FROM "TestPlan"
@@ -235,15 +233,15 @@ export async function getTestPlanReferenceRows() {
 export async function getTestSuitesByPlanIds(planIds: Array<string | number>) {
   const ids = planIds.map((id) => String(id)).filter(Boolean);
   if (ids.length === 0) return [];
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const { andWhere, params: qParams } = getAccessScope(await getCurrentUser());
   const rows = await selectAll(
     `SELECT id, "testPlanId", title, "publicToken"
      FROM "TestSuite"
      WHERE "deletedAt" IS NULL
-     ${isAdmin ? "" : ' AND "company" = ?'}
+     ${andWhere}
      AND "testPlanId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
      ORDER BY "updatedAt" DESC`,
-    isAdmin ? ids : [company, ...ids],
+    [...qParams, ...ids],
   );
   return rows.map((row) => ({
     id: String(row.id ?? ""),
@@ -256,7 +254,8 @@ export async function getTestSuitesByPlanIds(planIds: Array<string | number>) {
 export async function getTestCaseStatsBySuiteIds(suiteIds: Array<string | number>) {
   const ids = suiteIds.map((id) => String(id)).filter(Boolean);
   if (ids.length === 0) return new Map<string, { passed: number; failed: number; total: number }>();
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
+  const scope = getAccessScope(await getCurrentUser());
+  const tcCompanyWhere = scope.isAdmin ? "" : (scope.workspaceId ? ' AND (tc."workspaceId" = ? OR (tc."workspaceId" IS NULL AND tc."company" = ?))' : ' AND tc."company" = ?');
   const rows = await selectAll(
     `SELECT tc."testSuiteId" as suiteId,
       COUNT(*) as total,
@@ -265,10 +264,10 @@ export async function getTestCaseStatsBySuiteIds(suiteIds: Array<string | number
       SUM(CASE WHEN LOWER(COALESCE(tc."status", '')) = 'blocked' THEN 1 ELSE 0 END) as blocked
      FROM "TestCase" tc
      WHERE tc."deletedAt" IS NULL
-     ${isAdmin ? "" : ' AND tc."company" = ?'}
+     ${tcCompanyWhere}
      AND tc."testSuiteId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})
      GROUP BY tc."testSuiteId"`,
-    isAdmin ? ids : [company, ...ids],
+    scope.isAdmin ? ids : [...scope.params, ...ids],
   );
   const stats = new Map<string, { passed: number; failed: number; total: number }>();
   for (const row of rows) {

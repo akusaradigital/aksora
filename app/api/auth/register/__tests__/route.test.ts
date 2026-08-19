@@ -14,7 +14,18 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/db", () => ({
   db: {
     get: vi.fn(),
+    run: vi.fn(),
+    query: vi.fn(),
   },
+}));
+
+vi.mock("@/lib/workspace-memberships", () => ({
+  ensureWorkspaceForUser: vi.fn(),
+  ensureWorkspaceMembership: vi.fn(),
+}));
+
+vi.mock("@/lib/plan-limits", () => ({
+  checkCompanyUserLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
 
 vi.mock("@/lib/invites", () => ({
@@ -59,7 +70,7 @@ describe("auth register route", () => {
   it("registers the first user as admin", async () => {
     const { db } = await import("@/lib/db");
     const mockedDb = db as unknown as { get: ReturnType<typeof vi.fn> };
-    mockedDb.get.mockResolvedValueOnce({ count: 0 });
+    mockedDb.get.mockResolvedValueOnce({ id: 1, role: "admin", company: "User's Workspace" });
     mocks.registerUser.mockResolvedValueOnce({ ok: true });
 
     const response = await POST(
@@ -69,7 +80,7 @@ describe("auth register route", () => {
       }) as NextRequest,
     );
 
-    expect(mocks.registerUser).toHaveBeenCalledWith("user@example.com", "secret", "User", "admin", "");
+    expect(mocks.registerUser).toHaveBeenCalledWith("user@example.com", "secret", "User", "admin", "User's Workspace");
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
   });

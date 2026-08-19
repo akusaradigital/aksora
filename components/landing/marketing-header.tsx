@@ -16,10 +16,10 @@ export function MarketingHeader() {
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-[12px] font-medium text-gray-600 hover:text-gray-900">
-            Sign In
+            Sign in
           </Link>
-          <Link href="/login" className="bg-blue-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-blue-700 transition-colors">
-            Start Free →
+          <Link href="/login" className="bg-blue-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-blue-700 transition-colors rounded-full">
+            Start free
           </Link>
         </div>
       </div>

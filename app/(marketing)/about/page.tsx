@@ -80,7 +80,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Born from real frustration, built with real experience.</h2>
             <div className="space-y-5 text-[13px] text-gray-600 leading-relaxed">
               <p>
-                Aksora was born inside a software development company where the QA team faced a common but painful reality: test cases scattered across Google Docs, bugs lost in Slack threads, and sprint reviews that required hours of manual report compilation.
+                Aksora was born inside a software development team where the QA crew faced a common but painful reality: test cases scattered across Google Docs, bugs lost in Slack threads, and sprint reviews that required hours of manual report compilation.
               </p>
               <p>
                 The team evaluated existing solutions. Enterprise tools like TestRail and Zephyr offered comprehensive features but came with steep learning curves, complex pricing, and months of onboarding. Lightweight alternatives lacked the depth needed for serious QA operations.
@@ -150,12 +150,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Company Info */}
+      {/* Team Info */}
       <section className="border-b border-gray-100 bg-gray-50">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 mb-3">The Company</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 mb-3">The Team</p>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Akusara Digital</h2>
               <div className="space-y-4 text-[13px] text-gray-600 leading-relaxed">
                 <p>

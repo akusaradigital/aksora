@@ -18,13 +18,10 @@ import {
   Lightning,
   Eye,
   Rocket,
-  Code,
-  ProjectorScreen,
   Buildings,
   Globe,
   Lock,
   Database,
-  Gift,
 } from "@phosphor-icons/react/dist/ssr";
 import { AuthRedirect } from "@/components/landing/auth-redirect";
 import { MarketingHeader } from "@/components/landing/marketing-header";
@@ -35,12 +32,9 @@ import {
   DashPreviewRow,
   PainPoint,
   SolvePoint,
-  HomeComparisonSection,
   FeatureCard,
-  PersonaCard,
   StepCard,
   MiniCard,
-  TestimonialCard,
   TrustCard,
   FaqItem,
 } from "./home-components";
@@ -79,26 +73,26 @@ export default function LandingPage() {
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-blue-400">One Team. One Flow.</p>
             <div className="mb-6 inline-flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5">
               <Rocket size={12} weight="bold" className="text-amber-400" aria-hidden="true" />
-              <span className="text-[11px] font-medium text-gray-300">Free Starter plan — workspaces for teams of any size</span>
+              <span className="text-[11px] font-medium text-gray-300">Built for QA teams who want less noise, more clarity</span>
             </div>
 
             <h1 className="text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl lg:text-[52px]">
-              The QA workspace your
-              <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">team actually wants to use.</span>
+              QA work that feels
+              <span className="block mt-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">calm, clear, and easy to ship.</span>
             </h1>
 
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-gray-400">
-              Plan tests, execute sessions, track bugs, and measure quality health — all in one beautiful workspace. No more spreadsheets, no more chaos.
+              Plan tests, run sessions, track bugs, and share status without the spreadsheet drag. One workspace for the team.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-6 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">
-                Start Free — No Card Required
+              <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-6 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px] rounded-full">
+                Start free
                 <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
-              <a href="#demo" className="inline-flex items-center gap-1.5 border border-white/15 px-6 py-3 text-[13px] font-medium text-gray-300 hover:bg-white/5 transition-colors">
+              <a href="#demo" className="inline-flex items-center gap-1.5 border border-white/15 px-6 py-3 text-[13px] font-medium text-gray-300 hover:bg-white/5 transition-colors rounded-full">
                 <Eye size={14} weight="bold" aria-hidden="true" />
-                See Demo
+                View demo
               </a>
             </div>
 
@@ -128,46 +122,17 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Social Proof */}
-      <section className="border-b border-gray-100 bg-gray-50/50" aria-label="Trusted companies">
-        <div className="mx-auto max-w-6xl px-5 py-8">
-          <p className="text-center text-[11px] font-medium uppercase tracking-[0.2em] text-gray-400 mb-5">Trusted by QA teams at</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 opacity-40">
-            <span className="text-[14px] font-bold text-gray-600">TechCorp</span>
-            <span className="text-[14px] font-bold text-gray-600">StartupXYZ</span>
-            <span className="text-[14px] font-bold text-gray-600">DevStudio</span>
-            <span className="text-[14px] font-bold text-gray-600">QualityFirst</span>
-            <span className="text-[14px] font-bold text-gray-600">ShipFast.io</span>
-            <span className="text-[14px] font-bold text-gray-600">BuildRight</span>
-          </div>
-        </div>
-      </section>
-
       {/* Early Adopter Banner */}
-      <section className="border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50" aria-label="Early adopter offer">
-        <div className="mx-auto max-w-6xl px-5 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-amber-100 flex items-center justify-center shrink-0" aria-hidden="true">
-                <Gift size={20} weight="bold" className="text-amber-600" />
-              </div>
-              <div>
-                <p className="text-[13px] font-bold text-gray-900">🎉 Early Adopter Offer — Limited Spots</p>
-                <p className="text-[12px] text-gray-600 mt-0.5">
-                  Sign up now and get <span className="font-bold text-amber-700">Pro features FREE for 6 months</span>. Only for the first 200 teams.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="text-right hidden sm:block">
-                <p className="text-[11px] text-gray-500">Spots remaining</p>
-                <p className="text-[16px] font-bold text-amber-700">47 / 200</p>
-              </div>
-              <Link href="/login" className="bg-amber-600 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-amber-700 transition-colors whitespace-nowrap">
-                Claim Your Spot →
-              </Link>
-            </div>
+      <section className="border-b border-gray-100 bg-gray-50">
+        <div className="mx-auto max-w-6xl px-5 py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400 mb-1">Get started fast</p>
+            <p className="text-[13px] text-gray-600">Create a workspace, invite your team, and start tracking quality in minutes.</p>
           </div>
+          <Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap">
+            Start free
+            <ArrowRight size={14} weight="bold" aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
@@ -201,9 +166,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <HomeComparisonSection />
-
       {/* Features */}
       <section id="features" className="border-b border-gray-100" aria-labelledby="features-heading">
         <div className="mx-auto max-w-6xl px-5 py-16">
@@ -219,23 +181,6 @@ export default function LandingPage() {
             <FeatureCard icon={<Bug size={20} weight="bold" />} color="text-rose-600" bg="bg-rose-50" title="Bug Tracking" desc="Severity, priority, assignee, evidence. Full lifecycle from open to verified-closed." />
             <FeatureCard icon={<Kanban size={20} weight="bold" />} color="text-violet-600" bg="bg-violet-50" title="Tasks & Sprints" desc="Kanban board, sprint planning, status workflows. Keep dev and QA perfectly in sync." />
             <FeatureCard icon={<ChartBar size={20} weight="bold" />} color="text-indigo-600" bg="bg-indigo-50" title="Dashboard & Reports" desc="Quality health score, burndown, heatmaps, weekly digest. All generated automatically." />
-          </div>
-        </div>
-      </section>
-
-      {/* Built for Every Role */}
-      <section className="border-b border-gray-100 bg-gray-50" aria-labelledby="personas-heading">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="text-center mb-10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-600 mb-1">Built For You</p>
-            <h2 id="personas-heading" className="text-2xl font-bold text-gray-900">Designed for every role in your team</h2>
-            <p className="mt-2 text-[13px] text-gray-500 max-w-md mx-auto">Whether you write tests, fix bugs, or lead the team — Aksora fits your workflow.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <PersonaCard icon={<Bug size={20} weight="bold" />} color="text-emerald-600" bg="bg-emerald-50" role="QA Engineer" pain="Tired of updating spreadsheets and chasing devs for status" benefit="Write test cases, execute sessions, log bugs — all in one flow. No context switching." />
-            <PersonaCard icon={<Code size={20} weight="bold" />} color="text-blue-600" bg="bg-blue-50" role="Developer" pain="Bug reports lack steps to reproduce and evidence" benefit="Get structured bug reports with steps, expected vs actual, and screenshots. Fix faster." />
-            <PersonaCard icon={<ProjectorScreen size={20} weight="bold" />} color="text-amber-600" bg="bg-amber-50" role="PM / Scrum Master" pain="No visibility into quality health during sprints" benefit="Real-time dashboard shows pass rates, open bugs, and sprint progress. No manual reports." />
-            <PersonaCard icon={<ChartBar size={20} weight="bold" />} color="text-violet-600" bg="bg-violet-50" role="Engineering Manager" pain="Can't measure team velocity or quality trends over time" benefit="Automated weekly digests, burndown charts, and quality health scores. Data-driven decisions." />
           </div>
         </div>
       </section>
@@ -261,7 +206,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-5 py-12">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniCard icon={<ShieldCheck size={16} weight="bold" />} label="Role-based Access" desc="8 roles: admin, QA, dev, PM, and more. Each sees their scope." />
-            <MiniCard icon={<Users size={16} weight="bold" />} label="Team Workspaces" desc="Isolated per company. Invite members, manage permissions." />
+            <MiniCard icon={<Users size={16} weight="bold" />} label="Team Workspaces" desc="Isolated per workspace. Invite members, manage permissions." />
             <MiniCard icon={<Timer size={16} weight="bold" />} label="Activity Audit" desc="Every create, edit, delete logged. Full traceability." />
             <MiniCard icon={<Note size={16} weight="bold" />} label="Meeting Notes" desc="Standups, retros, decisions — all in one place." />
           </div>
@@ -284,21 +229,6 @@ export default function LandingPage() {
             <p className="mt-2 text-[13px] text-gray-500 max-w-md mx-auto">Start free, upgrade when you need more. No hidden fees, no surprises.</p>
           </div>
           <PricingSection />
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section id="testimonials" className="bg-gray-50 border-b border-gray-100" aria-labelledby="testimonials-heading">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="text-center mb-10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-1">Testimonials</p>
-            <h2 id="testimonials-heading" className="text-2xl font-bold text-gray-900">Loved by QA teams everywhere</h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <TestimonialCard quote="We went from tracking bugs in Google Sheets to having full visibility in a day. Game changer for our sprint reviews." name="Sarah Chen" role="QA Lead" company="TechCorp" />
-            <TestimonialCard quote="The test execution sessions are brilliant. Our pass rate went from 'who knows' to 94% tracked and improving every sprint." name="Marcus Rivera" role="Senior QA Engineer" company="StartupXYZ" />
-            <TestimonialCard quote="Finally, a tool that doesn't require a PhD to set up. My team was productive within 10 minutes of signing up." name="Aisha Patel" role="Engineering Manager" company="DevStudio" />
-          </div>
         </div>
       </section>
 
@@ -335,11 +265,11 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-5 py-20 text-center">
           <div className="inline-flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 mb-5">
             <Lightning size={12} weight="bold" className="text-amber-400" aria-hidden="true" />
-            <span className="text-[11px] font-medium text-gray-300">Join 500+ teams already using Aksora</span>
+            <span className="text-[11px] font-medium text-gray-300">Set up in minutes and keep the team aligned</span>
           </div>
-          <h2 className="text-2xl font-bold sm:text-3xl">Ready to level up your QA workflow?</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl">Ready to clean up your QA workflow?</h2>
           <p className="mt-3 text-[14px] text-gray-400 max-w-lg mx-auto">
-            Stop losing bugs in spreadsheets. Start shipping with confidence. Your team deserves better tools.
+            Bring planning, execution, bugs, and reporting into one workspace your team can actually keep up with.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-7 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">

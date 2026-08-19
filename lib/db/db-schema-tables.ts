@@ -7,6 +7,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "name" TEXT NOT NULL,
       "startDate" TEXT,
@@ -24,6 +25,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "sprintId" FK_INT_SPRINT,
       "title" TEXT NOT NULL,
@@ -52,6 +54,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "sprintId" FK_INT_SPRINT,
       "project" TEXT NOT NULL,
@@ -80,6 +83,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "testSuiteId" TEXT NOT NULL DEFAULT '',
       "tcId" TEXT NOT NULL,
@@ -111,6 +115,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "title" TEXT NOT NULL,
       "project" TEXT NOT NULL,
@@ -131,6 +136,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "date" TEXT NOT NULL,
       "project" TEXT NOT NULL,
@@ -154,6 +160,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "testPlanId" TEXT NOT NULL DEFAULT '',
       "title" TEXT NOT NULL,
@@ -170,6 +177,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "entityType" TEXT NOT NULL,
       "entityId" TEXT NOT NULL,
       "action" TEXT NOT NULL,
@@ -184,6 +192,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "entityType" TEXT NOT NULL,
       "entityId" TEXT NOT NULL,
       "entityIdInt" INTEGER NOT NULL DEFAULT 0,
@@ -197,6 +206,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "date" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "project" TEXT NOT NULL,
@@ -216,6 +226,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER UNIQUE,
       "name" TEXT NOT NULL,
       "role" TEXT,
@@ -232,6 +243,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "name" TEXT,
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,
@@ -248,6 +260,7 @@ export const tables = [
       "id" SERIAL_OR_PK,
       "token" TEXT NOT NULL UNIQUE,
       "company" TEXT NOT NULL,
+      "workspaceId" INTEGER,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "status" TEXT NOT NULL DEFAULT 'pending',
       "createdBy" TEXT NOT NULL DEFAULT '',
@@ -258,10 +271,37 @@ export const tables = [
     `
   },
   {
+    name: "Workspace",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "name" TEXT NOT NULL UNIQUE,
+      "slug" TEXT NOT NULL UNIQUE,
+      "createdByUserId" INTEGER,
+      "accentColor" TEXT NOT NULL DEFAULT '#2563eb',
+      "templateKey" TEXT NOT NULL DEFAULT 'custom',
+      "iconPath" TEXT NOT NULL DEFAULT '',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "WorkspaceMembership",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER NOT NULL,
+      "userId" INTEGER NOT NULL,
+      "role" TEXT NOT NULL DEFAULT 'qa',
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
     name: "Deployment",
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "date" TEXT NOT NULL,
       "version" TEXT NOT NULL,
@@ -281,6 +321,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "testSuiteId" INTEGER NOT NULL,
       "testPlanId" TEXT NOT NULL DEFAULT '',
       "runNumber" INTEGER NOT NULL DEFAULT 1,
@@ -303,6 +344,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "executionRunId" INTEGER NOT NULL,
       "testCaseId" INTEGER NOT NULL,
       "verdict" TEXT NOT NULL DEFAULT 'Pending',
@@ -319,6 +361,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "entityType" TEXT NOT NULL,
       "entityId" INTEGER NOT NULL,
       "authorId" INTEGER NOT NULL,
@@ -334,6 +377,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "userName" TEXT NOT NULL DEFAULT '',
       "lastSeen" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -344,6 +388,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "userName" TEXT NOT NULL DEFAULT '',
       "name" TEXT NOT NULL,
@@ -361,6 +406,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
       "date" TEXT NOT NULL,
       "startTime" TEXT NOT NULL,
@@ -438,6 +484,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "userName" TEXT NOT NULL DEFAULT '',
       "module" TEXT NOT NULL,
@@ -465,6 +512,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "userName" TEXT NOT NULL DEFAULT '',
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -485,6 +533,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "assignedToMe" INTEGER NOT NULL DEFAULT 1,
       "statusChanges" INTEGER NOT NULL DEFAULT 1,

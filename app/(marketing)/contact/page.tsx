@@ -81,17 +81,17 @@ export default function ContactPage() {
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5 block">Work Email *</label>
                     <input
                       type="email"
-                      placeholder="john@company.com"
+                      placeholder="john@team.com"
                       className="w-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-blue-600 focus:ring-0 focus:outline-none transition-colors"
                     />
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5 block">Company</label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5 block">Workspace</label>
                     <input
                       type="text"
-                      placeholder="Company name"
+                      placeholder="Workspace name"
                       className="w-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-blue-600 focus:ring-0 focus:outline-none transition-colors"
                     />
                   </div>

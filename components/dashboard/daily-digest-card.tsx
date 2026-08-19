@@ -60,21 +60,6 @@ export function DailyDigestCard() {
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Restore dismissal state on mount
-  useEffect(() => {
-    if (!isMorning()) {
-      setDismissed(true);
-      setLoading(false);
-      return;
-    }
-    if (readDismissedKey() === todayKey()) {
-      setDismissed(true);
-      setLoading(false);
-      return;
-    }
-    fetchDigest();
-  }, []);
-
   const fetchDigest = async () => {
     setLoading(true);
     setError(null);
@@ -89,6 +74,21 @@ export function DailyDigestCard() {
       setLoading(false);
     }
   };
+
+  // Restore dismissal state on mount
+  useEffect(() => {
+    if (!isMorning()) {
+      setDismissed(true);
+      setLoading(false);
+      return;
+    }
+    if (readDismissedKey() === todayKey()) {
+      setDismissed(true);
+      setLoading(false);
+      return;
+    }
+    fetchDigest();
+  }, []);
 
   const handleDismiss = () => {
     setDismissed(true);

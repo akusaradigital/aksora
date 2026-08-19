@@ -22,11 +22,13 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as {
     role?: string;
     expiresInDays?: number;
+    workspaceId?: number;
   } | null;
 
   const result = await createInvite({
     role: isInviteRole(body?.role) ? normalizeRole(body?.role) : "qa",
     expiresInDays: body?.expiresInDays,
+    workspaceId: body?.workspaceId,
   });
 
   if ("error" in result) {
@@ -44,6 +46,6 @@ export async function POST(request: NextRequest) {
   const origin = request.nextUrl.origin;
   return NextResponse.json({
     invite: result,
-    link: `${origin}/register?inviteToken=${result.token}`,
+    link: `${origin}/login?mode=signup&inviteToken=${result.token}`,
   });
 }

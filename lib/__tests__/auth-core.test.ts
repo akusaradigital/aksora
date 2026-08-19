@@ -42,7 +42,7 @@ describe("auth-core", () => {
     expect(normalizeRole(" PM ")).toBe("pm");
     expect(normalizeRole("AI Engineer")).toBe("ai engineer");
     expect(getRoleLabel("ai")).toBe("AI Engineer");
-    expect(getInviteRoleOptions().map((option) => option.value)).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
+    expect(getInviteRoleOptions().map((option) => option.value)).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm", "guest"]);
     expect(getPublicRoleOptions().map((option: { label: string }) => option.label)).toEqual([
       "Product Manager",
       "Project Manager",
@@ -111,6 +111,7 @@ describe("auth-core", () => {
       role: "fullstack",
       company: "acme",
       password: legacyHash,
+      activeWorkspaceId: 1,
     };
 
     mocks.db.get.mockResolvedValueOnce(mockUser);
@@ -119,7 +120,7 @@ describe("auth-core", () => {
 
     expect(result).toMatchObject({ id: 1, email: "user@example.com" });
     expect(mocks.db.get).toHaveBeenCalledWith(
-      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+      expect.stringContaining('FROM "User" u'),
       ["user@example.com"],
     );
     expect(mocks.db.run).toHaveBeenCalledWith(

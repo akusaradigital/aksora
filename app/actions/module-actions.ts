@@ -33,6 +33,7 @@ export async function updateItemField(
 ) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
+  if (String(user.role || "").trim() === "guest") throw new Error("Guests have read-only access.");
 
   // Validate field name to prevent injection
   if (!ALLOWED_FIELDS.includes(field as (typeof ALLOWED_FIELDS)[number])) {
@@ -67,6 +68,7 @@ export async function updateItemField(
 export async function deleteItem(module: string, id: string | number) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
+  if (String(user.role || "").trim() === "guest") throw new Error("Guests have read-only access.");
 
   if (!ALLOWED_MODULES.includes(module as ModuleKey)) {
     throw new Error(`Unknown module: ${module}`);

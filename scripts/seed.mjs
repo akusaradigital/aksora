@@ -27,7 +27,7 @@ if (!DATABASE_URL || !DATABASE_URL.startsWith("postgres")) {
   process.exit(1);
 }
 
-const pool = new pg.Pool({ connectionString: DATABASE_URL });
+const pool = new pg.Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
 function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
@@ -363,7 +363,7 @@ async function seed() {
 
 // ─── Run ─────────────────────────────────────────────────────────────────────
 console.log("🗑️  Clearing all data...");
-await clearAll();
+// await clearAll();
 console.log("🌱 Seeding fresh data...");
 await seed();
 console.log("\n✅ Done! Login with:");

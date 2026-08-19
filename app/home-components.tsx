@@ -68,7 +68,7 @@ export function HomeComparisonSection() {
         <div className="text-center mb-10">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-1">Why Switch</p>
           <h2 id="compare-heading" className="text-2xl font-bold text-gray-900">Aksora vs. the alternatives</h2>
-          <p className="mt-2 text-[13px] text-gray-500 max-w-md mx-auto">See why teams are switching from spreadsheets and bloated tools.</p>
+          <p className="mt-2 text-[13px] text-gray-500 max-w-md mx-auto">A quick look at what changes when the work lives in one place.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left" role="table">

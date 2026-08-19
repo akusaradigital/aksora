@@ -2,38 +2,43 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdminUser } from "@/lib/auth-core";
+import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 
-const notificationsCache = new Map<string, { expiresAt: number; payload: { notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] } }>();
+type NotificationItem = { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string; workspace: string };
+
+const notificationsCache = new Map<string, { expiresAt: number; payload: { notifications: NotificationItem[] } }>();
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const memberships = await getWorkspaceMembershipsForUser(user.id);
+  const workspaces = memberships.map((item) => item.name).filter(Boolean);
   const company = user.company || "";
   const isAdmin = isAdminUser(user.role, company);
-  const cacheKey = `${company}|${isAdmin ? "admin" : "user"}`;
+  const cacheKey = `${workspaces.join(",")}|${isAdmin ? "admin" : "user"}`;
   const cached = notificationsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return NextResponse.json(cached.payload, {
       headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=120" },
     });
   }
-  const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-  const cp = isAdmin ? [] : [company];
+  const andCompany = isAdmin ? "" : ` AND "company" = ANY(?::text[])`;
+  const cp = isAdmin ? [] : [workspaces];
   const todayIso = new Date().toISOString().slice(0, 10);
   const plus3Iso = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
   const plus2Iso = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
   const overdueExpr = `"createdAt" <= NOW() - INTERVAL '7 days'`;
 
-  const notifications: { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string }[] = [];
+  const notifications: NotificationItem[] = [];
 
   const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
     db.query(
-      `SELECT id, "publicToken", title, severity, "createdAt" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
-      [...cp]
+      `SELECT id, "publicToken", title, severity, "createdAt", "company" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
+      isAdmin ? [] : [workspaces],
     ) as Promise<any[]>,
     db.query(
-      `SELECT id, "publicToken", name, "endDate" FROM "Sprint"
+      `SELECT id, "publicToken", name, "endDate", "company" FROM "Sprint"
        WHERE status != 'completed'
          AND status != 'closed'
          AND COALESCE("endDate", '') != ''
@@ -41,10 +46,10 @@ export async function GET() {
          AND "endDate" <= ?
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
-      [todayIso, plus3Iso, ...cp]
+      isAdmin ? [todayIso, plus3Iso] : [todayIso, plus3Iso, workspaces],
     ) as Promise<any[]>,
     db.query(
-      `SELECT id, "publicToken", title, "endDate" FROM "TestPlan"
+      `SELECT id, "publicToken", title, "endDate", "company" FROM "TestPlan"
        WHERE status != 'closed'
          AND status != 'completed'
          AND "deletedAt" IS NULL
@@ -53,7 +58,7 @@ export async function GET() {
          AND "endDate" <= ?
          ${andCompany}
        ORDER BY "endDate" ASC LIMIT 5`,
-      [todayIso, plus2Iso, ...cp]
+      isAdmin ? [todayIso, plus2Iso] : [todayIso, plus2Iso, workspaces],
     ) as Promise<any[]>,
   ]);
 
@@ -64,7 +69,8 @@ export async function GET() {
       type: "overdue",
       title: b.title,
       detail: `Bug open for ${days} days · ${b.severity}`,
-      href: `/bugs?view=${b.publicToken || b.id}`,
+      href: `/api/auth/workspace/redirect?workspaceName=${encodeURIComponent(b.company || "")}&to=${encodeURIComponent(`/bugs?view=${b.publicToken || b.id}`)}`,
+      workspace: b.company || "",
     });
   }
 
@@ -75,7 +81,8 @@ export async function GET() {
       type: "deadline",
       title: s.name,
       detail: daysLeft === 0 ? "Sprint ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: `/sprints?view=${s.publicToken || s.id}`,
+      href: `/api/auth/workspace/redirect?workspaceName=${encodeURIComponent(s.company || "")}&to=${encodeURIComponent(`/sprints?view=${s.publicToken || s.id}`)}`,
+      workspace: s.company || "",
     });
   }
 
@@ -86,7 +93,8 @@ export async function GET() {
       type: "deadline",
       title: p.title,
       detail: daysLeft === 0 ? "Test plan ends today!" : `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
-      href: `/test-plans?view=${p.publicToken || p.id}`,
+      href: `/api/auth/workspace/redirect?workspaceName=${encodeURIComponent(p.company || "")}&to=${encodeURIComponent(`/test-plans?view=${p.publicToken || p.id}`)}`,
+      workspace: p.company || "",
     });
   }
 

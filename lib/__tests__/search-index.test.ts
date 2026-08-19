@@ -44,8 +44,8 @@ describe("search-index", () => {
     );
     expect(mocks.db.run).toHaveBeenNthCalledWith(
       2,
-      'INSERT INTO "SearchToken" ("company", "entityType", "entityId", "entityIdInt", "token") VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)',
-      ["acme", "test-cases", "42", 42, "alpha", "acme", "test-cases", "42", 42, "beta", "acme", "test-cases", "42", 42, "open"],
+      'INSERT INTO "SearchToken" ("company", "workspaceId", "entityType", "entityId", "entityIdInt", "token") VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)',
+      ["acme", null, "test-cases", "42", 42, "alpha", "acme", null, "test-cases", "42", 42, "beta", "acme", null, "test-cases", "42", 42, "open"],
     );
   });
 

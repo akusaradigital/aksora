@@ -107,7 +107,7 @@ export default function FeaturesPage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniFeature icon={<ShieldCheck size={18} weight="bold" />} title="Role-Based Access Control" desc="8 granular roles with scoped permissions. Each team member sees exactly what they need." />
-            <MiniFeature icon={<Users size={18} weight="bold" />} title="Multi-Tenant Workspaces" desc="Complete data isolation per company. Invite members, manage permissions centrally." />
+            <MiniFeature icon={<Users size={18} weight="bold" />} title="Multi-Tenant Workspaces" desc="Complete data isolation per workspace. Invite members, manage permissions centrally." />
             <MiniFeature icon={<Timer size={18} weight="bold" />} title="Full Audit Trail" desc="Every action logged with timestamp, user, and details. Complete traceability for compliance." />
             <MiniFeature icon={<Note size={18} weight="bold" />} title="Meeting Notes" desc="Document standups, retros, and decisions alongside your QA data. Context stays together." />
             <MiniFeature icon={<Lock size={18} weight="bold" />} title="Encrypted Sessions" desc="TLS in transit, encrypted cookies, secure password hashing. Security is not optional." />

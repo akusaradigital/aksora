@@ -9,7 +9,7 @@ import {
   ClockCountdown,
 } from "@phosphor-icons/react";
 
-type Notification = { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string };
+type Notification = { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string; workspace?: string };
 
 export function NotificationPanel({
   onClose,
@@ -99,6 +99,7 @@ export function NotificationPanel({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-800 leading-snug truncate">{n.title}</p>
                       <p className="text-[11px] text-gray-400 mt-0.5 truncate">{n.detail}</p>
+                      {n.workspace ? <p className="mt-1 text-[10px] font-semibold text-gray-500">{n.workspace}</p> : null}
                     </div>
                   </Link>
                   <button onClick={() => handleDismiss(n.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition p-0.5" title="Dismiss">
@@ -122,6 +123,7 @@ export function NotificationPanel({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-800 leading-snug truncate">{n.title}</p>
                       <p className="text-[11px] text-gray-400 mt-0.5 truncate">{n.detail}</p>
+                      {n.workspace ? <p className="mt-1 text-[10px] font-semibold text-gray-500">{n.workspace}</p> : null}
                     </div>
                   </Link>
                   <button onClick={() => handleDismiss(n.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition p-0.5" title="Dismiss">

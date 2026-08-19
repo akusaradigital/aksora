@@ -9,10 +9,27 @@ export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 export function getAccessScope(user: CurrentUser | null = null) {
   const company = String(user?.company ?? "").trim();
   const isAdmin = isAdminUser(user?.role, company);
-  const where = isAdmin ? "" : ' WHERE "company" = ?';
-  const andWhere = isAdmin ? "" : ' AND "company" = ?';
-  const params = isAdmin ? [] : [company];
-  return { company, isAdmin, where, andWhere, params };
+  const workspaceId = user?.activeWorkspaceId ?? null;
+
+  // Primary scoping: workspaceId (integer FK) when available.
+  // Fallback to company string for rows not yet backfilled (workspaceId IS NULL) and for
+  // the company column used in display/export paths. Superadmin (isAdmin) gets no filter.
+  const where = isAdmin ? "" : workspaceId
+    ? ` WHERE ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+    : ' WHERE "company" = ?';
+  const andWhere = isAdmin ? "" : workspaceId
+    ? ` AND ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+    : ' AND "company" = ?';
+  const params: (string | number)[] = isAdmin ? [] : workspaceId
+    ? [workspaceId, company]
+    : [company];
+
+  return { company, isAdmin, workspaceId, where, andWhere, params };
+}
+
+export function getWriteWorkspaceId(user: CurrentUser | null, dataWorkspaceId?: number | null): number | null {
+  if (dataWorkspaceId) return dataWorkspaceId;
+  return user?.activeWorkspaceId ?? null;
 }
 
 export function getWriteCompany(user: CurrentUser | null, dataCompany?: string) {
@@ -104,12 +121,13 @@ export function deriveSprintStatus(startDate?: string, endDate?: string): string
   return "active";
 }
 
-export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string, publicToken?: string) {
+export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string, publicToken?: string, workspaceId?: number | null) {
   try {
+    const wsId = workspaceId ?? null;
     await db.run(
-      `INSERT INTO "ActivityLog" ("company", "entityType", "entityId", "action", "summary", "actor", "publicToken")
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [company, type, id, action, summary, actor || "", publicToken || ""],
+      `INSERT INTO "ActivityLog" ("company", "workspaceId", "entityType", "entityId", "action", "summary", "actor", "publicToken")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [company, wsId, type, id, action, summary, actor || "", publicToken || ""],
     );
     const created = await db.query<{ id?: number | string }>(
       `SELECT "id" FROM "ActivityLog" WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "action" = ? AND "summary" = ? ORDER BY "id" DESC LIMIT 1`,
@@ -122,7 +140,7 @@ export async function logActivity(company: string, type: string, id: string, act
         entityId: id,
         action,
         summary,
-      });
+      }, wsId);
     }
   } catch (e) {
     console.error("Activity logging failed:", e);
@@ -210,12 +228,14 @@ export async function syncSprintFromTestPlan({
   startDate,
   endDate,
   goal,
+  workspaceId,
 }: {
   company: string;
   sprintName?: string;
   startDate?: string;
   endDate?: string;
   goal?: string;
+  workspaceId?: number | null;
 }) {
   if (!sprintName?.trim()) return;
   const status = deriveSprintStatus(startDate, endDate);
@@ -226,8 +246,8 @@ export async function syncSprintFromTestPlan({
 
   if (existing) {
     await db.run(
-      `UPDATE "Sprint" SET "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
-      [startDate ?? "", endDate ?? "", status, goal ?? "", existing.id],
+      `UPDATE "Sprint" SET "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "workspaceId" = COALESCE(?, "workspaceId"), "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
+      [startDate ?? "", endDate ?? "", status, goal ?? "", workspaceId ?? null, existing.id],
     );
     await syncSearchTokens("sprints", company, existing.id, {
       name: sprintName,
@@ -235,11 +255,11 @@ export async function syncSprintFromTestPlan({
       endDate: endDate ?? "",
       status,
       goal: goal ?? "",
-    });
+    }, workspaceId);
   } else {
     const createdId = await runInsertReturningId(
-      `INSERT INTO "Sprint" ("company", "name", "startDate", "endDate", "status", "goal") VALUES (?, ?, ?, ?, ?, ?)`,
-      [company, sprintName, startDate ?? "", endDate ?? "", status, goal ?? ""],
+      `INSERT INTO "Sprint" ("company", "workspaceId", "name", "startDate", "endDate", "status", "goal") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [company, workspaceId ?? null, sprintName, startDate ?? "", endDate ?? "", status, goal ?? ""],
       {
         query: `SELECT "id" FROM "Sprint" WHERE "company" = ? AND "name" = ? ORDER BY "id" DESC LIMIT 1`,
         params: [company, sprintName],
@@ -252,7 +272,7 @@ export async function syncSprintFromTestPlan({
         endDate: endDate ?? "",
         status,
         goal: goal ?? "",
-      });
+      }, workspaceId);
     }
   }
 }

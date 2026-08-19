@@ -38,7 +38,7 @@ describe("roles", () => {
   it("exposes role groups and option lists", () => {
     expect(WORKSPACE_ROLES).toEqual(["admin", "fe", "be", "fullstack", "qa", "pm", "ai"]);
     expect(SYSTEM_ROLES[0]).toBe("superadmin");
-    expect(INVITE_ROLES).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
+    expect(INVITE_ROLES).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm", "guest"]);
     expect(ASSIGNEE_ROLES).toEqual(["fe", "be", "fullstack", "ai", "qa", "pm"]);
 
     expect(getInviteRoleOptions().map((option) => option.value)).toEqual(INVITE_ROLES);

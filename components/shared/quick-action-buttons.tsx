@@ -132,7 +132,7 @@ function AssignDropdown({
     inputRef.current?.focus();
   }, []);
 
-  // Fetch workspace members (max 50, company-scoped server side)
+  // Fetch workspace members (max 50, workspace-scoped server side)
   useEffect(() => {
     let active = true;
     fetch("/api/dashboard/members")

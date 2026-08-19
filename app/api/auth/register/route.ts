@@ -3,6 +3,7 @@ import { getInviteByToken, markInviteAccepted } from "@/lib/invites";
 import { authEnabled, registerUser } from "@/lib/auth";
 import { isInviteRole, normalizeRole } from "@/lib/roles";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
+import { ensureWorkspaceForUser, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
 
 export async function POST(request: NextRequest) {
   if (!authEnabled()) {
@@ -57,6 +58,16 @@ export async function POST(request: NextRequest) {
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+    const createdUser = await import("@/lib/db").then(({ db }) =>
+      db.get<{ id: number; role: string; company: string }>('SELECT "id", "role", "company" FROM "User" WHERE "email" = ?', [email]),
+    );
+    if (createdUser) {
+      if ((invite as { workspaceId?: number | null }).workspaceId) {
+        await ensureWorkspaceMembership((invite as { workspaceId?: number | null }).workspaceId as number, createdUser.id, normalizeRole(createdUser.role));
+      } else {
+        await ensureWorkspaceForUser(createdUser.company, createdUser.id, normalizeRole(createdUser.role));
+      }
+    }
     const consume = await markInviteAccepted(inviteToken, email);
     if ("error" in consume) {
       return NextResponse.json({ error: consume.error }, { status: 400 });
@@ -64,9 +75,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const result = await registerUser(email, password, name, "admin", "");
+  const workspaceName = body?.company?.trim() || `${name || email.split("@")[0]}'s Workspace`;
+  const result = await registerUser(email, password, name, "admin", workspaceName);
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  const createdUser = await import("@/lib/db").then(({ db }) =>
+    db.get<{ id: number; role: string; company: string }>('SELECT "id", "role", "company" FROM "User" WHERE "email" = ?', [email]),
+  );
+  if (createdUser) {
+    await ensureWorkspaceForUser(createdUser.company, createdUser.id, normalizeRole(createdUser.role));
   }
 
   return NextResponse.json({ ok: true });

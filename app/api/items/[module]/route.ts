@@ -80,6 +80,9 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (String(user.role || "").trim() === "guest") {
+    return NextResponse.json({ error: "Guests have read-only access." }, { status: 403 });
+  }
   if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
@@ -141,6 +144,9 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (String(user.role || "").trim() === "guest") {
+    return NextResponse.json({ error: "Guests have read-only access." }, { status: 403 });
+  }
   if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
@@ -194,6 +200,9 @@ export async function PATCH(
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (String(user.role || "").trim() === "guest") {
+    return NextResponse.json({ error: "Guests have read-only access." }, { status: 403 });
   }
   if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

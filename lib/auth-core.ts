@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
+import { ensureWorkspaceForUser } from "@/lib/workspace-memberships";
 import {
   WORKSPACE_ROLES,
   INVITE_ROLES,
@@ -101,8 +102,11 @@ export function authEnabled() {
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string }>(
-      'SELECT "id", "name", "email", "role", "company", "password" FROM "User" WHERE "email" = ?',
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; activeWorkspaceId: number | null }>(
+      `SELECT u."id", u."name", u."email", u."role", u."company", u."password", w."id" AS "activeWorkspaceId"
+       FROM "User" u
+       LEFT JOIN "Workspace" w ON w."name" = u."company"
+       WHERE u."email" = ?`,
       [email]
     );
     if (!user) return null;
@@ -124,6 +128,7 @@ export async function validateCredentials(email: string, password: string) {
       email: user.email,
       role: user.role,
       company: user.company,
+      activeWorkspaceId: user.activeWorkspaceId ?? null,
     };
   } catch (err) {
     console.error("Auth DB error:", err);
@@ -142,6 +147,7 @@ export async function registerUser(email: string, password: string, name?: strin
     );
     if (user) {
       await syncAssigneeFromUser(user);
+      await ensureWorkspaceForUser(user.company, user.id, String(user.role || role));
     }
     return { success: true };
   } catch (err: any) {
@@ -154,7 +160,7 @@ export async function registerUser(email: string, password: string, name?: strin
 
 export async function createSessionToken(
   email: string,
-  user?: { id: number; name: string; role: string; company: string }
+  user?: { id: number; name: string; role: string; company: string; activeWorkspaceId?: number | null }
 ) {
   const { secret } = getAuthConfig();
   if (!secret) {
@@ -178,7 +184,7 @@ export async function createSessionToken(
     email,
     ts: Date.now(),
     ...(pv ? { pv } : {}),
-    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company } : {}),
+    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company, activeWorkspaceId: user.activeWorkspaceId ?? null } : {}),
   }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
@@ -223,7 +229,7 @@ export async function getCurrentUser() {
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {
       email?: string; ts?: number; pv?: string;
-      id?: number; name?: string; role?: string; company?: string;
+      id?: number; name?: string; role?: string; company?: string; activeWorkspaceId?: number | null;
     };
     if (!decoded.email) return null;
     if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return null;
@@ -241,23 +247,41 @@ export async function getCurrentUser() {
           return null; // Password changed - session revoked
         }
       }
+
+      // Resolve activeWorkspaceId from DB if missing in token (old tokens, no re-login needed)
+      let activeWorkspaceId = decoded.activeWorkspaceId ?? null;
+      if (activeWorkspaceId === null && decoded.company) {
+        try {
+          const { db } = await import("./db");
+          const ws = await db.get<{ id: number }>(
+            'SELECT "id" FROM "Workspace" WHERE "name" = ? LIMIT 1',
+            [decoded.company],
+          );
+          activeWorkspaceId = ws?.id ?? null;
+        } catch { /* non-critical, stay null */ }
+      }
+
       return {
         id: decoded.id,
         name: decoded.name,
         email: decoded.email,
         role: normalizeRole(decoded.role),
         company: decoded.company,
+        activeWorkspaceId,
       };
     }
 
     // Fallback: old tokens without embedded user data - hit DB once
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string }>(
-      'SELECT id, name, email, role, company FROM "User" WHERE "email" = ?',
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null }>(
+      `SELECT u.id, u.name, u.email, u.role, u.company, w.id AS "activeWorkspaceId"
+       FROM "User" u
+       LEFT JOIN "Workspace" w ON w.name = u.company
+       WHERE u.email = ?`,
       [decoded.email]
     );
     if (!user) return null;
-    return { ...user, role: normalizeRole(user.role) };
+    return { ...user, role: normalizeRole(user.role), activeWorkspaceId: user.activeWorkspaceId ?? null };
   } catch {
     return null;
   }

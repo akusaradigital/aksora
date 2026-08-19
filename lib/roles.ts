@@ -1,6 +1,6 @@
 export const WORKSPACE_ROLES = ["admin", "fe", "be", "fullstack", "qa", "pm", "ai"] as const;
 export const SYSTEM_ROLES = ["superadmin", ...WORKSPACE_ROLES] as const;
-export const INVITE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
+export const INVITE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm", "guest"] as const;
 export const ASSIGNEE_ROLES = ["fe", "be", "fullstack", "ai", "qa", "pm"] as const;
 export const PUBLIC_ROLES = [
   "Product Manager",
@@ -44,6 +44,7 @@ const ROLE_LABELS: Record<string, string> = {
   "security engineer": "Security Engineer",
   "database administrator": "Database Administrator",
   "software architect": "Software Architect",
+  guest: "Guest",
 };
 
 export function normalizeRole(role: string | null | undefined) {
@@ -83,10 +84,14 @@ export function getRoleExportLabel(role: string | null | undefined, company: str
   return getRoleLabel(role, company);
 }
 
-export function getCompanyLabel(company: string | null | undefined, role: string | null | undefined = "") {
-  const scopedCompany = String(company ?? "").trim();
-  if (scopedCompany) return scopedCompany;
+export function getWorkspaceLabel(company: string | null | undefined, role: string | null | undefined = "") {
+  const scopedWorkspace = String(company ?? "").trim();
+  if (scopedWorkspace) return scopedWorkspace;
   return getRoleLabel(role, company);
+}
+
+export function getCompanyLabel(company: string | null | undefined, role: string | null | undefined = "") {
+  return getWorkspaceLabel(company, role);
 }
 
 export function getInviteRoleOptions() {
