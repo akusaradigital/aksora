@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 
 type NotificationItem = { id: string; type: "overdue" | "deadline"; title: string; detail: string; href: string; workspace: string };
@@ -37,7 +37,7 @@ export async function GET() {
   const memberships = await getWorkspaceMembershipsForUser(user.id);
   const workspaces = memberships.map((item) => item.name).filter(Boolean);
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const cacheKey = `${workspaces.join(",")}|${isAdmin ? "admin" : "user"}`;
   const cached = notificationsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {

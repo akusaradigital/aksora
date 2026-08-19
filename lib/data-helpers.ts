@@ -12,16 +12,15 @@ export function getAccessScope(user: CurrentUser | null = null) {
   const workspaceId = user?.activeWorkspaceId ?? null;
 
   // Primary scoping: workspaceId (integer FK) when available.
-  // Fallback to company string for rows not yet backfilled (workspaceId IS NULL) and for
-  // the company column used in display/export paths. Superadmin (isAdmin) gets no filter.
+  // Fallback to company string when no workspaceId is available. Superadmin (isAdmin) gets no filter.
   const where = isAdmin ? "" : workspaceId
-    ? ` WHERE ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+    ? ' WHERE "workspaceId" = ?'
     : ' WHERE "company" = ?';
   const andWhere = isAdmin ? "" : workspaceId
-    ? ` AND ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+    ? ' AND "workspaceId" = ?'
     : ' AND "company" = ?';
   const params: (string | number)[] = isAdmin ? [] : workspaceId
-    ? [workspaceId, company]
+    ? [workspaceId]
     : [company];
 
   return { company, isAdmin, workspaceId, where, andWhere, params };

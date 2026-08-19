@@ -60,7 +60,32 @@ for (const [table, expected] of expectedByTable.entries()) {
   }
 }
 
-const result = { ok: issues.length === 0, totalTables: tableNames.length, issues };
+// Check workspaceId backfill completeness for all tables carrying company
+const tablesWithCompany = [...expectedByTable.entries()]
+  .filter(([, cols]) => cols.includes("company") && cols.includes("workspaceId"))
+  .map(([name]) => name);
+
+const backfillIssues = [];
+for (const table of tablesWithCompany) {
+  try {
+    const { rows: stragglerRows } = await client.query(
+      `SELECT COUNT(*) as count FROM "${table}" WHERE "workspaceId" IS NULL AND COALESCE("company", '') != ''`,
+    );
+    const unbackfilledCount = Number(stragglerRows[0]?.count ?? 0);
+    if (unbackfilledCount > 0) {
+      backfillIssues.push({ table, unbackfilledRows: unbackfilledCount });
+    }
+  } catch {
+    // Ignore if table doesn't exist
+  }
+}
+
+const result = {
+  ok: issues.length === 0 && backfillIssues.length === 0,
+  totalTables: tableNames.length,
+  issues,
+  backfillIssues,
+};
 console.log(JSON.stringify(result, null, 2));
 await client.end();
 process.exit(result.ok ? 0 : 1);

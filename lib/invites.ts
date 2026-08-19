@@ -134,18 +134,19 @@ export async function acceptInvite(token: string, email: string) {
     return { error: "User not found." } as const;
   }
 
+  const workspace = invite.workspaceId
+    ? { id: invite.workspaceId }
+    : await ensureWorkspace(invite.company, existingUser.id);
+
   await db.run(
-    'UPDATE "User" SET "company" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "email" = ?',
-    [invite.company, invite.role, email],
+    'UPDATE "User" SET "company" = ?, "role" = ?, "workspaceId" = CAST(? AS INTEGER), "updatedAt" = CURRENT_TIMESTAMP WHERE "email" = ?',
+    [invite.company, invite.role, workspace?.id ?? null, email],
   );
   const updatedUser = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
     'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
     [email],
   );
   if (updatedUser) {
-    const workspace = invite.workspaceId
-      ? { id: invite.workspaceId }
-      : await ensureWorkspace(invite.company, updatedUser.id);
     if (workspace?.id) {
       await ensureWorkspaceMembership(workspace.id, updatedUser.id, invite.role);
     }

@@ -72,6 +72,13 @@ export async function POST(request: NextRequest) {
       await db.run(`DELETE FROM "SearchToken" WHERE "company" = ?`, [company]);
       await db.run(`DELETE FROM "Invite" WHERE "company" = ?`, [company]);
 
+      // Workspace & Membership cleanup: prevent dead references in workspace switcher / membership queries
+      await db.run(
+        `DELETE FROM "WorkspaceMembership" WHERE "workspaceId" IN (SELECT "id" FROM "Workspace" WHERE "name" = ?)`,
+        [company],
+      );
+      await db.run(`DELETE FROM "Workspace" WHERE "name" = ?`, [company]);
+
       // Update Company status to 'deleted'
       await db.run(
         `UPDATE "Company" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "name" = ?`,

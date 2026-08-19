@@ -14,8 +14,7 @@ export type MyWorkItem = {
 export async function getMyWorkItems(userId: number, userName: string, userEmail: string) {
   const memberships = await getWorkspaceMembershipsForUser(userId);
   const workspaceIds = memberships.map((item) => item.workspaceId).filter((id): id is number => typeof id === "number" && id > 0);
-  const workspaces = memberships.map((item) => item.name).filter(Boolean);
-  if (workspaceIds.length === 0 && workspaces.length === 0) return [] as MyWorkItem[];
+  if (workspaceIds.length === 0) return [] as MyWorkItem[];
 
   const assigneeName = String(userName || userEmail || "").trim();
 
@@ -24,10 +23,10 @@ export async function getMyWorkItems(userId: number, userName: string, userEmail
      FROM "Task"
      WHERE "deletedAt" IS NULL
        AND "assignee" = ?
-       AND ("workspaceId" = ANY(?::int[]) OR ("workspaceId" IS NULL AND "company" = ANY(?::text[])))
+       AND "workspaceId" = ANY(?::int[])
      ORDER BY "updatedAt" DESC
      LIMIT 50`,
-    [assigneeName, workspaceIds, workspaces],
+    [assigneeName, workspaceIds],
   );
 
   const bugRows = await db.query<{ id: number; title: string; severity: string; status: string; company: string; publicToken: string }>(
@@ -35,10 +34,10 @@ export async function getMyWorkItems(userId: number, userName: string, userEmail
      FROM "Bug"
      WHERE "deletedAt" IS NULL
        AND "suggestedDev" = ?
-       AND ("workspaceId" = ANY(?::int[]) OR ("workspaceId" IS NULL AND "company" = ANY(?::text[])))
+       AND "workspaceId" = ANY(?::int[])
      ORDER BY "updatedAt" DESC
      LIMIT 50`,
-    [assigneeName, workspaceIds, workspaces],
+    [assigneeName, workspaceIds],
   );
 
   return [

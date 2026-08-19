@@ -42,8 +42,8 @@ export async function getModuleRows(module: ModuleKey) {
     case "tasks":
       return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
     case "test-suites": {
-      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (ts."workspaceId" = ? OR (ts."workspaceId" IS NULL AND ts."company" = ?))' : ' AND ts."company" = ?');
-      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (tc."workspaceId" = ? OR (tc."workspaceId" IS NULL AND tc."company" = ?))' : ' AND tc."company" = ?');
+      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND ts."workspaceId" = ?' : ' AND ts."company" = ?');
+      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND tc."workspaceId" = ?' : ' AND tc."company" = ?');
       return (await selectAll(
         `WITH case_stats AS (
           SELECT tc."testSuiteId" as suiteId,
@@ -87,8 +87,8 @@ export async function getModuleRows(module: ModuleKey) {
     case "users":
       return await selectAll(`SELECT id, name, email, role, company, "createdAt" FROM "User" ${where} ORDER BY "createdAt" DESC`, qParams);
     case "sprints": {
-      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' WHERE s."company" = ?');
-      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND (tp2."workspaceId" = ? OR (tp2."workspaceId" IS NULL AND tp2."company" = ?))' : ' AND tp2."company" = ?');
+      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE s."workspaceId" = ?' : ' WHERE s."company" = ?');
+      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND tp2."workspaceId" = ?' : ' AND tp2."company" = ?');
       const sprintRows = await selectAll(`
         SELECT s.*,
           (SELECT tp2."title" || '|||' || tp2."project" FROM "TestPlan" tp2
@@ -219,8 +219,8 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "test-suites": {
-      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (ts."workspaceId" = ? OR (ts."workspaceId" IS NULL AND ts."company" = ?))' : ' AND ts."company" = ?');
-      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (tc."workspaceId" = ? OR (tc."workspaceId" IS NULL AND tc."company" = ?))' : ' AND tc."company" = ?');
+      const suiteCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND ts."workspaceId" = ?' : ' AND ts."company" = ?');
+      const tcCompanyWhere = isAdmin ? "" : (scope.workspaceId ? ' AND tc."workspaceId" = ?' : ' AND tc."company" = ?');
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "TestSuite" ts WHERE ts."deletedAt" IS NULL${suiteCompanyWhere}${searchClause}`, [...(isAdmin ? [] : qParams), ...searchParams]) as { total?: number } | undefined;
       const rows = (await selectAll(
         `WITH case_stats AS (
@@ -269,9 +269,9 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       return { rows, total };
     }
     case "sprints": {
-      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' WHERE s."company" = ?');
-      const sprintAndWhere = isAdmin ? "" : (scope.workspaceId ? ' AND (s."workspaceId" = ? OR (s."workspaceId" IS NULL AND s."company" = ?))' : ' AND s."company" = ?');
-      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND (tp2."workspaceId" = ? OR (tp2."workspaceId" IS NULL AND tp2."company" = ?))' : ' AND tp2."company" = ?');
+      const sprintWhere = isAdmin ? "" : (scope.workspaceId ? ' WHERE s."workspaceId" = ?' : ' WHERE s."company" = ?');
+      const sprintAndWhere = isAdmin ? "" : (scope.workspaceId ? ' AND s."workspaceId" = ?' : ' AND s."company" = ?');
+      const tpCompanyFilter = isAdmin ? "" : (scope.workspaceId ? ' AND tp2."workspaceId" = ?' : ' AND tp2."company" = ?');
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Sprint" s WHERE s."deletedAt" IS NULL${sprintAndWhere}${searchClause}`, [...(isAdmin ? [] : qParams), ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
       const sprintRows = await selectAll(`
