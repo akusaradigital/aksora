@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { updateModuleRecord } from "@/lib/data";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 
 type TimelineType = "sprint" | "plan" | "task";
 function getCompanyFilter(company: string, isAdmin: boolean) {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const assigneeFilter = searchParams.get("assignee") || "";
 
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const { clause: andCompany, params: cp } = getCompanyFilter(company, isAdmin);
 
   // Use date range overlap if both start/end provided, otherwise fall back to year
@@ -116,7 +116,7 @@ export async function PATCH(request: Request) {
   }
 
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const { clause: andCompany, params: cp } = getCompanyFilter(company, isAdmin);
   const table = type === "sprint" ? "Sprint" : type === "plan" ? "TestPlan" : "Task";
 

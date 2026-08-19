@@ -10,6 +10,7 @@ import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import { CollaborationIndicator } from "@/components/shared/collaboration-indicator";
 import { useCollaborationPresence } from "@/hooks/use-collaboration-presence";
 import { ImageLightbox, ActivityTab, renderNotes, renderEvidence } from "@/components/module/module-view-modal-parts";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 type FieldConfig = {
   name: string;
@@ -34,7 +35,7 @@ function isValidTab(tab: string | null | undefined): tab is string {
 }
 
 type ViewModalProps = {
-  row: Record<string, string | number>;
+  row: TableRow;
   config: {
     shortTitle: string;
     fields: FieldConfig[];
@@ -116,6 +117,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
     (f) => f.kind === "textarea" || String(row[f.name] ?? "").length > 200,
   );
   const modalMaxWidth = hasLongContent || displayFields.length > 8 ? "max-w-2xl" : "max-w-xl";
+  const rowCode = String(row.code ?? "").trim();
 
   function renderFieldValue(field: FieldConfig) {
     const rawVal = String(row[field.name] ?? "");
@@ -139,7 +141,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
 
     // Role field
     if (field.name === "role") {
-      return <HighlightText text={getRoleLabel(String(row[field.name] ?? ""), String(row.company ?? ""))} query="" />;
+      return <HighlightText text={getRoleLabel(String(row[field.name] ?? ""))} query="" />;
     }
 
     // Notes with structured rendering
@@ -189,8 +191,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
                 <h2 className="truncate text-base font-bold leading-snug text-gray-900">
                   {String(row.title || row.caseName || row.name || "Detail")}
                 </h2>
-                {row.code && (
-                  <p className="text-[11px] font-semibold text-gray-400">{String(row.code)}</p>
+                {rowCode && (
+                  <p className="text-[11px] font-semibold text-gray-400">{rowCode}</p>
                 )}
               </div>
             </div>
@@ -238,7 +240,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
               {metadataFields.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {metadataFields.map((field) => {
-                    const Icon = fieldIcons[field.name] ?? <Note size={14} className="text-gray-400" />;
+                    const Icon: ReactNode = fieldIcons[field.name] ?? <Note size={14} className="text-gray-400" />;
                     return (
                       <div
                         key={field.name}
@@ -264,7 +266,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
               {contentFields.length > 0 && (
                 <div className="space-y-3">
                   {contentFields.map((field) => {
-                    const Icon = fieldIcons[field.name] ?? <Note size={16} className="text-gray-400" />;
+                    const Icon: ReactNode = fieldIcons[field.name] ?? <Note size={16} className="text-gray-400" />;
 
                     return (
                       <div

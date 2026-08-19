@@ -54,6 +54,13 @@ interface BugEntity {
  createdAt: string;
 }
 
+interface MeetingNote {
+ id: string | number;
+ code: string;
+ date: string;
+ title: string;
+}
+
 export default async function ProjectDetailPage({ params }: { params: Promise<{ name: string }> }) {
  const { name: encodedName } = await params;
  const projectName = decodeURIComponent(encodedName);
@@ -65,6 +72,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  const plans = data.plans as TestPlan[];
  const bugs = data.bugs as BugEntity[];
  const suites = (data.suites || []) as SuiteStats[];
+ const meetings = (data.meetings || []) as MeetingNote[];
 
  const passW = stats.totalCases > 0 ? (stats.passed / stats.totalCases) * 100 : 0;
  const failW = stats.totalCases > 0 ? (stats.failed / stats.totalCases) * 100 : 0;
@@ -379,7 +387,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  </div>
 
  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
- {(data.meetings as any[]).slice(0, 6).map((meet: any) => (
+ {meetings.slice(0, 6).map((meet) => (
  <div key={meet.id} className="group p-5 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-lg transition-all">
  <div className="flex items-center justify-between mb-3">
  <span className="text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{meet.code}</span>
@@ -395,7 +403,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  </div>
  </div>
  ))}
- {(data.meetings as any[]).length === 0 && (
+ {meetings.length === 0 && (
  <div className="col-span-full py-10 text-center rounded-xl border border-dashed border-slate-200">
  <p className="text-sm text-slate-400">No meeting notes found for this project.</p>
  </div>

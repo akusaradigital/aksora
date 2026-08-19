@@ -28,41 +28,43 @@ export function PageShell({
   flush?: boolean;
 }) {
   return (
-    <section suppressHydrationWarning className={cn("space-y-4", className)}>
+    <section suppressHydrationWarning className={cn("space-y-4 pb-4", className)}>
       {crumbs && (
-        <div suppressHydrationWarning>
+        <div suppressHydrationWarning className="mb-1">
           <Breadcrumb crumbs={crumbs} />
         </div>
       )}
-      <div>
-        <div className="pb-5">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 max-w-3xl">
-              <div className="flex items-center gap-3">
-                {icon ? (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-blue-50 text-blue-700 border border-blue-100">
-                    {icon}
-                  </div>
-                ) : null}
-                <div className="min-w-0">
-                  {eyebrow ? <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600">{eyebrow}</p> : null}
-                  <h1 className="text-xl font-bold tracking-tight text-gray-900">{title}</h1>
+      <header className="border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6 sm:py-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 max-w-3xl">
+            <div className="flex items-center gap-3">
+              {icon ? (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-sky-100 bg-sky-50 text-sky-700">
+                  {icon}
                 </div>
+              ) : null}
+              <div className="min-w-0">
+                {eyebrow ? <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-sky-600">{eyebrow}</p> : null}
+                <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-[2rem]">{title}</h1>
               </div>
-              {description ? <p className="mt-1.5 text-sm text-gray-500">{description}</p> : null}
             </div>
-            {actions ? (
-              <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 xl:w-auto xl:justify-end">
-                {actions}
-              </div>
-            ) : null}
+            {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{description}</p> : null}
           </div>
+          {actions ? (
+            <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 xl:w-auto xl:justify-end">
+              {actions}
+            </div>
+          ) : null}
         </div>
-        {controls ? <div className="border-b border-gray-200 pb-3 mb-4 text-sm text-gray-600">{controls}</div> : null}
-        <div className={cn(
-          "min-w-0 overflow-hidden bg-white border border-gray-200",
-          flush ? "p-0" : "px-5 py-4",
-        )}>{children}</div>
+        {controls ? <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">{controls}</div> : null}
+      </header>
+      <div
+        className={cn(
+          "min-w-0 overflow-hidden border border-slate-200 bg-white shadow-sm",
+          flush ? "p-0" : "px-5 py-4 sm:px-6 sm:py-5",
+        )}
+      >
+        {children}
       </div>
     </section>
   );
@@ -77,7 +79,7 @@ export function ActionButton({
     <button
       {...props}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 bg-white border border-gray-200 px-3 outline-none text-[13px] font-medium text-gray-700 transition hover:bg-gray-50 hover:text-blue-700 hover:border-blue-200",
+        "inline-flex h-9 items-center gap-1.5 border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700",
         className,
       )}
     >
@@ -95,7 +97,7 @@ export function IconActionLink({
     <a
       {...props}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center bg-white border border-gray-200 outline-none text-gray-600 transition hover:bg-gray-50 hover:text-blue-700 hover:border-blue-200",
+        "inline-flex h-9 w-9 items-center justify-center border border-slate-200 bg-white text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700",
         className,
       )}
     >

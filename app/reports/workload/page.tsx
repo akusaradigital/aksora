@@ -11,7 +11,8 @@ import {
  Info,
  TrendUp,
  UserCircle,
- MagnifyingGlass
+ MagnifyingGlass,
+ FileArrowDown
 } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
 import { getRoleLabel } from"@/lib/roles";
@@ -35,6 +36,11 @@ export default function WorkloadPage() {
  const [loading, setLoading] = useState(true);
  const [search, setSearch] = useState("");
  type DetailItem = { label: string; sub: string; badge?: string; badge2?: string; href: string };
+ type ResourceDetails = {
+ tasks?: { title: string; status: string; priority: string; publicToken?: string | number; id?: string | number }[];
+ bugs?: { title: string; status: string; severity: string; publicToken?: string | number; id?: string | number }[];
+ suites?: { title: string; status: string; publicToken?: string | number; id?: string | number }[];
+ };
  const [detail, setDetail] = useState<{ member: WorkloadItem; items: DetailItem[] } | null>(null);
  const [detailLoading, setDetailLoading] = useState(false);
 
@@ -43,11 +49,11 @@ export default function WorkloadPage() {
  const openDetail = async (item: WorkloadItem) => {
  setDetailLoading(true);
  setDetail({ member: item, items: [] });
- const res = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(item.name)}`).then(r => r.json()).catch(() => ({}));
+ const res: ResourceDetails = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(item.name)}`).then((r) => r.json()).catch(() => ({} as ResourceDetails));
  const items: DetailItem[] = [
- ...(res.tasks || []).map((t: any) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:`/tasks?view=${t.publicToken || t.id}` })),
- ...(res.bugs || []).map((b: any) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:`/bugs?view=${b.publicToken || b.id}` })),
- ...(res.suites || []).map((s: any) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:`/test-suites?view=${s.publicToken || s.id}` })),
+ ...(res.tasks || []).map((t) => ({ label: t.title, sub:"Task", badge: t.status, badge2: t.priority, href:`/tasks?view=${t.publicToken || t.id}` })),
+ ...(res.bugs || []).map((b) => ({ label: b.title, sub:"Bug", badge: b.status, badge2: b.severity, href:`/bugs?view=${b.publicToken || b.id}` })),
+ ...(res.suites || []).map((s) => ({ label: s.title, sub:"Test Suites", badge: s.status, href:`/test-suites?view=${s.publicToken || s.id}` })),
  ];
  setDetail({ member: item, items });
  setDetailLoading(false);
@@ -98,18 +104,27 @@ export default function WorkloadPage() {
  title="Resource Workload"
  description="Visual breakdown of task and plan assignments per team member."
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Workload Heatmap" }]}
- actions={
- <div className="relative">
- <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
- <input
- type="text"
- placeholder="Search by name or role..."
- value={search}
- onChange={(e) => setSearch(e.target.value)}
- className="h-10 w-64  border border-gray-200 bg-white pl-10 pr-4 text-xs font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-blue-500/20"
- />
- </div>
- }
+  actions={
+  <div className="flex items-center gap-2">
+  <Link
+  href="/api/reports/workload/export"
+  className="inline-flex h-10 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+  >
+  <FileArrowDown size={14} weight="bold" />
+  Export
+  </Link>
+  <div className="relative">
+  <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+  <input
+  type="text"
+  placeholder="Search by name or role..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="h-10 w-64  border border-gray-200 bg-white pl-10 pr-4 text-xs font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-blue-500/20"
+  />
+  </div>
+  </div>
+  }
  >
  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
  {/* Info Cards */}

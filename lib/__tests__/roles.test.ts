@@ -11,11 +11,10 @@ import {
   getRoleExportLabel,
   getRoleLabel,
   getUserRoleOptions,
-  isAdminUser,
+  isPlatformSuperAdmin,
   isAssignableRole,
   isInviteRole,
   isManagementAdmin,
-  isSuperAdmin,
   isWorkspaceAdmin,
   normalizeRole,
 } from "@/lib/roles";
@@ -27,12 +26,11 @@ describe("roles", () => {
     expect(normalizeRole(" QA ")).toBe("qa");
     expect(normalizeRole(null)).toBe("");
 
-    expect(getRoleLabel("admin", "acme")).toBe("Workspace Admin");
-    expect(getRoleLabel("admin", "")).toBe("Workspace Admin");
+    expect(getRoleLabel("admin")).toBe("Workspace Admin");
     expect(getRoleLabel("superadmin")).toBe("Super Admin");
     expect(getRoleExportLabel("ai")).toBe("AI Engineer");
     expect(getRoleLabel("unknown-role")).toBe("UNKNOWN-ROLE");
-    expect(getRoleLabel("", "")).toBe("-");
+    expect(getRoleLabel("")).toBe("-");
   });
 
   it("exposes role groups and option lists", () => {
@@ -48,11 +46,11 @@ describe("roles", () => {
   });
 
   it("checks access helpers consistently", () => {
-    expect(isAdminUser("superadmin", "")).toBe(true);
-    expect(isAdminUser("superadmin", "acme")).toBe(false);
+    expect(isPlatformSuperAdmin("superadmin", "")).toBe(true);
+    expect(isPlatformSuperAdmin("superadmin", "acme")).toBe(false);
     expect(isWorkspaceAdmin("admin")).toBe(true);
-    expect(isSuperAdmin("superadmin", "")).toBe(true);
-    expect(isSuperAdmin("superadmin", "acme")).toBe(false);
+    expect(isPlatformSuperAdmin("superadmin", "")).toBe(true);
+    expect(isPlatformSuperAdmin("superadmin", "acme")).toBe(false);
     expect(isManagementAdmin("admin", "")).toBe(true);
     expect(isInviteRole("pm")).toBe(true);
     expect(isAssignableRole("pm")).toBe(true);
@@ -62,3 +60,6 @@ describe("roles", () => {
     expect(getCompanyLabel("", "superadmin")).toBe("Super Admin");
   });
 });
+
+
+

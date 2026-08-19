@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Aksora — One Team. One Flow.",
+    default: "Aksora - One Team. One Flow.",
     template: "%s | Aksora",
   },
   description:
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "/",
     siteName: "Aksora",
-    title: "Aksora — One Team. One Flow.",
+    title: "Aksora - One Team. One Flow.",
     description:
       "Plan tests, execute sessions, track bugs, and measure quality health in one workspace. Free for small teams.",
     images: [
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Aksora — One Team. One Flow.",
+        alt: "Aksora - One Team. One Flow.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aksora — One Team. One Flow.",
+    title: "Aksora - One Team. One Flow.",
     description:
       "Plan tests, execute sessions, track bugs, and measure quality health in one workspace. Free for small teams.",
     images: ["/og-image.png"],
@@ -148,4 +148,3 @@ export default function RootLayout({
     </html>
   );
 }
-

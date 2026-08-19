@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   codeFromId: vi.fn((prefix: string, id: number) => `${prefix}-${String(id).padStart(3, "0")}`),
 }));
 
+type SearchRow = { id: number };
+
 vi.mock("@/lib/utils", () => ({
   codeFromId: mocks.codeFromId,
 }));
@@ -15,7 +17,7 @@ vi.mock("@/lib/roles", () => ({
 }));
 
 vi.mock("../search-helpers", () => ({
-  buildResult: vi.fn(({ row, code, label, sublabel }: any) => ({ id: row.id, code, label, sublabel })),
+  buildResult: vi.fn(({ row, code, label, sublabel }: { row: SearchRow; code: string; label: string; sublabel: string }) => ({ id: row.id, code, label, sublabel })),
   buildSearchSql: vi.fn(),
   escapeLike: (value: string) => value,
   extractExactId: vi.fn(),

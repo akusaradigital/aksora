@@ -2,11 +2,9 @@
  * Migrate all data from SQLite (prisma/dev.db) to local Postgres (Docker).
  * Usage: node scripts/migrate-sqlite-to-pg.mjs
  */
-import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load .env
@@ -77,7 +75,7 @@ async function migrateTable(tableName) {
   let rows;
   try {
     rows = sqlite.prepare(`SELECT * FROM "${tableName}"`).all();
-  } catch (err) {
+  } catch {
     console.log(`  ⚠ Table "${tableName}" not found in SQLite, skipping`);
     return 0;
   }

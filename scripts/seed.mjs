@@ -35,10 +35,6 @@ function hashPassword(password) {
   return `scrypt$${salt}$${derived}`;
 }
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -89,6 +85,7 @@ async function seed() {
   // ── Users ──
   const users = [
     { name: env.SEED_ADMIN_NAME || "Admin", email: env.SEED_ADMIN_EMAIL || "admin@akusaradigital.com", role: "admin" },
+    { name: "Wahyu Priyono", email: "wahyu.priyono@magnusdigital.co.id", role: "qa" },
     { name: "Wahyu Setiawan", email: "wahyu@akusara.dev", role: "qa" },
     { name: "Hendra Wijaya", email: "hendra@akusara.dev", role: "fe" },
     { name: "Rizky Pratama", email: "rizky@akusara.dev", role: "be" },

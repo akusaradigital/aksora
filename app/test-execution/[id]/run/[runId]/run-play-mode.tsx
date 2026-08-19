@@ -25,7 +25,7 @@ type CaseItem = {
 
 export function RunPlayMode({
   items: initialItems,
-  runId: _runId,
+  runId,
   suiteTitle,
   elapsedSeconds = 0,
   onClose,
@@ -37,6 +37,7 @@ export function RunPlayMode({
   onClose: (updated: CaseItem[]) => void;
   onSaveVerdict: (item: CaseItem) => Promise<void>;
 }) {
+  void runId;
   const [items, setItems] = useState<CaseItem[]>(initialItems);
   const [index, setIndex] = useState(() => {
     const firstPending = initialItems.findIndex(i => i.verdict === "Pending");

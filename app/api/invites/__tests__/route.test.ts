@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   isManagementAdmin: vi.fn(),
   listInvites: vi.fn(),
   createInvite: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/roles", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
   isManagementAdmin: mocks.isManagementAdmin,
   isInviteRole: mocks.isInviteRole,
   normalizeRole: mocks.normalizeRole,
@@ -37,9 +37,9 @@ beforeEach(() => {
 describe("invites route", () => {
   it("rejects non-admin users", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "qa", company: "acme" });
-    mocks.isAdminUser.mockReturnValue(false);
+    mocks.isPlatformSuperAdmin.mockReturnValue(false);
 
-    const response = await GET(new Request("http://localhost/api/invites") as NextRequest);
+    const response = await GET();
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
@@ -47,10 +47,10 @@ describe("invites route", () => {
 
   it("lists invites for admins", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
     mocks.listInvites.mockResolvedValueOnce([{ token: "t1", status: "pending" }]);
 
-    const response = await GET(new Request("http://localhost/api/invites") as NextRequest);
+    const response = await GET();
 
     expect(mocks.listInvites).toHaveBeenCalled();
     expect(response.status).toBe(200);
@@ -59,7 +59,7 @@ describe("invites route", () => {
 
   it("creates invite links for admins", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, role: "admin", company: "" });
-    mocks.isAdminUser.mockReturnValue(true);
+    mocks.isPlatformSuperAdmin.mockReturnValue(true);
     mocks.isInviteRole.mockReturnValue(true);
     mocks.normalizeRole.mockReturnValueOnce("qa");
     mocks.createInvite.mockResolvedValueOnce({ token: "tok-123", company: "acme", role: "qa", expiresAt: "2026-05-05T00:00:00.000Z" });

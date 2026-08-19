@@ -36,13 +36,11 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [trend, setTrend] = useState<{ runNumber: number; passRate: number }[]>([]);
-  const [_trendLoading, setTrendLoading] = useState(true);
 
   useEffect(() => {
     fetch(`/api/execution-runs/trends?suiteId=${suite.id}`)
       .then(r => r.json())
-      .then(d => { setTrend(d.data || []); setTrendLoading(false); })
-      .catch(() => setTrendLoading(false));
+      .then(d => { setTrend(d.data || []); });
   }, [suite.id]);
 
   const startNewRun = async () => {
@@ -107,7 +105,17 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="runNumber" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `#${v}`} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v: any) => [`${v}%`, "Pass Rate"]} labelFormatter={(l: any) => `Run #${l}`} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                  formatter={(value: unknown) => {
+                    const numericValue = typeof value === "number" ? value : Number(value ?? 0);
+                    return [`${numericValue}%`, "Pass Rate"] as [string, string];
+                  }}
+                  labelFormatter={(label: unknown) => {
+                    const runLabel = typeof label === "string" || typeof label === "number" ? label : "";
+                    return `Run #${runLabel}`;
+                  }}
+                />
                 <Line type="monotone" dataKey="passRate" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: "#3b82f6" }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>

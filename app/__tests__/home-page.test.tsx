@@ -107,7 +107,7 @@ beforeEach(() => {
         : next;
     };
 
-    return [stateValues[currentIndex], setState] as any;
+    return [stateValues[currentIndex], setState] as [unknown, React.Dispatch<React.SetStateAction<unknown>>];
   }) as typeof React.useState);
 
   reactMocks.useEffect.mockImplementation(((effect: React.EffectCallback) => {

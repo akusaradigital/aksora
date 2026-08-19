@@ -47,7 +47,7 @@ export function computeResolutionRateDelta(
   return current - previousWeek;
 }
 
-export async function selectAll(sqlStr: string, params: any[] = []): Promise<Array<Record<string, string | number | null>>> {
+export async function selectAll(sqlStr: string, params: unknown[] = []): Promise<Array<Record<string, string | number | null>>> {
   return db.query<Record<string, string | number | null>>(sqlStr, params);
 }
 

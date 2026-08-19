@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { codeFromId } from "@/lib/utils";
 
 type CountRow = { count: number | string };
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp: unknown[] = isAdmin ? [] : [company];
 

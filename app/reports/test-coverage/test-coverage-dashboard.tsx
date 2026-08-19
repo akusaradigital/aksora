@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PageShell } from "@/components/layout/page-shell";
 import { Badge } from "@/components/shared/badge";
 import {
@@ -12,6 +13,7 @@ import {
   Funnel,
   Bell,
   ArrowDown,
+  FileArrowDown,
 } from "@phosphor-icons/react";
 import {
   BarChart,
@@ -95,6 +97,15 @@ export function TestCoverageDashboard({ initialData }: { initialData: CoverageDa
       icon={<ChartPieSlice size={22} weight="bold" />}
       title="Test Coverage Dashboard"
       description="Visualize test case coverage across projects and suites with execution trends."
+      actions={
+        <Link
+          href="/api/reports/test-coverage/export"
+          className="inline-flex h-9 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+        >
+          <FileArrowDown size={14} weight="bold" />
+          Export
+        </Link>
+      }
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Test Coverage" }]}
       controls={
         projects.length > 1 ? (

@@ -41,7 +41,6 @@ export function WeeklyReportClient({ initialReport }: { initialReport: WeeklyRep
   const [calMonth, setCalMonth] = useState(() => new Date());
   const [rangeFrom, setRangeFrom] = useState<Date | null>(null);
   const [rangeTo, setRangeTo] = useState<Date | null>(null);
-  const [_rangeError, setRangeError] = useState<string | null>(null);
   const [detailModal, setDetailModal] = useState<DetailModal>(null);
   const fieldIcons = useMemo(() => getFieldIcons(), []);
   const calRef = useRef<HTMLDivElement>(null);
@@ -72,7 +71,7 @@ export function WeeklyReportClient({ initialReport }: { initialReport: WeeklyRep
       isInitialLoad.current = false;
       return;
     }
-    fetchReport(weekStart, customEnd);
+    queueMicrotask(() => fetchReport(weekStart, customEnd));
   }, [weekStart, customEnd, fetchReport]);
 
   useEffect(() => {
@@ -81,7 +80,6 @@ export function WeeklyReportClient({ initialReport }: { initialReport: WeeklyRep
         setCalOpen(false);
         setRangeFrom(null);
         setRangeTo(null);
-        setRangeError(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -100,7 +98,6 @@ export function WeeklyReportClient({ initialReport }: { initialReport: WeeklyRep
   };
 
   const pickDate = (d: Date) => {
-    setRangeError(null);
     if (!rangeFrom || (rangeFrom && rangeTo)) {
       setRangeFrom(d);
       setRangeTo(null);

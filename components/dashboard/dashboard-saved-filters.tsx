@@ -261,7 +261,18 @@ function FilterChip({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export function normalizeSavedFilter(raw: any): SavedFilter {
+type SavedFilterLike = {
+  id?: unknown;
+  name?: unknown;
+  project?: unknown;
+  activityScope?: unknown;
+  density?: unknown;
+  shared?: unknown;
+  userId?: unknown;
+  userName?: unknown;
+};
+
+export function normalizeSavedFilter(raw: SavedFilterLike): SavedFilter {
   return {
     id: Number(raw.id ?? 0),
     name: String(raw.name ?? ""),

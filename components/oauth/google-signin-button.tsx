@@ -18,6 +18,46 @@ declare global {
 }
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+const GSI_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+let gsiScriptPromise: Promise<void> | null = null;
+
+function loadGsiScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.google?.accounts?.id) return Promise.resolve();
+  if (gsiScriptPromise) return gsiScriptPromise;
+
+  gsiScriptPromise = new Promise((resolve) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      `script[src="${GSI_SCRIPT_SRC}"]`,
+    );
+
+    if (existing) {
+      if (window.google?.accounts?.id) {
+        resolve();
+        return;
+      }
+
+      existing.addEventListener(
+        "load",
+        () => {
+          resolve();
+        },
+        { once: true },
+      );
+
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = GSI_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+
+  return gsiScriptPromise;
+}
 
 export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
   const router = useRouter();
@@ -59,8 +99,8 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
               setPending(false);
               return;
             }
-            const isSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
-            router.push(isSuperAdmin ? "/admin/overview" : next);
+            const isPlatformSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
+            router.push(isPlatformSuperAdmin ? "/admin/overview" : next);
             router.refresh();
             toast("Signed in with Google", "success");
           } catch {
@@ -70,39 +110,23 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
         },
       });
       if (buttonHostRef.current && window.google?.accounts?.id) {
+        const buttonWidth = buttonHostRef.current.clientWidth || buttonHostRef.current.offsetWidth || 300;
         window.google.accounts.id.renderButton(buttonHostRef.current, {
           theme: "outline",
           size: "large",
           shape: "pill",
           type: "standard",
-          width: "100%",
+          width: buttonWidth,
           text: "continue_with",
         });
       }
     }
 
-    if (window.google?.accounts?.id) {
+    loadGsiScript().then(() => {
+      if (!mounted) return;
       init();
-    } else {
-      const existing = document.querySelector<HTMLScriptElement>(
-        'script[src="https://accounts.google.com/gsi/client"]',
-      );
-      const load = () => {
-        if (!mounted) return;
-        init();
-        setScriptLoaded(true);
-      };
-      if (existing) {
-        existing.addEventListener("load", load, { once: true });
-      } else {
-        const s = document.createElement("script");
-        s.src = "https://accounts.google.com/gsi/client";
-        s.async = true;
-        s.defer = true;
-        s.onload = load;
-        document.head.appendChild(s);
-      }
-    }
+      setScriptLoaded(true);
+    });
 
     return () => {
       mounted = false;
@@ -111,24 +135,20 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
 
   if (!GOOGLE_CLIENT_ID) {
     return (
-      <div className="space-y-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center">
-        <p className="text-xs font-semibold text-slate-700">Continue with Google</p>
-        <p className="text-[11px] text-slate-500">Google sign-in is not configured yet. Use email to sign in.</p>
-      </div>
+      <p className="text-center text-xs font-bold text-slate-400">
+        Google sign-in is not configured. Please sign in with email instead.
+      </p>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Continue with Google
+    <div className="space-y-2">
+      {!scriptLoaded && (
+        <p className="text-center text-[11px] font-semibold text-slate-400">
+        Loading Google sign-in…
         </p>
-        {!scriptLoaded && (
-          <p className="mb-2 text-[11px] font-semibold text-slate-400">Loading Google sign-in…</p>
-        )}
-        <div ref={buttonHostRef} />
-      </div>
+      )}
+      <div ref={buttonHostRef} />
       {pending && (
         <p className="text-center text-[11px] font-semibold text-blue-600">
           Signing you in…

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 
 const burnoutCache = new Map<string, { expiresAt: number; data: unknown }>();
 
@@ -9,7 +9,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const cacheKey = `${company}|${user.role || "user"}`;
   const cached = burnoutCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {

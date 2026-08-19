@@ -39,17 +39,17 @@ test.describe("Test Management Flow", () => {
     // Test Coverage
     await page.goto("/reports/test-coverage");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Test Coverage")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Test Coverage Dashboard" })).toBeVisible({ timeout: 10_000 });
 
     // Flaky Tests
     await page.goto("/reports/flaky-tests");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText(/flaky/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Flaky Test Tracker" })).toBeVisible({ timeout: 10_000 });
 
     // Test Gap
     await page.goto("/reports/test-gap");
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText(/gap/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("h1")).toBeVisible({ timeout: 10_000 });
   });
 
   test("should load weekly report page", async ({ page }) => {

@@ -5,13 +5,15 @@ const mocks = vi.hoisted(() => ({
   queryRows: vi.fn(),
 }));
 
+type SearchRow = { id: number };
+
 vi.mock("@/lib/utils", () => ({
   codeFromId: (prefix: string, id: number) => `${prefix}-${String(id).padStart(3, "0")}`,
 }));
 
 vi.mock("../search-helpers", () => ({
   buildFilterClause: vi.fn(() => ({ clause: "", params: [] })),
-  buildResult: vi.fn(({ row, href, label, code, sublabel }: any) => ({
+  buildResult: vi.fn(({ row, href, label, code, sublabel }: { row: SearchRow; href: string; label: string; code: string; sublabel: string }) => ({
     id: row.id,
     href,
     label,
@@ -21,7 +23,7 @@ vi.mock("../search-helpers", () => ({
   buildSearchSql: vi.fn(),
   escapeLike: (value: string) => value,
   extractExactId: vi.fn(),
-  mergeRowsById: vi.fn((primaryRows: any[], secondaryRows: any[]) => [...primaryRows, ...secondaryRows]),
+  mergeRowsById: vi.fn((primaryRows: SearchRow[], secondaryRows: SearchRow[]) => [...primaryRows, ...secondaryRows]),
   normalize: (value: unknown) => String(value ?? ""),
   queryFirst: mocks.queryFirst,
   queryRows: mocks.queryRows,

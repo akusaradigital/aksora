@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import { X, ArrowSquareOut } from "@phosphor-icons/react";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
@@ -30,7 +31,7 @@ export function ImageLightbox({ src, onClose }: { src: string; onClose: () => vo
         >
           <X size={14} weight="bold" />
         </button>
-        <img src={src} alt="Evidence preview" loading="lazy" decoding="async" className="max-h-[85vh] max-w-full  object-contain shadow-md" />
+        <Image src={src} alt="Evidence preview" fill unoptimized sizes="90vw" className="object-contain shadow-md" />
       </div>
     </div>
   );
@@ -81,12 +82,13 @@ export function renderEvidence(
           onClick={() => setLightboxSrc(displayValue)}
           className="group relative block w-full overflow-hidden  border border-gray-200 bg-gray-50 transition hover:border-blue-300 "
         >
-          <img
+          <Image
             src={displayValue}
             alt="Evidence"
-            className="h-32 w-full object-cover transition group-"
-            loading="lazy"
-            decoding="async"
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover transition group-"
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/20">
             <div className=" bg-white/90 p-2 opacity-0 shadow-lg transition group-hover:opacity-100">
@@ -109,6 +111,7 @@ export function renderEvidence(
   );
 }
 
-export function renderRoleField(row: Record<string, string | number>, getRoleLabel: (role: string, company: string) => string) {
-  return <HighlightText text={getRoleLabel(String(row.role ?? ""), String(row.company ?? ""))} query="" />;
+export function renderRoleField(row: Record<string, string | number>, getRoleLabel: (role: string) => string) {
+  return <HighlightText text={getRoleLabel(String(row.role ?? ""))} query="" />;
 }
+

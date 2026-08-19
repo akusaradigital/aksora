@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import type { ModuleKey } from "@/lib/modules";
-import { deleteSearchTokens, shouldIndexModule, syncSearchTokens } from "@/lib/search-index";
+import { shouldIndexModule, syncSearchTokens } from "@/lib/search-index";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { generateTestPlanNotes } from "@/lib/test-plan-notes";
@@ -15,6 +15,19 @@ import {
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 
+type ModuleData = Record<string, unknown> & {
+  company?: unknown;
+};
+
+function text(value: unknown) {
+  return String(value ?? "");
+}
+
+function textOrEmpty(value: unknown) {
+  const valueText = text(value).trim();
+  return valueText === "undefined" || valueText === "null" ? "" : valueText;
+}
+
 async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>, workspaceId?: number | null) {
   if (!shouldIndexModule(module)) return;
   try {
@@ -24,10 +37,10 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
   }
 }
 
-export async function createModuleRecord(module: ModuleKey, data: any) {
+export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
   const user = await getCurrentUser();
-  const company = getWriteCompany(user, data.company);
-  const workspaceId = getWriteWorkspaceId(user, data.workspaceId);
+  const company = getWriteCompany(user, text(data.company));
+  const workspaceId = getWriteWorkspaceId(user, typeof data.workspaceId === "number" ? data.workspaceId : null);
   const actor = user?.name || user?.email || "";
 
   // Sanitize: prevent literal "undefined"/"null" strings (from String(undefined)) being
@@ -41,8 +54,18 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
 
   switch (module) {
     case "test-plans": {
-      const publicToken = data.publicToken || makePublicToken();
-      const notes = data.notes?.trim() ? data.notes : generateTestPlanNotes(data);
+      const publicToken = textOrEmpty(data.publicToken) || makePublicToken();
+      const notesInput = textOrEmpty(data.notes);
+      const notes = notesInput ? notesInput : generateTestPlanNotes({
+        title: text(data.title),
+        project: text(data.project),
+        sprint: text(data.sprint),
+        status: text(data.status),
+        startDate: text(data.startDate),
+        endDate: text(data.endDate),
+        scope: text(data.scope),
+        assignee: text(data.assignee),
+      });
       const res = await runInsert(
         `INSERT INTO "TestPlan" ("company", "workspaceId", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -51,7 +74,14 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       try {
-        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title, workspaceId });
+        await syncSprintFromTestPlan({
+          company,
+          sprintName: textOrEmpty(data.sprint) || undefined,
+          startDate: textOrEmpty(data.startDate) || undefined,
+          endDate: textOrEmpty(data.endDate) || undefined,
+          goal: textOrEmpty(data.title) || undefined,
+          workspaceId,
+        });
       } catch (e) {
         console.warn("syncSprintFromTestPlan failed (non-critical):", e);
       }
@@ -62,7 +92,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "test-cases": {
-      const publicToken = data.publicToken || makePublicToken();
+      const publicToken = textOrEmpty(data.publicToken) || makePublicToken();
       const res = await runInsert(
         `INSERT INTO "TestCase" ("company", "workspaceId", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -78,8 +108,8 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
     }
     case "bugs": {
       const publicToken = makePublicToken();
-      const lastDevRes = await db.get('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]) as any;
-      const suggestedDev = data.suggestedDev || lastDevRes?.suggestedDev || "";
+      const lastDevRes = await db.get<{ suggestedDev?: string }>('SELECT "suggestedDev" FROM "Bug" WHERE "module" = ? AND "company" = ? ORDER BY "id" DESC LIMIT 1', [data.module, company]);
+      const suggestedDev = textOrEmpty(data.suggestedDev) || lastDevRes?.suggestedDev || "";
       const res = await runInsert(
         `INSERT INTO "Bug" ("company", "workspaceId", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -115,7 +145,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [company, workspaceId, publicToken, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
       );
-      await logActivity(company, "Session", data.date, "Executed", `Test execution session by ${data.tester} (${data.result})`, actor, publicToken, workspaceId);
+      await logActivity(company, "Session", text(data.date), "Executed", `Test execution session by ${data.tester} (${data.result})`, actor, publicToken, workspaceId);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSession" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
         await syncSearchIndex("test-sessions", company, Number(created.id), data, workspaceId);
@@ -123,7 +153,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "test-suites": {
-      const publicToken = data.publicToken || makePublicToken();
+      const publicToken = textOrEmpty(data.publicToken) || makePublicToken();
       const res = await runInsert(
         `INSERT INTO "TestSuite" ("company", "workspaceId", "publicToken", "testPlanId", "title", "assignee", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -153,7 +183,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
         throw new Error("Email address is already registered. Please use a different email.");
       }
       const { hashPassword } = await import("@/lib/auth-core");
-      const hashedPassword = await hashPassword(data.password || "password123");
+      const hashedPassword = await hashPassword(text(data.password) || "password123");
       const res = await runInsert(
         `INSERT INTO "User" ("company", "workspaceId", "name", "email", "password", "role")
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -195,7 +225,7 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
       return res;
     }
     case "meeting-notes": {
-      const publicToken = data.publicToken || makePublicToken();
+      const publicToken = textOrEmpty(data.publicToken) || makePublicToken();
       const res = await runInsert(
         `INSERT INTO "MeetingNote" ("company", "workspaceId", "publicToken", "date", "project", "title", "attendees", "content", "summary", "actionItems", "relatedItems")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -211,9 +241,9 @@ export async function createModuleRecord(module: ModuleKey, data: any) {
     }
     case "deployments": {
       const publicToken = makePublicToken();
-      const notes = generateDeploymentNotes(String(data.changelog ?? ""));
-      const env = String(data.environment ?? "").trim() || "";
-      const dev = String(data.developer ?? "").trim() || "";
+      const notes = generateDeploymentNotes(text(data.changelog));
+      const env = textOrEmpty(data.environment);
+      const dev = textOrEmpty(data.developer);
       const res = await runInsert(
         `INSERT INTO "Deployment" ("company", "workspaceId", "publicToken", "date", "version", "project", "environment", "developer", "changelog", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

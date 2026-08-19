@@ -1,3 +1,3 @@
-import { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser, getCurrentUser } from "@/lib/auth-core";
+import { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser, getCurrentUser, createTempMfaToken, verifyTempMfaToken } from "@/lib/auth-core";
 
-export { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser, getCurrentUser };
+export { authEnabled, createSessionToken, sessionCookieName, validateCredentials, verifySessionToken, registerUser, getCurrentUser, createTempMfaToken, verifyTempMfaToken };

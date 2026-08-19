@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser, isInviteRole, isWorkspaceAdmin, normalizeRole } from "@/lib/roles";
+import { isPlatformSuperAdmin, isInviteRole, isWorkspaceAdmin, normalizeRole } from "@/lib/roles";
 import { deleteAssigneeForUser, syncAssigneeFromUser } from "@/lib/user-assignee-sync";
 
 export async function PATCH(
@@ -25,7 +25,7 @@ export async function PATCH(
   if (!target) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
-  if (!isAdminUser(user.role, user.company) && target.company !== user.company) {
+  if (!isPlatformSuperAdmin(user.role, user.company) && target.company !== user.company) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -75,7 +75,7 @@ export async function DELETE(
   if (!target) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
-  if (!isAdminUser(user.role, user.company) && target.company !== user.company) {
+  if (!isPlatformSuperAdmin(user.role, user.company) && target.company !== user.company) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

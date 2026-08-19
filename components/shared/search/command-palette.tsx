@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Bug,
@@ -86,11 +86,13 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const activeItemRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const _pathname = usePathname();
 
   useEffect(() => {
-    setMounted(true);
-    setRecentIds(readRecentCommands());
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+      setRecentIds(readRecentCommands());
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // Listen for Ctrl+K — override existing global search
@@ -203,10 +205,6 @@ export function CommandPalette() {
   const flatItems = useMemo(() => groupedCommands.flatMap((g) => g.items), [groupedCommands]);
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  useEffect(() => {
     activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [activeIndex]);
 
@@ -255,7 +253,10 @@ export function CommandPalette() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Type a command or search..."
             autoComplete="off"
@@ -264,7 +265,14 @@ export function CommandPalette() {
             className="w-full border-none bg-transparent text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} className="p-1 text-gray-400 hover:text-gray-700">
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setActiveIndex(0);
+              }}
+              className="p-1 text-gray-400 hover:text-gray-700"
+            >
               <X size={14} weight="bold" />
             </button>
           )}

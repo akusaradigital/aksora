@@ -1,77 +1,102 @@
 /**
- * In-memory rate limiter for auth endpoints.
- * Tracks attempts by key (IP + email) with sliding window.
+ * Postgres-backed rate limiter for auth endpoints.
+ * Tracks attempts by key (IP + email) with a sliding window.
  */
 
-type RateLimitEntry = {
-  attempts: number;
-  firstAttempt: number;
-  lockedUntil: number;
+import { db } from "@/lib/db";
+
+type RateLimitRow = {
+  attempts: number | string | null;
+  firstAttempt: Date | string | null;
+  lockedUntil: Date | string | null;
 };
 
-const store = new Map<string, RateLimitEntry>();
-
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
+const WINDOW_MS = 15 * 60 * 1000;
+const LOCKOUT_MS = 15 * 60 * 1000;
 
-// Cleanup stale entries every 5 minutes
-let lastCleanup = Date.now();
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup < 5 * 60 * 1000) return;
-  lastCleanup = now;
-  for (const [key, entry] of store.entries()) {
-    if (now - entry.firstAttempt > WINDOW_MS && now > entry.lockedUntil) {
-      store.delete(key);
-    }
-  }
+export type RateLimitOptions = {
+  maxAttempts?: number;
+  windowMs?: number;
+  lockoutMs?: number;
+};
+
+function getRateLimitOptions(options?: RateLimitOptions) {
+  return {
+    maxAttempts: options?.maxAttempts ?? MAX_ATTEMPTS,
+    windowMs: options?.windowMs ?? WINDOW_MS,
+    lockoutMs: options?.lockoutMs ?? LOCKOUT_MS,
+  };
+}
+
+function cleanupSql(windowMs: number) {
+  return `
+  WITH cleaned AS (
+    DELETE FROM "RateLimitAttempt"
+    WHERE ("lockedUntil" IS NOT NULL AND "lockedUntil" < CURRENT_TIMESTAMP)
+       OR ("lockedUntil" IS NULL AND "firstAttempt" < CURRENT_TIMESTAMP - (${windowMs} * INTERVAL '1 millisecond'))
+  )
+`;
+}
+
+function toMs(value: Date | string | null | undefined): number {
+  if (!value) return 0;
+  const parsed = value instanceof Date ? value : new Date(value);
+  const time = parsed.getTime();
+  return Number.isFinite(time) ? time : 0;
 }
 
 export function rateLimitKey(ip: string, email: string): string {
   return `${ip}|${email.toLowerCase().trim()}`;
 }
 
-export function isRateLimited(key: string): { limited: boolean; retryAfterSeconds?: number } {
-  cleanup();
-  const now = Date.now();
-  const entry = store.get(key);
-
+export async function isRateLimited(key: string, options?: RateLimitOptions): Promise<{ limited: boolean; retryAfterSeconds?: number }> {
+  const { windowMs } = getRateLimitOptions(options);
+  const rows = await db.query<RateLimitRow>(`${cleanupSql(windowMs)} SELECT "attempts", "firstAttempt", "lockedUntil" FROM "RateLimitAttempt" WHERE "key" = ? LIMIT 1`, [key]);
+  const entry = rows[0];
   if (!entry) return { limited: false };
 
-  if (entry.lockedUntil > now) {
+  const now = Date.now();
+  const lockedUntilMs = toMs(entry.lockedUntil);
+  if (lockedUntilMs > now) {
     return {
       limited: true,
-      retryAfterSeconds: Math.ceil((entry.lockedUntil - now) / 1000),
+      retryAfterSeconds: Math.ceil((lockedUntilMs - now) / 1000),
     };
   }
 
-  // Reset if window expired
-  if (now - entry.firstAttempt > WINDOW_MS) {
-    store.delete(key);
-    return { limited: false };
+  const firstAttemptMs = toMs(entry.firstAttempt);
+  if (firstAttemptMs && now - firstAttemptMs > windowMs) {
+    await db.run('DELETE FROM "RateLimitAttempt" WHERE "key" = ?', [key]);
   }
 
   return { limited: false };
 }
 
-export function recordFailedAttempt(key: string): void {
-  cleanup();
-  const now = Date.now();
-  const entry = store.get(key);
-
-  if (!entry || now - entry.firstAttempt > WINDOW_MS) {
-    store.set(key, { attempts: 1, firstAttempt: now, lockedUntil: 0 });
-    return;
-  }
-
-  entry.attempts += 1;
-  if (entry.attempts >= MAX_ATTEMPTS) {
-    entry.lockedUntil = now + LOCKOUT_MS;
-  }
-  store.set(key, entry);
+export async function recordFailedAttempt(key: string, options?: RateLimitOptions): Promise<void> {
+  const { maxAttempts, windowMs, lockoutMs } = getRateLimitOptions(options);
+  await db.run(
+    `${cleanupSql(windowMs)}
+     INSERT INTO "RateLimitAttempt" AS r ("key", "attempts", "firstAttempt", "lockedUntil")
+     VALUES (?, 1, CURRENT_TIMESTAMP, NULL)
+     ON CONFLICT ("key") DO UPDATE SET
+       "attempts" = CASE
+         WHEN r."firstAttempt" < CURRENT_TIMESTAMP - (${windowMs} * INTERVAL '1 millisecond') THEN 1
+         ELSE r."attempts" + 1
+       END,
+       "firstAttempt" = CASE
+         WHEN r."firstAttempt" < CURRENT_TIMESTAMP - (${windowMs} * INTERVAL '1 millisecond') THEN CURRENT_TIMESTAMP
+         ELSE r."firstAttempt"
+       END,
+       "lockedUntil" = CASE
+         WHEN r."firstAttempt" < CURRENT_TIMESTAMP - (${windowMs} * INTERVAL '1 millisecond') THEN NULL
+         WHEN r."attempts" + 1 >= ${maxAttempts} THEN CURRENT_TIMESTAMP + (${lockoutMs} * INTERVAL '1 millisecond')
+         ELSE r."lockedUntil"
+       END`,
+    [key],
+  );
 }
 
-export function clearRateLimit(key: string): void {
-  store.delete(key);
+export async function clearRateLimit(key: string): Promise<void> {
+  await db.run('DELETE FROM "RateLimitAttempt" WHERE "key" = ?', [key]);
 }

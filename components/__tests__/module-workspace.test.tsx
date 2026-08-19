@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: any }) => (
+  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -51,7 +51,7 @@ vi.mock("@/components/layout/breadcrumb", () => ({
 }));
 
 vi.mock("@/components/ui/auto-resize-textarea", () => ({
-  AutoResizeTextarea: (props: any) => <textarea {...props} />,
+  AutoResizeTextarea: (props: React.JSX.IntrinsicElements["textarea"]) => <textarea {...props} />,
 }));
 
 vi.mock("@/components/attachment-uploader", () => ({

@@ -5,9 +5,12 @@ import { type Attachment } from"@/components/shared/attachment-uploader";
 import { ModuleWorkspaceHeader } from"@/components/module/module-workspace-header";
 import { ModuleWorkspaceTable } from"@/components/module/module-workspace-table";
 import { ModuleWorkspaceForm } from"@/components/module/module-workspace-form";
+import type { FormField } from"@/components/module/module-workspace-form-field";
 import { ModuleMobileCards } from"@/components/module/module-mobile-cards";
 import type { Dispatch, ReactNode, SetStateAction } from"react";
 import { getModuleWorkspaceIcon } from"@/components/module/module-workspace-utils";
+import type { Column, TableRow } from"@/components/module/module-workspace-table-row";
+import type { ModuleKey } from"@/lib/modules";
 
 const KanbanBoard = dynamic(() => import("@/components/module/kanban-board").then((module) => module.KanbanBoard), {
  ssr: false,
@@ -32,18 +35,18 @@ const FormDrawer = dynamic(() => import("@/components/shared/form-drawer").then(
  loading: () => <div className="fixed inset-y-0 right-0 w-full max-w-lg border-l border-gray-200 bg-white" />,
 });
 
-type Row = Record<string, string | number> & { id: string | number };
+type Row = TableRow;
 
 type WorkspaceConfig = {
  title: string;
  shortTitle: string;
  description: string;
- fields: any[];
- columns: Array<{ key: string }>;
+ fields: FormField[];
+ columns: Column[];
 };
 
 type Props = {
- module: string;
+ module: ModuleKey;
  config: WorkspaceConfig;
  topContent?: ReactNode;
  showForm: boolean;
@@ -67,10 +70,10 @@ type Props = {
  sprintDuplicate: boolean;
  lastSprint: string | null;
  dateWarnings: Record<string,"past" |"future">;
- editingRow: Row | null;
-	visibleRows: any[];
-	kanbanRows: any[];
-	visibleColumns: any[];
+  editingRow: Row | null;
+	visibleRows: TableRow[];
+	kanbanRows: TableRow[];
+	visibleColumns: Column[];
  safePage: number;
  totalPages: number;
  totalItems: number;
@@ -96,10 +99,10 @@ type Props = {
  versionSequenceLabel?: string;
  versionSequenceDefaultValue?: string;
  onAdd: () => void;
- onEditRow: (row: any) => void;
- onViewRow: (row: any) => void;
- onDeleteRow: (row: any) => void;
- onReopenRow: (row: any) => void;
+ onEditRow: (row: TableRow) => void;
+ onViewRow: (row: TableRow) => void;
+ onDeleteRow: (row: TableRow) => void;
+ onReopenRow: (row: TableRow) => void;
  onPrevPage: () => void;
  onNextPage: () => void;
  onGoToPage?: (page: number) => void;
@@ -152,7 +155,7 @@ export function ModuleWorkspaceShell({
  relatedOptions,
  selectValues,
  openSelectField,
- attachments: _attachments,
+ attachments,
  duplicates,
  sprintDuplicate,
  lastSprint,
@@ -180,9 +183,9 @@ export function ModuleWorkspaceShell({
  checkSprintDuplicate,
  setOpenSelectField,
  setSelectValues,
- setAttachments: _setAttachments,
+ setAttachments,
  setDateWarnings,
- setSprintDuplicate: _setSprintDuplicate,
+ setSprintDuplicate,
  versionSequenceLabel,
  versionSequenceDefaultValue,
  onAdd,
@@ -221,15 +224,18 @@ export function ModuleWorkspaceShell({
  initialTab,
  onTabChange,
 }: Props) {
+ void attachments;
+ void setAttachments;
+ void setSprintDuplicate;
  return (
  <>
  <section className="overflow-hidden bg-white border border-gray-200">
  <ModuleWorkspaceHeader
- module={module as any}
+ module={module}
  title={config.title}
  shortTitle={config.shortTitle}
  description={config.description}
- icon={getModuleWorkspaceIcon(module as any)}
+ icon={getModuleWorkspaceIcon(module)}
  canAdd={canAdd}
  topContent={topContent}
  showForm={showForm}
@@ -257,7 +263,7 @@ export function ModuleWorkspaceShell({
  {/* Desktop table */}
  <div className="hidden md:block">
  <ModuleWorkspaceTable
- module={module as any}
+ module={module}
  shortTitle={config.shortTitle}
  visibleRows={visibleRows}
  visibleColumns={visibleColumns}
@@ -289,7 +295,7 @@ export function ModuleWorkspaceShell({
  {/* Mobile card view */}
  <div className="block md:hidden">
  <ModuleMobileCards
- module={module as any}
+ module={module}
  shortTitle={config.shortTitle}
  rows={visibleRows}
  columns={visibleColumns}
@@ -323,7 +329,7 @@ export function ModuleWorkspaceShell({
  >
  <ModuleWorkspaceForm
  key={`${module}-${editingRow?.id ??"new"}`}
- module={module as any}
+ module={module}
  shortTitle={config.shortTitle}
  fields={config.fields}
  editingRow={editingRow}
@@ -369,8 +375,8 @@ export function ModuleWorkspaceShell({
  {viewingRow && (
  <ViewModal
  row={viewingRow}
- config={config as any}
- fieldIcons={fieldIcons as any}
+ config={config}
+ fieldIcons={fieldIcons}
  onClose={onCloseView}
  onEdit={onEditView}
  canEdit={canEdit}

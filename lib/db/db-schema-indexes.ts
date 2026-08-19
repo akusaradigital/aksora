@@ -137,6 +137,8 @@ CREATE INDEX IF NOT EXISTS "idx_workspacemember_user" ON "WorkspaceMembership"("
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_workspacemember_unique" ON "WorkspaceMembership"("workspaceId", "userId");
 CREATE INDEX IF NOT EXISTS "idx_user_company_active_created" ON "User"("company", "createdAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_user_workspace_active_created" ON "User"("workspaceId", "createdAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_apikey_keyhash" ON "ApiKey"("keyHash");
+CREATE INDEX IF NOT EXISTS "idx_apikey_user_created" ON "ApiKey"("userId", "createdAt" DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_assignee_userId" ON "Assignee"("userId") WHERE "userId" IS NOT NULL;
 CREATE INDEX IF NOT EXISTS "idx_assignee_company_updated" ON "Assignee"("company", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_assignee_workspace_updated" ON "Assignee"("workspaceId", "updatedAt");

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -59,7 +58,7 @@ function SectionSkeleton({ className }: { className: string }) {
 
 type DrawerItem = { label: string; sub?: string; badge?: string; badge2?: string; href: string };
 
-type DashboardProps = {
+export type DashboardProps = {
   metrics: { label: string; value: number; caption: string }[];
   distribution: {
     tasks: { name: string; value: number }[];
@@ -104,11 +103,21 @@ type DashboardProps = {
   };
 };
 
+type HeatmapMember = NonNullable<DashboardProps["heatmap"]>[number] & {
+  taskCount?: number;
+  bugCount?: number;
+};
+
+type ResourceDetails = {
+  tasks?: { title: string; status: string; priority: string }[];
+  bugs?: { title: string; status: string; priority: string }[];
+  suites?: { title: string; status: string }[];
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function computeWeekPulse(
   metrics: { label: string; value: number }[],
-  _distribution: { tasks: { name: string; value: number }[]; bugs: { name: string; value: number }[] },
 ) {
   const totalBugs = metrics.find(m => m.label === "Bug Entries")?.value ?? 0;
   const totalTasks = metrics.find(m => m.label === "Open Tasks")?.value ?? 0;
@@ -120,26 +129,22 @@ function computeWeekPulse(
 export function Dashboard({
   metrics,
   distribution,
-  recent: _recent,
   sprintInfo,
-  bugTrendData: _bugTrendData = [],
   todayActivity = [],
   heatmap = [],
-  activity: _activity = [],
   spotlight,
   weekPulse,
   resolutionRate,
   bugSeverityCounts,
   qualityHealthScore,
 }: DashboardProps) {
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(() => typeof window !== "undefined");
   const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string; entityType?: string; entityId?: number } | null>(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [bottlenecks, setBottlenecks] = useState<{ id: string; code: string; title: string; module: string; status: string; days: number; href: string }[]>([]);
   const [showStandup, setShowStandup] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     fetch("/api/bottlenecks")
       .then(r => r.json())
       .then(d => setBottlenecks(d.bottlenecks || []))
@@ -160,7 +165,7 @@ export function Dashboard({
     return text;
   };
 
-  const pulse = weekPulse || computeWeekPulse(metrics, distribution);
+  const pulse = weekPulse || computeWeekPulse(metrics);
   const openBugs = metrics.find(m => m.label === "Bug Entries")?.value ?? 0;
   const openTasks = metrics.find(m => m.label === "Open Tasks")?.value ?? 0;
   const testCases = metrics.find(m => m.label === "Test Cases")?.value ?? 0;
@@ -179,7 +184,7 @@ export function Dashboard({
     <div
       id="dashboard-density-container"
       data-dashboard-root=""
-      className="space-y-6 pb-12"
+      className="space-y-6 pb-14"
       style={{ "--dash-padding": "16px", "--dash-font": "14px", "--dash-gap": "16px" } as React.CSSProperties}
     >
       {drawer && (
@@ -195,111 +200,119 @@ export function Dashboard({
         />
       )}
 
-      <DailyDigestCard />
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
 
-      {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center  bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-            <ChartBar size={18} weight="bold" />
+      <section className="grid gap-4 xl:grid-cols-[1fr_320px]">
+        <header className="border-l-4 border-l-blue-600 border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center bg-blue-600 text-white">
+                <ChartBar size={18} weight="bold" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-600">Workspace overview</p>
+                <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-900">Dashboard</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <DensityToggle />
+              <button
+                onClick={() => setShowStandup(true)}
+                className="inline-flex h-9 items-center gap-1.5 bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
+              >
+                <Note size={15} weight="bold" /> Standup
+              </button>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-            </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <QuickBtn href="/bugs" icon={<Bug size={14} weight="bold" />} label="Bugs" />
+            <QuickBtn href="/test-plans" icon={<ClipboardText size={14} weight="bold" />} label="Plans" />
+            <QuickBtn href="/test-sessions" icon={<PlayCircle size={14} weight="bold" />} label="Sessions" />
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DensityToggle />
-          <button onClick={() => setShowStandup(true)}
-            className="inline-flex h-9 items-center gap-1.5  bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700 transition shadow-sm shadow-blue-500/20">
-            <Note size={15} weight="bold" /> Standup
-          </button>
-          <QuickBtn href="/bugs" icon={<Bug size={14} weight="bold" />} label="Bugs" />
-          <QuickBtn href="/test-plans" icon={<ClipboardText size={14} weight="bold" />} label="Plans" />
-          <QuickBtn href="/test-sessions" icon={<PlayCircle size={14} weight="bold" />} label="Sessions" />
-        </div>
-      </header>
+        </header>
+
+        <DailyDigestCard />
+      </section>
 
       {/* Sprint bar */}
       {sprintInfo && (
-        <div className=" border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-2">
+        <div className="border border-slate-200 bg-white p-6 shadow-sm border-l-4 border-l-emerald-500">
+          <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <CalendarBlank size={14} weight="bold" className="text-gray-400" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gray-600">{sprintInfo.name}</span>
+              <CalendarBlank size={16} weight="bold" className="text-emerald-600" />
+              <span className="text-sm font-black uppercase tracking-wider text-slate-900">{sprintInfo.name}</span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-              <span className="font-bold text-emerald-600">{sprintInfo.progress}%</span>
-              <span>{sprintInfo.taskDone}/{sprintInfo.taskTotal} tasks</span>
-              <span className="text-gray-400">{formatDate(sprintInfo.startDate)} → {formatDate(sprintInfo.endDate)}</span>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="font-black text-emerald-600 text-sm">{sprintInfo.progress}% Complete</span>
+              <span className="font-semibold text-slate-600">{sprintInfo.taskDone} / {sprintInfo.taskTotal} tasks done</span>
+              <span className="text-slate-400 font-medium">{formatDate(sprintInfo.startDate)} → {formatDate(sprintInfo.endDate)}</span>
             </div>
           </div>
-          <div className="h-2 w-full bg-gray-100  overflow-hidden">
-            <div style={{ width: `${sprintInfo.progress}%` }} className="h-full bg-emerald-500  transition-all duration-1000" />
+          <div className="h-3 w-full overflow-hidden bg-slate-100">
+            <div style={{ width: `${sprintInfo.progress}%` }} className="h-full bg-emerald-500 transition-all duration-700" />
           </div>
         </div>
       )}
 
-      <DailyDigestCard />
-
       {/* Quick Stats */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-4">
         <BugStatCard value={openBugs} bugSeverityCounts={bugSeverityCounts} />
         <StatCard label="Active Tasks" value={openTasks} icon={<Kanban size={20} weight="bold" className="text-blue-600" />} color="bg-blue-50" href="/tasks" />
         <StatCard label="Test Cases" value={testCases} icon={<Checks size={20} weight="bold" className="text-emerald-500" />} color="bg-emerald-50" href="/test-cases" />
       </section>
 
-      {/* This Week Pulse */}
-      <section className=" border border-gray-200 bg-white p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">This Week</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">Created vs resolved items</p>
+      {/* This Week Pulse & Distribution */}
+      <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
+        <div className="border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-[300px]">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-900">Bug Distribution</h3>
+              <p className="mt-1 text-[11px] text-slate-500">Breakdown by module area</p>
+            </div>
+            <ChartBar size={18} className="text-slate-300" weight="bold" />
           </div>
-          <ChartBar size={14} className="text-gray-300" weight="bold" />
+          <div className="flex-1">
+            {mounted && distribution.bugByModule.length > 0 ? (
+              <BugByModuleChart data={distribution.bugByModule.slice(0, 6)} />
+            ) : <ChartSkeleton bars={5} />}
+          </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-rose-50" />
-          <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-emerald-50" />
+
+        <div className="flex flex-col gap-4">
+          <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-white shadow-sm" />
+          <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-white shadow-sm" />
           <ResolutionRateMetric resolutionRate={resolutionRate} />
           {qualityHealthScore && (
-            <div className="flex items-center justify-center  bg-gray-50 px-3 py-2">
+            <div className="flex flex-1 items-center justify-center bg-white border border-slate-100 shadow-sm p-4">
               <QualityHealthScore qualityHealthScore={qualityHealthScore} />
             </div>
           )}
         </div>
-        {distribution.bugByModule.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-[11px] font-bold text-gray-500 mb-2">Bug distribution by module</p>
-            <div className="h-28">
-              {mounted ? (
-                <BugByModuleChart data={distribution.bugByModule.slice(0, 6)} />
-              ) : <ChartSkeleton bars={5} />}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Attention + Team Pulse */}
-      <section className="grid gap-4 lg:grid-cols-5">
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <AttentionPanel items={attentionItems} userRole={userRole} />
-        <div className="lg:col-span-2 flex flex-col  border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-700">Team Workload</h3>
-            <User size={15} className="text-gray-400" weight="bold" />
+        <div className="flex flex-col border border-slate-200 border-t-4 border-t-blue-500 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-black text-slate-900">Team Workload</h3>
+              <p className="mt-1 text-[11px] text-slate-500">Active tasks per assignee</p>
+            </div>
+            <User size={18} className="text-blue-500" weight="bold" />
           </div>
           {heatmap.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-slate-400">
               <User size={28} weight="bold" />
               <p className="text-xs font-semibold">No assignee data yet.</p>
               <p className="text-xs text-gray-400">Assign tasks and bugs to see workload.</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {heatmap.slice(0, 8).map((member) => {
+            <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+              {heatmap.slice(0, 8).map((member: HeatmapMember) => {
                 const score = member.total;
                 const heat = score >= 8 ? "bg-rose-500" : score >= 4 ? "bg-amber-400" : "bg-emerald-500";
                 const pct = Math.min(100, Math.round((score / 12) * 100));
@@ -308,32 +321,32 @@ export function Dashboard({
                     onClick={async () => {
                       setDrawerLoading(true);
                       setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items: [] });
-                      const res = await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(member.name)}`).then(r => r.json()).catch(() => ({}));
+                      const res = (await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(member.name)}`).then(r => r.json()).catch(() => ({}))) as ResourceDetails;
                       setDrawerLoading(false);
                       const items: DrawerItem[] = [
-                        ...(res.tasks || []).map((t: any) => ({ label: t.title, sub: "Task · " + t.status, badge: t.priority, href: "/tasks" })),
-                        ...(res.bugs || []).map((b: any) => ({ label: b.title, sub: "Bug · " + b.status, badge: b.priority, href: "/bugs" })),
-                        ...(res.suites || []).map((s: any) => ({ label: s.title, sub: "Suite · " + s.status, href: "/test-suites" })),
+                        ...(res.tasks || []).map((t) => ({ label: t.title, sub: "Task · " + t.status, badge: t.priority, href: "/tasks" })),
+                        ...(res.bugs || []).map((b) => ({ label: b.title, sub: "Bug · " + b.status, badge: b.priority, href: "/bugs" })),
+                        ...(res.suites || []).map((s) => ({ label: s.title, sub: "Suite · " + s.status, href: "/test-suites" })),
                       ];
                       setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items });
                     }}
-                    className="w-full text-left group"
+                    className="group w-full text-left"
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="mb-1 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center  bg-gray-100 text-[11px] font-bold text-gray-500">
+                        <div className="flex h-6 w-6 items-center justify-center bg-slate-100 text-[11px] font-bold text-slate-500">
                           {member.name[0]?.toUpperCase() ?? "?"}
                         </div>
-                        <span className="text-xs font-semibold text-gray-700 group-hover:text-blue-600 transition">{member.name}</span>
+                        <span className="text-xs font-semibold text-slate-700 transition group-hover:text-sky-600">{member.name}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400">
-                        <span>{(member as any).taskCount ?? 0}T</span>
-                        <span>{(member as any).bugCount ?? 0}B</span>
-                        <span className={cn("h-2 w-2 ", heat)} />
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
+                        <span>{member.taskCount ?? 0}T</span>
+                        <span>{member.bugCount ?? 0}B</span>
+                        <span className={cn("h-2 w-2", heat)} />
                       </div>
                     </div>
-                    <div className="h-1 w-full bg-gray-100  overflow-hidden">
-                      <div style={{ width: `${pct}%` }} className={cn("h-full  transition-all", heat)} />
+                    <div className="h-1 w-full overflow-hidden bg-slate-100">
+                      <div style={{ width: `${pct}%` }} className={cn("h-full transition-all", heat)} />
                     </div>
                   </button>
                 );

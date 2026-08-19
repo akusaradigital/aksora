@@ -38,6 +38,18 @@ export function SavedViews({ module, activeFilters, search, viewMode, onApplyVie
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
+  const applyView = useCallback((view: SavedView) => {
+    try {
+      const filters = JSON.parse(view.filters) as FilterValue[];
+      const mode = view.viewMode === "kanban" ? "kanban" : "table";
+      onApplyView(filters, view.search, mode);
+      setActiveViewId(view.publicToken || String(view.id));
+      setOpen(false);
+    } catch {
+      toast("Failed to apply view", "error");
+    }
+  }, [onApplyView]);
+
   const fetchViews = useCallback(async () => {
     setLoading(true);
     try {
@@ -56,10 +68,10 @@ export function SavedViews({ module, activeFilters, search, viewMode, onApplyVie
     } finally {
       setLoading(false);
     }
-  }, [module]);
+  }, [activeViewId, applyView, module]);
 
   useEffect(() => {
-    fetchViews();
+    void fetchViews();
   }, [fetchViews]);
 
   useEffect(() => {
@@ -72,18 +84,6 @@ export function SavedViews({ module, activeFilters, search, viewMode, onApplyVie
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  function applyView(view: SavedView) {
-    try {
-      const filters = JSON.parse(view.filters) as FilterValue[];
-      const mode = view.viewMode === "kanban" ? "kanban" : "table";
-      onApplyView(filters, view.search, mode);
-      setActiveViewId(view.publicToken || String(view.id));
-      setOpen(false);
-    } catch {
-      toast("Failed to apply view", "error");
-    }
-  }
 
   async function saveView() {
     const name = newName.trim();
@@ -115,8 +115,8 @@ export function SavedViews({ module, activeFilters, search, viewMode, onApplyVie
       setShareNew(false);
       setShowSaveForm(false);
       fetchViews();
-    } catch (err: any) {
-      toast(err.message || "Failed to save view", "error");
+    } catch (error: unknown) {
+      toast(error instanceof Error ? error.message : "Failed to save view", "error");
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { db, tables } from "@/lib/db";
 
 function resetRouteEnabled() {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   const user = await getCurrentUser();
-  if (!user || !isAdminUser(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const tableNames = tables.map((t) => `"${t.name}"`);
     await db.exec(`TRUNCATE ${tableNames.join(", ")} RESTART IDENTITY CASCADE;`);
     return NextResponse.json({ ok: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

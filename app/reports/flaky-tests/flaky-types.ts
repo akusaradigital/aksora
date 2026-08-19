@@ -38,3 +38,16 @@ export type FlakyData = {
   projectBreakdown: ProjectBreakdown[];
   histories: Record<number, HistoryEntry[]>;
 };
+
+export const EMPTY_FLAKY_DATA: FlakyData = {
+  summary: {
+    totalTracked: 0,
+    totalFlaky: 0,
+    avgFlakinessRate: 0,
+    threshold: 20,
+    minRuns: 3,
+  },
+  flakyTests: [],
+  projectBreakdown: [],
+  histories: {},
+};

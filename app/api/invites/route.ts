@@ -3,7 +3,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
 import { createInvite, listInvites } from "@/lib/invites";
 
-export async function GET(_request: NextRequest) {
+type CreateInviteResult = Awaited<ReturnType<typeof createInvite>>;
+type InviteLimitReachedResult = Extract<CreateInviteResult, { error: "USER_LIMIT_REACHED" }>;
+
+function isInviteLimitReachedResult(result: CreateInviteResult): result is InviteLimitReachedResult {
+  return "error" in result && result.error === "USER_LIMIT_REACHED";
+}
+
+export async function GET() {
   const user = await getCurrentUser();
   if (!user || !isManagementAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -32,12 +39,12 @@ export async function POST(request: NextRequest) {
   });
 
   if ("error" in result) {
-    if (result.error === "USER_LIMIT_REACHED") {
+    if (isInviteLimitReachedResult(result)) {
       return NextResponse.json({
         error: "USER_LIMIT_REACHED",
-        current: (result as any).current,
-        max: (result as any).max,
-        plan: (result as any).plan,
+        current: result.current,
+        max: result.max,
+        plan: result.plan,
       }, { status: 403 });
     }
     return NextResponse.json({ error: result.error }, { status: 400 });

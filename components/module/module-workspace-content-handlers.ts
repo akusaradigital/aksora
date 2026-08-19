@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { ModuleKey } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
-
-type Row = Record<string, string | number> & { id: string | number };
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 export function useWorkspaceRowHandlers({
   module,
@@ -15,18 +14,18 @@ export function useWorkspaceRowHandlers({
   setLocalKanbanRows,
 }: {
   module: ModuleKey;
-  rows: Row[];
-  localRows: Row[];
+  rows: TableRow[];
+  localRows: TableRow[];
   router: { refresh: () => void };
-  setLocalRows: Dispatch<SetStateAction<Row[]>>;
-  setLocalKanbanRows: Dispatch<SetStateAction<Row[]>>;
+  setLocalRows: Dispatch<SetStateAction<TableRow[]>>;
+  setLocalKanbanRows: Dispatch<SetStateAction<TableRow[]>>;
 }) {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
   // Clear selection when rows change
   useEffect(() => {
-    setSelectedIds(new Set());
+    queueMicrotask(() => setSelectedIds(new Set()));
   }, [rows]);
 
   const handleToggleSelect = useCallback((id: string | number) => {
@@ -145,7 +144,7 @@ export function useWorkspaceRowHandlers({
   };
 }
 
-export function useColumnVisibility(module: ModuleKey, defaultColumnKeys: string[], allColumns: Array<{ key: string }>) {
+export function useColumnVisibility(module: ModuleKey, defaultColumnKeys: string[]) {
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultColumnKeys);
   const [columnKeysHydrated, setColumnKeysHydrated] = useState(false);
 
@@ -157,11 +156,11 @@ export function useColumnVisibility(module: ModuleKey, defaultColumnKeys: string
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 2) {
-          setVisibleColumnKeys(parsed);
+          queueMicrotask(() => setVisibleColumnKeys(parsed));
         }
       } catch { /* ignore */ }
     }
-    setColumnKeysHydrated(true);
+    queueMicrotask(() => setColumnKeysHydrated(true));
   }, [module, columnKeysHydrated]);
 
   useEffect(() => {

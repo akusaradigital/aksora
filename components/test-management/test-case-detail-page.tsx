@@ -11,18 +11,19 @@ export function TestCaseDetailPage({
   scenario,
   rows,
   suiteLabel,
-  suiteToken: _suiteToken,
+  suiteToken,
   plan,
 }: {
   scenario: Record<string, unknown>;
   rows: Array<Record<string, string | number>>;
   suiteLabel: string;
   suiteToken: string;
-  plan: any;
+  plan: { title?: string; publicToken?: string } | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const suiteId = String(scenario.id ?? "");
+  void suiteToken;
 
   const crumbs = [
     { label: "Dashboard", href: "/dashboard" },

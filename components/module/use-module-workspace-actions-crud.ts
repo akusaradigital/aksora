@@ -12,8 +12,9 @@ import {
   showApiSuccess,
   type ApiPayload,
 } from "@/components/module/use-module-workspace-actions-helpers";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = Record<string, string | number> & { id: string | number };
+type Row = TableRow;
 
 export type CrudArgs = {
   module: ModuleKey;
@@ -39,6 +40,7 @@ export type CrudArgs = {
   setPendingDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setDeleteId: Dispatch<SetStateAction<string | number | null>>;
   setKanbanRows: Dispatch<SetStateAction<Row[]>>;
+  setImportErrors: Dispatch<SetStateAction<{ row: number; message: string }[] | null>>;
 };
 
 export function createCrudActions(args: CrudArgs) {
@@ -62,10 +64,10 @@ export function createCrudActions(args: CrudArgs) {
     setLastSprint,
     setAttachments,
     setDateWarnings,
-    setFormDirty,
     setPendingDeleteId,
     setDeleteId,
     setKanbanRows,
+    setImportErrors,
   } = args;
 
   function refreshPage() {
@@ -189,7 +191,11 @@ export function createCrudActions(args: CrudArgs) {
       body: formData,
     });
     if (!ok) {
-      showApiError(toast, data, "Import failed.");
+      if (data.errors && data.errors.length > 0) {
+        setImportErrors(data.errors);
+      } else {
+        showApiError(toast, data, "Import failed.");
+      }
       return;
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import {
   getActivityResults,
   getAssigneeResults,
@@ -15,9 +15,23 @@ import {
   getTestCaseResults,
   getUserResults,
 } from "./search-query-builders";
-import { getScope, SECTION_LABELS, SCOPE_LABELS } from "./search-helpers";
+import { getScope, SECTION_LABELS, SCOPE_LABELS, type SearchResult } from "./search-helpers";
 
-const searchCache = new Map<string, { expiresAt: number; payload: unknown }>();
+type SearchCacheEntry = { expiresAt: number; payload: unknown };
+const SEARCH_CACHE_KEY = "__aksora_search_cache";
+const searchCache = (globalThis as any)[SEARCH_CACHE_KEY] ?? ((globalThis as any)[SEARCH_CACHE_KEY] = new Map<string, SearchCacheEntry>());
+
+// Simple garbage collection to prevent memory leaks
+function cleanupCache() {
+  if (searchCache.size > 1000) {
+    const now = Date.now();
+    for (const [key, value] of searchCache.entries()) {
+      if (value.expiresAt < now) searchCache.delete(key);
+    }
+    // If still too large, clear it entirely as a fallback
+    if (searchCache.size > 1000) searchCache.clear();
+  }
+}
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -34,7 +48,7 @@ export async function GET(request: NextRequest) {
     to: request.nextUrl.searchParams.get("to")?.trim() || "",
   };
   const company = user.company || "";
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const companyClause = isAdmin ? "" : ` AND "company" = ?`;
   const companyParams = isAdmin ? [] : [company];
   const cacheKey = [
@@ -62,10 +76,10 @@ export async function GET(request: NextRequest) {
     isAll || scope === "assignees" ? getAssigneeResults(q, companyClause, companyParams) : null,
     isAll || scope === "users" ? getUserResults(q, companyClause, companyParams) : null,
     isAll || scope === "activity" ? getActivityResults(q, companyClause, companyParams, filters) : null,
-  ].filter(Boolean) as Array<Promise<any[]>>;
+  ].filter(Boolean) as Array<Promise<SearchResult[]>>;
 
   const coreArrays = await Promise.all(selected);
-  let arrays: any[][] = coreArrays as any;
+  let arrays: SearchResult[][] = coreArrays;
 
   if (isAll && q.length >= 4) {
     const coreResults = coreArrays.flat();
@@ -76,7 +90,7 @@ export async function GET(request: NextRequest) {
         getSprintResults(q, companyClause, companyParams, filters),
         getDeploymentResults(q, companyClause, companyParams, filters),
       ]);
-      arrays = [...coreArrays, ...secondaryArrays] as any;
+      arrays = [...coreArrays, ...secondaryArrays];
     }
   }
 
@@ -92,6 +106,7 @@ export async function GET(request: NextRequest) {
     sectionLabels: SECTION_LABELS,
     results,
   };
-  searchCache.set(cacheKey, { payload, expiresAt: Date.now() + 10000 });
+  cleanupCache();
+  searchCache.set(cacheKey, { payload, expiresAt: Date.now() + 15000 });
   return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=20" } });
 }

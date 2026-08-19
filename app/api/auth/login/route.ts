@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authEnabled, createSessionToken, validateCredentials, sessionCookieName } from "@/lib/auth";
+import { authEnabled, createSessionToken, validateCredentials, sessionCookieName, createTempMfaToken } from "@/lib/auth";
 import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit } from "@/lib/rate-limit";
 
 function getClientIp(request: NextRequest): string {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const ip = getClientIp(request);
     const key = rateLimitKey(ip, email);
-    const { limited, retryAfterSeconds } = isRateLimited(key);
+    const { limited, retryAfterSeconds } = await isRateLimited(key);
     if (limited) {
       return NextResponse.json(
         { error: `Too many login attempts. Try again in ${retryAfterSeconds} seconds.` },
@@ -50,12 +50,20 @@ export async function POST(request: NextRequest) {
 
     const user = await validateCredentials(email, password);
     if (!user) {
-      recordFailedAttempt(key);
+      await recordFailedAttempt(key);
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
     // Success - clear rate limit
-    clearRateLimit(key);
+    await clearRateLimit(key);
+
+    if (user.mfaEnabled) {
+      const tempToken = await createTempMfaToken(user.id);
+      return NextResponse.json({
+        requiresMfa: true,
+        tempToken,
+      });
+    }
 
     const token = await createSessionToken(email, user);
     const response = NextResponse.json({ ok: true, role: user.role, company: user.company });

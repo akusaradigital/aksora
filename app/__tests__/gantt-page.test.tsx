@@ -61,8 +61,8 @@ beforeEach(() => {
       stateValues[currentIndex] = typeof initial === "function" ? (initial as () => unknown)() : initial;
     }
 
-    const setState = () => {};
-    return [stateValues[currentIndex], setState] as any;
+    const setState: React.Dispatch<React.SetStateAction<unknown>> = () => {};
+    return [stateValues[currentIndex], setState];
   }) as typeof React.useState);
 
   reactMocks.useEffect.mockImplementation(((effect: React.EffectCallback) => {

@@ -6,7 +6,20 @@ export type AdminNotificationType =
   | "plan_expiring"
   | "user_limit_reached"
   | "new_company"
-  | "company_suspended";
+  | "company_suspended"
+  | "email_delivery_failed";
+
+export function getAdminNotificationLabel(type: AdminNotificationType) {
+  switch (type) {
+    case "new_ticket": return "New ticket";
+    case "plan_expired": return "Plan expired";
+    case "plan_expiring": return "Plan expiring";
+    case "user_limit_reached": return "User limit reached";
+    case "new_company": return "New company";
+    case "company_suspended": return "Company suspended";
+    case "email_delivery_failed": return "Email delivery failed";
+  }
+}
 
 /**
  * Create an admin notification that will be pushed via SSE to the superadmin dashboard.

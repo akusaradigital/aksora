@@ -6,8 +6,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { Badge } from "@/components/shared/badge";
 import { cn } from "@/lib/utils";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = Record<string, string | number>;
+type Row = TableRow;
 
 const columnAccents: Record<string, { border: string; header: string; dot: string; drop: string }> = {
   todo: { border: "border-gray-300", header: "text-gray-500", dot: "bg-gray-400", drop: "border-gray-400 bg-gray-50/40" },
@@ -77,17 +78,17 @@ export const SortableCard = memo(function SortableCard({
     >
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <span className="truncate text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400">
-          {card.code || `#${card.id}`}
+          {String(card.code || `#${card.id}`)}
         </span>
         <div className="shrink-0">
-          {card.priority && <Badge value={String(card.priority)} />}
-          {!card.priority && card.severity && <Badge value={String(card.severity)} />}
+          {Boolean(card.priority) && <Badge value={String(card.priority)} />}
+          {!card.priority && Boolean(card.severity) && <Badge value={String(card.severity)} />}
         </div>
       </div>
       <p className="text-sm font-semibold leading-snug text-gray-800 line-clamp-2">
-        {card.title || card.project}
+        {String(card.title || card.project || "")}
       </p>
-      {card.module && (
+      {Boolean(card.module) && (
         <p className="mt-1.5 truncate text-[11px] font-medium text-gray-400">
           {String(card.module)}
         </p>

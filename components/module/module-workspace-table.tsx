@@ -108,6 +108,8 @@ export function ModuleWorkspaceTable({
   const VIRTUALIZE_THRESHOLD = 50;
   const shouldVirtualize = visibleRows.length > VIRTUALIZE_THRESHOLD;
   const parentRef = useRef<HTMLDivElement>(null);
+  // TanStack Virtual returns unstable functions here; the React Compiler skips memoization safely.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: visibleRows.length,
     getScrollElement: () => parentRef.current,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isSuperAdmin } from "@/lib/roles";
+import { isPlatformSuperAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // GET: Fetch notifications (with optional unread-only filter)
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !isSuperAdmin(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 // PATCH: Mark notifications as read
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !isSuperAdmin(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

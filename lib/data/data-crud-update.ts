@@ -7,11 +7,21 @@ import { generateDeploymentNotes } from "@/lib/deployment-notes";
 import { generateTestPlanNotes } from "@/lib/test-plan-notes";
 import {
   getAccessScope,
-  getTableName,
   logActivity,
   syncSprintFromTestPlan,
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
+
+type ModuleData = Record<string, unknown>;
+
+function text(value: unknown) {
+  return String(value ?? "");
+}
+
+function textOrEmpty(value: unknown) {
+  const valueText = text(value).trim();
+  return valueText === "undefined" || valueText === "null" ? "" : valueText;
+}
 
 async function syncSearchIndex(module: ModuleKey, company: string, entityId: string | number, data: Record<string, unknown>, workspaceId?: number | null) {
   if (!shouldIndexModule(module)) return;
@@ -22,7 +32,7 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
   }
 }
 
-export async function updateModuleRecord(module: ModuleKey, id: string | number, data: any) {
+export async function updateModuleRecord(module: ModuleKey, id: string | number, data: ModuleData) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
   const { company, where: _where, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
@@ -69,7 +79,17 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-plans": {
-      const notes = data.notes?.trim() ? data.notes : generateTestPlanNotes(data);
+      const notesInput = textOrEmpty(data.notes);
+      const notes = notesInput ? notesInput : generateTestPlanNotes({
+        title: text(data.title),
+        project: text(data.project),
+        sprint: text(data.sprint),
+        status: text(data.status),
+        startDate: text(data.startDate),
+        endDate: text(data.endDate),
+        scope: text(data.scope),
+        assignee: text(data.assignee),
+      });
       const res = await db.run(
         `UPDATE "TestPlan"
          SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
@@ -79,7 +99,14 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
       invalidateDashboardCache(company);
       try {
-        await syncSprintFromTestPlan({ company, sprintName: data.sprint, startDate: data.startDate, endDate: data.endDate, goal: data.title, workspaceId: scope.workspaceId });
+        await syncSprintFromTestPlan({
+          company,
+          sprintName: textOrEmpty(data.sprint) || undefined,
+          startDate: textOrEmpty(data.startDate) || undefined,
+          endDate: textOrEmpty(data.endDate) || undefined,
+          goal: textOrEmpty(data.title) || undefined,
+          workspaceId: scope.workspaceId,
+        });
       } catch (e) {
         console.warn("syncSprintFromTestPlan failed (non-critical):", e);
       }
@@ -119,7 +146,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-suites": {
-      const suitePlanId = String(data.testPlanId ?? "");
+      const suitePlanId = textOrEmpty(data.testPlanId);
       const res = await db.run(
         `UPDATE "TestSuite"
          SET "testPlanId" = ?, "title" = ?, "assignee" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
@@ -146,45 +173,49 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "users": {
-      const existingEmail = await db.get<{ id: number }>('SELECT "id" FROM "User" WHERE "email" = ? AND "id" != CAST(? AS INTEGER)', [data.email, id]);
+      const email = text(data.email);
+      const name = text(data.name);
+      const role = text(data.role);
+      const password = text(data.password);
+      const existingEmail = await db.get<{ id: number }>('SELECT "id" FROM "User" WHERE "email" = ? AND "id" != CAST(? AS INTEGER)', [email, id]);
       if (existingEmail) {
         throw new Error("Email address is already registered. Please use a different email.");
       }
       // Get old name before update for propagation
       const oldUserRow = await db.get<{ name: string | null; email: string | null }>('SELECT "name", "email" FROM "User" WHERE "id" = CAST(? AS INTEGER)', [id]);
-      const oldName = (oldUserRow?.name || oldUserRow?.email || "").trim();
-      const newName = (data.name || data.email || "").trim();
+      const oldName = text(oldUserRow?.name || oldUserRow?.email).trim();
+      const newName = text(name || email).trim();
 
       const { hashPassword } = await import("@/lib/auth-core");
-      if (data.password) {
-        const hashedPassword = await hashPassword(data.password);
+      if (password) {
+        const hashedPassword = await hashPassword(password);
         const res = await db.run(
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.name, data.email, data.role, hashedPassword, id, ...companyParam]
+          [name, email, role, hashedPassword, id, ...companyParam]
         );
-        const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
+        const updatedUser = { id: Number(id), company, name, email, role };
         await syncAssigneeFromUser(updatedUser);
         if (oldName && newName && oldName !== newName) {
           await propagateNameChange(company, oldName, newName);
         }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", String(data.email), "Updated", `Security settings for ${data.email} updated`, actor);
+        await logActivity(company, "User", email, "Updated", `Security settings for ${email} updated`, actor);
         invalidateDashboardCache(company);
         return res;
       } else {
         const res = await db.run(
           `UPDATE "User" SET "name" = ?, "email" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [data.name, data.email, data.role, id, ...companyParam]
+          [name, email, role, id, ...companyParam]
         );
-        const updatedUser = { id: Number(id), company, name: data.name, email: data.email, role: data.role };
+        const updatedUser = { id: Number(id), company, name, email, role };
         await syncAssigneeFromUser(updatedUser);
         if (oldName && newName && oldName !== newName) {
           await propagateNameChange(company, oldName, newName);
         }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", String(data.email), "Updated", `User info for ${data.email} updated`, actor);
+        await logActivity(company, "User", email, "Updated", `User info for ${email} updated`, actor);
         invalidateDashboardCache(company);
         return res;
       }
@@ -220,9 +251,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "deployments": {
-      const notes = generateDeploymentNotes(String(data.changelog ?? ""));
-      const env = String(data.environment ?? "").trim() || "";
-      const dev = String(data.developer ?? "").trim() || "";
+      const notes = generateDeploymentNotes(text(data.changelog));
+      const env = textOrEmpty(data.environment);
+      const dev = textOrEmpty(data.developer);
       const res = await db.run(
         `UPDATE "Deployment"
          SET "date" = ?, "version" = ?, "project" = ?, "environment" = ?, "developer" = ?, "changelog" = ?, "status" = ?, "notes" = ?, "updatedAt" = CURRENT_TIMESTAMP
@@ -238,14 +269,14 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "work-logs": {
-      const assignee = data.assignee || actor;
+      const assignee = textOrEmpty(data.assignee) || actor;
       const res = await db.run(
         `UPDATE "WorkLog"
          SET "date" = ?, "startTime" = ?, "endTime" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
       );
-      await logActivity(company, "WorkLog", String(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor);
+      await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor);
       invalidateDashboardCache(company);
       return res;
     }

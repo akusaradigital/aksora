@@ -302,7 +302,7 @@ describe("QualityHealthScore", () => {
           }}
         />,
       );
-      expect(html).toContain("This Week");
+      expect(html).toContain("Bug Distribution");
       expect(html).toContain('h-24  border border-gray-200 bg-gray-50');
     });
 

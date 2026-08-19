@@ -54,7 +54,7 @@ export function normalizeRole(role: string | null | undefined) {
   return ROLE_ALIASES[lowered] || lowered;
 }
 
-export function isAdminUser(role: string | null | undefined, company: string | null | undefined) {
+export function isPlatformSuperAdmin(role: string | null | undefined, company: string | null | undefined) {
   return normalizeRole(role) === "superadmin" && !String(company ?? "").trim();
 }
 
@@ -62,32 +62,28 @@ export function isWorkspaceAdmin(role: string | null | undefined) {
   return normalizeRole(role) === "admin";
 }
 
-export function isSuperAdmin(role: string | null | undefined, company: string | null | undefined) {
-  return normalizeRole(role) === "superadmin" && !String(company ?? "").trim();
-}
-
 export function isManagementAdmin(role: string | null | undefined, company: string | null | undefined) {
-  return isWorkspaceAdmin(role) || isSuperAdmin(role, company);
+  return isWorkspaceAdmin(role) || isPlatformSuperAdmin(role, company);
 }
 
 export function isInviteRole(role: string | null | undefined) {
   return INVITE_ROLES.includes(normalizeRole(role) as (typeof INVITE_ROLES)[number]);
 }
 
-export function getRoleLabel(role: string | null | undefined, company: string | null | undefined = "") {
+export function getRoleLabel(role: string | null | undefined) {
   const normalized = normalizeRole(role);
   if (normalized === "superadmin") return "Super Admin";
   return ROLE_LABELS[normalized] || (normalized ? normalized.toUpperCase() : "-");
 }
 
-export function getRoleExportLabel(role: string | null | undefined, company: string | null | undefined = "") {
-  return getRoleLabel(role, company);
+export function getRoleExportLabel(role: string | null | undefined) {
+  return getRoleLabel(role);
 }
 
 export function getWorkspaceLabel(company: string | null | undefined, role: string | null | undefined = "") {
   const scopedWorkspace = String(company ?? "").trim();
   if (scopedWorkspace) return scopedWorkspace;
-  return getRoleLabel(role, company);
+  return getRoleLabel(role);
 }
 
 export function getCompanyLabel(company: string | null | undefined, role: string | null | undefined = "") {

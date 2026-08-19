@@ -46,10 +46,11 @@ type SummaryData = {
   hasPreviousRun: boolean;
 };
 
-export function RunSummary({ runId, suiteToken: _suiteToken }: { runId: number; suiteToken: string }) {
+export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: string }) {
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "failed" | "comparison">("overview");
+  void suiteToken;
 
   useEffect(() => {
     fetch(`/api/execution-runs/${runId}/summary`)

@@ -1,20 +1,20 @@
 import { Suspense } from "react";
 import { FlakyTestsClient } from "./flaky-tests-client";
-import type { FlakyData } from "./flaky-types";
+import { EMPTY_FLAKY_DATA, type FlakyData } from "./flaky-types";
 import { PageShell } from "@/components/layout/page-shell";
 import { ShuffleAngular } from "@phosphor-icons/react/dist/ssr";
 
-async function getInitialFlakyData(): Promise<FlakyData | null> {
+async function getInitialFlakyData(): Promise<FlakyData> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const res = await fetch(
       `${baseUrl}/api/reports/flaky-tests?threshold=20&minRuns=3`,
       { cache: "no-store" }
     );
-    if (!res.ok) return null;
+    if (!res.ok) return EMPTY_FLAKY_DATA;
     return res.json();
   } catch {
-    return null;
+    return EMPTY_FLAKY_DATA;
   }
 }
 

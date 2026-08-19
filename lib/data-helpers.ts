@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
 
@@ -8,7 +8,7 @@ export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 
 export function getAccessScope(user: CurrentUser | null = null) {
   const company = String(user?.company ?? "").trim();
-  const isAdmin = isAdminUser(user?.role, company);
+  const isAdmin = isPlatformSuperAdmin(user?.role, company);
   const workspaceId = user?.activeWorkspaceId ?? null;
 
   // Primary scoping: workspaceId (integer FK) when available.
@@ -185,14 +185,14 @@ export function buildSearchClause(module: string, search: string, company = ""):
   };
 }
 
-export async function runInsert(sqlStr: string, params: any[]) {
+export async function runInsert(sqlStr: string, params: unknown[]) {
   return db.run(sqlStr, params);
 }
 
 export async function runInsertReturningId(
   sqlStr: string,
-  params: any[],
-  fallbackLookup?: { query: string; params: any[] },
+  params: unknown[],
+  fallbackLookup?: { query: string; params: unknown[] },
 ) {
   try {
     const inserted = await db.get<{ id?: number | string }>(`${sqlStr} RETURNING "id"`, params);

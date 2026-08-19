@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellRinging, BellSlash, CheckCircle, EnvelopeSimple, Lightning, UserCircle, WarningCircle } from "@phosphor-icons/react";
+import { Bell, BellRinging, CheckCircle, EnvelopeSimple, Lightning, UserCircle, WarningCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 

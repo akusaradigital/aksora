@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   Buildings, Users, Bug, Kanban, Checks, CaretDown, CaretUp,
   Crown, UserCircle, Circle, Lightning, ChartLineUp,
@@ -29,7 +28,6 @@ type OverviewData = {
 };
 
 export function OverviewTab() {
-  const _router = useRouter();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null);

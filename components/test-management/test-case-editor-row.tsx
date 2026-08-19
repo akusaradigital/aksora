@@ -35,7 +35,6 @@ export function TestCaseGridRow({
   onReportBug,
   setRef,
   focusNext,
-  focusPrevious: _focusPrevious,
   isDragOver,
   dragOverPosition,
   onDragStart,

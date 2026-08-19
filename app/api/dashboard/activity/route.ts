@@ -112,7 +112,7 @@ export async function GET(request: Request) {
   const limitParam = parseInt(searchParams.get("limit") || "50", 10);
   const limit = Math.min(Math.max(1, isNaN(limitParam) ? 50 : limitParam), 200);
 
-  const { company, isAdmin, params: _companyParams } = getAccessScope(user);
+  const { company, isAdmin } = getAccessScope(user);
 
   try {
     let entries: ActivityEntry[];

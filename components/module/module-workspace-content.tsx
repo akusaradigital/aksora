@@ -2,22 +2,40 @@
 
 import { useCallback, useEffect, useState, useTransition, useRef, useMemo, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { type ModuleKey, moduleConfigs } from "@/lib/modules";
+import { type ModuleConfig, type ModuleKey, moduleConfigs } from "@/lib/modules";
 import { toast } from "@/components/ui/toast";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { type Attachment } from "@/components/shared/attachment-uploader";
 import { getFieldIcons, getModuleWorkspaceCrumbs, getModuleWorkspacePermissions, getPreferredColumnOrder } from "@/components/module/module-workspace-utils";
 import { useModuleWorkspaceActions } from "@/components/module/use-module-workspace-actions";
 import { ModuleWorkspaceShell } from "@/components/module/module-workspace-shell";
+import { ImportErrorsModal } from "@/components/shared/import-errors-modal";
 import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/module/module-workspace-url";
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { getUserRoleOptions } from "@/lib/roles";
 import { getLatestVersion, getNextVersion } from "@/components/module/module-workspace-content-helpers";
 import { useWorkspaceRowHandlers, useColumnVisibility } from "@/components/module/module-workspace-content-handlers";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
+
+type Row = TableRow;
 
 
-type Row = Record<string, string | number> & { id: string | number };
+export type ModuleWorkspaceProps = {
+  module: ModuleKey;
+  rows: TableRow[];
+  kanbanRows?: TableRow[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
+  initialFormValues?: Record<string, string>;
+  hiddenFields?: string[];
+  user?: { role?: string; company?: string | null } | null;
+  topContent?: ReactNode;
+  versionSequenceDefaultValue?: string;
+  viewId?: string | null;
+};
 
 export function ModuleWorkspace({
   module,
@@ -33,21 +51,7 @@ export function ModuleWorkspace({
   topContent = null,
   versionSequenceDefaultValue = "",
   viewId = null,
-}: {
-  module: ModuleKey;
-  rows: Row[]; 
-  kanbanRows?: Row[];
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
-  initialFormValues?: Record<string, string>;
-  hiddenFields?: string[];
-  user?: any;
-  topContent?: ReactNode;
-  versionSequenceDefaultValue?: string;
-  viewId?: string | null;
-}) {
+}: ModuleWorkspaceProps) {
   const config = moduleConfigs[module];
   const resolvedConfig = useMemo(() => {
     if (module !== "users") return config;
@@ -77,7 +81,7 @@ export function ModuleWorkspace({
   const [localKanbanRows, setLocalKanbanRows] = useState(kanbanRows);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
-  const [editingRow, setEditingRow] = useState<Row | null>(null);
+  const [editingRow, setEditingRow] = useState<TableRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
   const [duplicates, setDuplicates] = useState<{ id: number; code: string; title: string; status: string }[]>([]);
   const [lastSprint, setLastSprint] = useState<string | null>(null);
@@ -88,11 +92,12 @@ export function ModuleWorkspace({
   const [reopenReason, setReopenReason] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
-  const [viewingRow, setViewingRow] = useState<Row | null>(null);
+  const [viewingRow, setViewingRow] = useState<TableRow | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [openSelectField, setOpenSelectField] = useState<string | null>(null);
   const [selectValues, setSelectValues] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [importErrors, setImportErrors] = useState<{ row: number; message: string }[] | null>(null);
   const [search, setSearch] = useState(
     () => searchParams.get("q") ?? "",
   );
@@ -136,7 +141,7 @@ export function ModuleWorkspace({
   }, [kanbanRows]);
 
   // URL synchronization for shareable detail links
-  const handleOpenRow = useCallback((row: Row) => { setViewingRow(row); }, []);
+  const handleOpenRow = useCallback((row: TableRow) => { setViewingRow(row); }, []);
   const handleCloseRow = useCallback(() => { setViewingRow(null); }, []);
   const handleNotFound = useCallback(() => { toast("The requested item was not found", "error"); }, []);
   const handleAccessDenied = useCallback(() => { toast("You don't have permission to view this item", "error"); }, []);
@@ -224,7 +229,7 @@ export function ModuleWorkspace({
     visibleColumnKeys,
     handleToggleColumn,
     handleResetColumns,
-  } = useColumnVisibility(module, defaultColumnKeys, config.columns);
+  } = useColumnVisibility(module, defaultColumnKeys);
 
   const visibleColumns = useMemo(
     () => config.columns.filter((col) => visibleColumnKeys.includes(col.key)),
@@ -249,7 +254,7 @@ export function ModuleWorkspace({
     openSelectField, setSelectValues, setRefreshing, setRows: setLocalRows, setShowForm,
     setEditingRow, setViewingRow, setFieldErrors, setDuplicates, setSprintDuplicate, setLastSprint,
     setAttachments, setDateWarnings, setFormDirty, setOpenSelectField, setPendingDeleteId,
-    setDeleteId, setKanbanRows: setLocalKanbanRows,
+    setDeleteId, setKanbanRows: setLocalKanbanRows, setImportErrors,
   }), [module, resolvedConfig.fields, localRows, initialFormValues, router, showForm, editingRow, deleteId, pendingDeleteId, formDirty, openSelectField]) satisfies Parameters<typeof useModuleWorkspaceActions>[0];
 
   const {
@@ -272,7 +277,7 @@ export function ModuleWorkspace({
       { key: "Escape", description: "Close form/modal", action: () => { if (showForm) closeFormEditor(); else if (viewingRow) { setViewingRow(null); setActiveTab(null); } } },
       { key: "ArrowLeft", description: "Previous page", action: () => { if (safePage > 1) goToPage(safePage - 1); } },
       { key: "ArrowRight", description: "Next page", action: () => { if (safePage < totalPages) goToPage(safePage + 1); } },
-    ], [effectiveCanAdd, showForm, viewingRow, safePage, totalPages]),
+    ], [closeFormEditor, effectiveCanAdd, goToPage, openFormEditor, showForm, viewingRow, safePage, totalPages]),
     !showForm || true,
   );
 
@@ -287,10 +292,10 @@ export function ModuleWorkspace({
     });
   }, [onImport]);
 
-  const handleEditRow = useCallback((row: Row) => openFormEditor(row as Row), [openFormEditor]);
-  const handleViewRow = useCallback((row: Row) => setViewingRow(row as Row), []);
-  const handleDeleteRow = useCallback((row: Row) => setDeleteId(row.id as string | number), []);
-  const handleReopenRow = useCallback((row: Row) => {
+  const handleEditRow = useCallback((row: TableRow) => openFormEditor(row), [openFormEditor]);
+  const handleViewRow = useCallback((row: TableRow) => setViewingRow(row), []);
+  const handleDeleteRow = useCallback((row: TableRow) => setDeleteId(row.id as string | number), []);
+  const handleReopenRow = useCallback((row: TableRow) => {
     setReopenId(Number(row.id as string | number));
     setReopenReason("");
   }, []);
@@ -331,7 +336,7 @@ export function ModuleWorkspace({
       </div>
       <ModuleWorkspaceShell
         module={module}
-        config={resolvedConfig as any}
+        config={resolvedConfig as ModuleConfig}
         topContent={topContent}
         showForm={showForm}
         viewMode={viewMode}
@@ -349,7 +354,7 @@ export function ModuleWorkspace({
         relatedOptions={relatedOptions}
         selectValues={selectValues}
         openSelectField={openSelectField}
-        attachments={attachments as any}
+        attachments={attachments}
         duplicates={duplicates}
         sprintDuplicate={sprintDuplicate}
         lastSprint={lastSprint}
@@ -386,7 +391,7 @@ export function ModuleWorkspace({
         checkSprintDuplicate={checkSprintDuplicate}
         setOpenSelectField={setOpenSelectField}
         setSelectValues={setSelectValues}
-        setAttachments={setAttachments as any}
+        setAttachments={setAttachments}
         setDateWarnings={setDateWarnings}
         setSprintDuplicate={setSprintDuplicate}
         versionSequenceLabel={versionSequenceLabel}
@@ -417,6 +422,11 @@ export function ModuleWorkspace({
         onEditView={handleEditView}
         initialTab={activeTab}
         onTabChange={handleTabChange}
+      />
+      <ImportErrorsModal
+        isOpen={importErrors !== null}
+        errors={importErrors ?? []}
+        onClose={() => setImportErrors(null)}
       />
     </div>
   );

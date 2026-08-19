@@ -1,7 +1,7 @@
-import { ArrowRight, ArrowSquareOut, ClipboardText, Checks, PlayCircle, Bug, Kanban, Table, Note, RocketLaunch, CalendarBlank, ClockCounterClockwise, User, X, CopySimple } from"@phosphor-icons/react";
+import { ArrowRight, ArrowSquareOut, ClipboardText, Checks, PlayCircle, Bug, Kanban, Table, Note, RocketLaunch, CalendarBlank, ClockCounterClockwise, User, CopySimple } from"@phosphor-icons/react";
 import { HighlightText } from"@/components/shared/highlight-text";
 import { formatDisplayText } from"@/lib/utils";
-import type { SearchResult, SearchResultGroup, SearchScope } from"./global-search-types";
+import type { SearchResult, SearchResultGroup } from"./global-search-types";
 
 const typeColors: Record<string, string> = {
  Tasks:"bg-amber-100 text-amber-700",

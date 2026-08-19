@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TrendUp, TrendDown } from "@phosphor-icons/react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from "recharts";
+import { AreaChart, Area, PieChart, Pie, Cell, Tooltip, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ResponsiveContainer } from "@/components/shared/responsive-container";
 import { LoadingSkeleton } from "./admin-shared";
 

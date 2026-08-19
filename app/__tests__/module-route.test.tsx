@@ -2,12 +2,36 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { moduleOrder } from "@/lib/modules";
 
+type WorkspaceRow = Record<string, unknown> & { id: string | number };
+type ModuleWorkspaceProps = {
+  module: string;
+  rows: WorkspaceRow[];
+  kanbanRows?: WorkspaceRow[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  initialFormValues: Record<string, string>;
+  user: Record<string, unknown> | null;
+  relatedOptions?: Record<string, Array<{ label: string; value: string }>>;
+  versionSequenceDefaultValue?: string;
+  hiddenFields?: string[];
+  viewId?: string | null;
+};
+type ModuleRowsPageResult = { rows: WorkspaceRow[]; total: number };
+type TestCaseStat = { passed: number; failed: number; total: number };
+type TestSuiteRow = {
+  id: string | number;
+  testPlanId: string | number;
+  title: string;
+  publicToken: string;
+};
+
 const mocks = vi.hoisted(() => ({
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
   moduleWorkspace: vi.fn(() => <div data-testid="module-workspace" />),
-  getModuleRowsPage: vi.fn(async (module: string): Promise<any> => {
+  getModuleRowsPage: vi.fn(async (module: string): Promise<ModuleRowsPageResult> => {
     if (module === "users") {
       return {
         rows: [
@@ -26,9 +50,9 @@ const mocks = vi.hoisted(() => ({
   getTestPlanReferenceRows: vi.fn(async () => [
     { id: "1", title: "Plan A", project: "Acme", publicToken: "tok", sprint: "Sprint 1" },
   ]),
-  getTestCaseStatsBySuiteIds: vi.fn(async (): Promise<any> => new Map<string, { passed: number; failed: number; total: number }>()),
-  getTestSuitesByPlanIds: vi.fn(async (): Promise<any> => []),
-  getModuleRows: vi.fn(async (module: string): Promise<any> => {
+  getTestCaseStatsBySuiteIds: vi.fn(async (): Promise<Map<string, TestCaseStat>> => new Map<string, TestCaseStat>()),
+  getTestSuitesByPlanIds: vi.fn(async (): Promise<TestSuiteRow[]> => []),
+  getModuleRows: vi.fn(async (module: string): Promise<WorkspaceRow[]> => {
     if (module === "users") {
       return [
         { id: 1, name: "Alice", email: "alice@example.com", role: "pm", company: "acme" },
@@ -79,6 +103,13 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+function getModuleWorkspaceProps() {
+  const moduleWorkspaceMock = mocks.moduleWorkspace as unknown as {
+    mock: { calls: Array<[ModuleWorkspaceProps]> };
+  };
+  return moduleWorkspaceMock.mock.calls.at(-1)![0];
+}
+
 describe("module route", () => {
   it("has configured module paths", () => {
     expect(moduleOrder.length).toBeGreaterThan(0);
@@ -97,18 +128,7 @@ describe("module route", () => {
     expect(mocks.getAssigneeOptions).toHaveBeenCalled();
     expect(mocks.moduleWorkspace).toHaveBeenCalled();
 
-    const moduleWorkspaceMock = mocks.moduleWorkspace as unknown as {
-      mock: { calls: Array<[{
-      module: string;
-      rows: Array<Record<string, unknown>>;
-      currentPage: number;
-      totalPages: number;
-      totalItems: number;
-      initialFormValues: Record<string, string>;
-      user: Record<string, unknown>;
-    }]> };
-    };
-    const props = moduleWorkspaceMock.mock.calls[0]![0];
+    const props = getModuleWorkspaceProps();
     expect(props.module).toBe("users");
     expect(props.rows).toEqual([
       { id: 1, name: "Alice", email: "alice@example.com", role: "pm", company: "acme" },
@@ -148,7 +168,7 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
+    const props = getModuleWorkspaceProps();
     expect(mocks.getTestPlanReferenceRows).toHaveBeenCalled();
     expect(mocks.getTestCaseStatsBySuiteIds).toHaveBeenCalledWith([11, 12]);
     expect(props.relatedOptions).toMatchObject({
@@ -207,7 +227,7 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
+    const props = getModuleWorkspaceProps();
     expect(props.initialFormValues).toMatchObject({
       version: "v1.0.5",
     });
@@ -238,7 +258,7 @@ describe("module route", () => {
 
     renderToStaticMarkup(element);
 
-    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls[0]![0];
+    const props = getModuleWorkspaceProps();
     expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(1, "test-plans", 5, 10, "", undefined, "");
     expect(mocks.getModuleRowsPage).toHaveBeenNthCalledWith(2, "test-plans", 1, 10, "", undefined, "");
     expect(mocks.getTestSuitesByPlanIds).toHaveBeenCalledWith([7]);
@@ -271,11 +291,11 @@ describe("module route", () => {
       searchParams: Promise.resolve({}),
     }).then((element) => renderToStaticMarkup(element));
 
-    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls.at(-1)![0];
-    expect(props.relatedOptions.suggestedDev).toEqual([
+    const props = getModuleWorkspaceProps();
+    expect(props.relatedOptions!.suggestedDev).toEqual([
       { value: "Rina", label: "Rina (pm)" },
     ]);
-    expect(props.relatedOptions.assignee).toBeUndefined();
+    expect(props.relatedOptions!.assignee).toBeUndefined();
   });
 
   it("keeps full assignee options for admin users", async () => {
@@ -292,8 +312,8 @@ describe("module route", () => {
       searchParams: Promise.resolve({}),
     }).then((element) => renderToStaticMarkup(element));
 
-    const props = (mocks.moduleWorkspace as unknown as { mock: { calls: Array<[Record<string, any>]> } }).mock.calls.at(-1)![0];
-    expect(props.relatedOptions.assignee).toEqual([
+    const props = getModuleWorkspaceProps();
+    expect(props.relatedOptions!.assignee).toEqual([
       { value: "Rina", label: "Rina" },
       { value: "Budi", label: "Budi" },
     ]);

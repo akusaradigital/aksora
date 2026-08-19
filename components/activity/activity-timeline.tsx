@@ -131,7 +131,7 @@ export function ActivityTimeline({ module, entityId }: ActivityTimelineProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
 
     fetch(`/api/activity/${encodeURIComponent(module)}/${encodeURIComponent(String(entityId))}`)
       .then((res) => res.json())

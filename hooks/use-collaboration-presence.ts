@@ -78,7 +78,7 @@ export function useCollaborationPresence(module: string, itemId: string | number
 
     // Initial presence + fetch
     sendPresence(actionRef.current);
-    fetchEditors();
+    queueMicrotask(() => { void fetchEditors(); });
 
     // Heartbeat interval
     heartbeatRef.current = setInterval(() => {

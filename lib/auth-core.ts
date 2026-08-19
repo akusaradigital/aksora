@@ -5,16 +5,17 @@ import {
   WORKSPACE_ROLES,
   INVITE_ROLES,
   normalizeRole,
-  isAdminUser,
+  isPlatformSuperAdmin,
   isInviteRole,
   getRoleLabel,
   getInviteRoleOptions,
   getPublicRoleOptions,
 } from "@/lib/roles";
+import { apiUserContext } from "@/lib/auth-context";
 
 const COOKIE_NAME = "aksora_session";
 
-export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isAdminUser, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
+export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isPlatformSuperAdmin, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
 
 function getAuthConfig() {
   const secret = (process.env.AUTH_SECRET || "").trim();
@@ -102,8 +103,8 @@ export function authEnabled() {
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; activeWorkspaceId: number | null }>(
-      `SELECT u."id", u."name", u."email", u."role", u."company", u."password", w."id" AS "activeWorkspaceId"
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null; activeWorkspaceId: number | null }>(
+      `SELECT u."id", u."name", u."email", u."role", u."company", u."password", u."mfaEnabled", u."mfaSecret", w."id" AS "activeWorkspaceId"
        FROM "User" u
        LEFT JOIN "Workspace" w ON w."name" = u."company"
        WHERE u."email" = ?`,
@@ -129,6 +130,8 @@ export async function validateCredentials(email: string, password: string) {
       role: user.role,
       company: user.company,
       activeWorkspaceId: user.activeWorkspaceId ?? null,
+      mfaEnabled: Boolean(user.mfaEnabled),
+      mfaSecret: user.mfaSecret || null,
     };
   } catch (err) {
     console.error("Auth DB error:", err);
@@ -150,11 +153,42 @@ export async function registerUser(email: string, password: string, name?: strin
       await ensureWorkspaceForUser(user.company, user.id, String(user.role || role));
     }
     return { success: true };
-  } catch (err: any) {
-    if (err.message?.includes("UNIQUE constraint") || err.code === "23505") {
+  } catch (err: unknown) {
+    const error = err as { code?: unknown; message?: unknown } | null;
+    if (error?.code === "23505" || String(error?.message ?? "").includes("UNIQUE constraint")) {
       return { error: "Email address is already registered. Please use a different email." };
     }
     return { error: "Registration failed. Please try again later." };
+  }
+}
+
+export async function createTempMfaToken(userId: number) {
+  const { secret } = getAuthConfig();
+  if (!secret) throw new Error("AUTH_SECRET is required.");
+  
+  const payload = toBase64UrlBytes(JSON.stringify({
+    userId,
+    purpose: "mfa_pending",
+    expiresAt: Date.now() + 300000, // 5 minutes
+  }));
+  const signature = await sign(payload, secret);
+  return `${payload}.${signature}`;
+}
+
+export async function verifyTempMfaToken(token: string | undefined | null) {
+  const { secret } = getAuthConfig();
+  if (!token || !secret) return null;
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return null;
+  if ((await sign(payload, secret)) !== signature) return null;
+
+  try {
+    const data = JSON.parse(fromBase64UrlBytes(payload)) as { userId?: number; purpose?: string; expiresAt?: number };
+    if (data.purpose !== "mfa_pending" || !data.userId || !data.expiresAt) return null;
+    if (Date.now() > data.expiresAt) return null; // Token expired
+    return data.userId;
+  } catch {
+    return null;
   }
 }
 
@@ -208,6 +242,11 @@ export async function verifySessionToken(token: string | undefined | null) {
 }
 
 export async function getCurrentUser() {
+  const apiUser = apiUserContext.getStore();
+  if (apiUser) {
+    return { ...apiUser, role: normalizeRole(apiUser.role) };
+  }
+
   let token = "";
   try {
     const { cookies } = await import("next/headers");

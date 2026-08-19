@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   codeFromId: vi.fn((prefix: string, id: number) => `${prefix}-${String(id).padStart(3, "0")}`),
 }));
 
+type SearchRow = { id: number };
+
 vi.mock("@/lib/utils", () => ({
   codeFromId: mocks.codeFromId,
 }));
 
 vi.mock("../search-helpers", () => ({
-  buildResult: vi.fn(({ row, code, label }: any) => ({ id: row.id, code, label })),
+  buildResult: vi.fn(({ row, code, label }: { row: SearchRow; code: string; label: string }) => ({ id: row.id, code, label })),
   buildSearchSql: vi.fn(),
   escapeLike: (value: string) => value,
   extractExactId: vi.fn(),

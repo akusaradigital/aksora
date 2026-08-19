@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { CaretDown, Lightning, ClipboardText, ListChecks, Lock } from "@phosphor-icons/react";
 import { Badge } from "@/components/shared/badge";
 import { cn, formatDate, formatDisplayText } from "@/lib/utils";
@@ -98,13 +97,10 @@ interface GanttTimelineProps {
 
 export function GanttTimeline({
   loading,
-  viewMode,
   totalWidth,
-  totalCols,
   dayPx,
   renderedRowHeight,
   sectionedRows,
-  timelineRows,
   visibleTimelineRows,
   visibleRowGeometry,
   rowGeometryByKey,
@@ -121,7 +117,6 @@ export function GanttTimeline({
   conflictMap,
   data,
   userRole,
-  dragPreview: _dragPreview,
   setTooltip,
   setEditModal,
   handleDragStart,
@@ -130,11 +125,6 @@ export function GanttTimeline({
   bodyRef,
   headerRef,
   rowAreaRef,
-  yearScrollTarget: _yearScrollTarget,
-  timelineViewportWidth: _timelineViewportWidth,
-  setTimelineViewportWidth: _setTimelineViewportWidth,
-  viewStart: _viewStart,
-  scrollToDate: _scrollToDate,
 }: GanttTimelineProps) {
   if (loading) {
     return (
@@ -348,7 +338,7 @@ export function GanttTimeline({
               <div className="absolute inset-x-0 top-16 z-[4] flex justify-center pointer-events-none">
                 <div className=" border border-dashed border-gray-200 bg-white/90 px-5 py-3 text-center shadow-sm ">
                   <p className="text-sm font-semibold text-gray-500">No items in the current period.</p>
-                  <p className="mt-1 text-xs text-gray-400">Tanggal tetap tampil, data akan muncul saat ada item yang overlap.</p>
+                  <p className="mt-1 text-xs text-gray-400">Dates stay visible; data appears once an item overlaps.</p>
                 </div>
               </div>
             )}

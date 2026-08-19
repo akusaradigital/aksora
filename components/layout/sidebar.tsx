@@ -21,7 +21,7 @@ function SidebarTooltip({ tooltip }: { tooltip: TooltipState }) {
       className="pointer-events-none fixed z-[var(--z-tooltip)] flex items-center"
       style={{ top: tooltip.y, left: "calc(var(--sidebar-collapsed) + 4px)" }}
     >
-      <div className="bg-gray-900 px-2 py-1 text-[11px] font-medium text-white shadow-md whitespace-nowrap">
+      <div className="whitespace-nowrap bg-slate-900 px-2 py-1 text-[11px] font-medium text-white shadow-md">
         {tooltip.label}
       </div>
     </div>,
@@ -69,7 +69,6 @@ function SidebarActionButton({
 export function Sidebar({
   collapsed,
   onToggle,
-  onLogout: _,
   userRole = "",
 }: {
   collapsed: boolean;
@@ -96,13 +95,13 @@ export function Sidebar({
       <aside
         suppressHydrationWarning
         className={cn(
-          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-[var(--border-color)] bg-white transition-all duration-150 ease-in-out",
+          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] transition-all duration-150 ease-in-out",
           collapsed ? "w-[64px]" : "w-[240px]",
         )}
       >
         <div className="flex w-full flex-col">
           {/* Logo */}
-          <div className={cn("border-b border-gray-100 px-4 py-3 flex items-center gap-2.5", collapsed ? "justify-center" : "")}>
+          <div className={cn("flex items-center gap-2.5 border-b border-slate-200 px-4 py-3", collapsed ? "justify-center" : "")}>
             <BrandMark
               compact
               showLabel={!collapsed}
@@ -114,8 +113,8 @@ export function Sidebar({
           </div>
 
           {/* Nav */}
-          <div className={cn("flex-1 overflow-y-auto py-2", collapsed ? "px-1" : "px-0")}>
-            <nav className="space-y-1">
+          <div className={cn("flex-1 overflow-y-auto py-3", collapsed ? "px-1" : "px-0")}>
+            <nav className="space-y-3">
               {visibleGroups.map((group) => (
                 <SidebarSection
                   key={group.title || "dashboard"}
@@ -130,13 +129,13 @@ export function Sidebar({
           </div>
 
           {/* Bottom actions */}
-          <div className={cn("mt-auto border-t border-gray-100 py-2", collapsed ? "px-1" : "px-0")}>
+          <div className={cn("mt-auto border-t border-slate-200 py-2", collapsed ? "px-1" : "px-0")}>
             <SidebarActionButton
               collapsed={collapsed}
               onClick={onToggle}
               onMouseEnter={(e) => showTooltip(e, collapsed ? "Expand" : "")}
               onMouseLeave={hideTooltip}
-              tone="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              tone="text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               icon={collapsed ? <CaretRight size={16} weight="bold" /> : <CaretLeft size={16} weight="bold" />}
               label="Collapse"
             />

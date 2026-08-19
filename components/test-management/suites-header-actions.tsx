@@ -3,6 +3,8 @@
 import { usePathname, useRouter } from"next/navigation";
 import { useEffect, useRef, useState, useTransition } from"react";
 import { FilePdf, FileXls, MagnifyingGlass, UploadSimple } from"@phosphor-icons/react";
+import { toast } from"@/components/ui/toast";
+import { ImportErrorsModal, type ImportRowError } from"@/components/shared/import-errors-modal";
 
 export function SuitesHeaderActions({
  initialSearch,
@@ -23,6 +25,7 @@ export function SuitesHeaderActions({
    typeof window !== "undefined" ? window.location.search : ""
  );
  const [, startTransition] = useTransition();
+ const [importErrors, setImportErrors] = useState<ImportRowError[] | null>(null);
 
  useEffect(() => {
  const syncSearch = () => {
@@ -46,11 +49,22 @@ export function SuitesHeaderActions({
  if (!file) return;
  const formData = new FormData();
  formData.append("file", file);
- await fetch(`/api/import/${importModule}`, { method:"POST", body: formData });
+ const res = await fetch(`/api/import/${importModule}`, { method:"POST", body: formData });
+ const data = await res.json().catch(() => ({}));
+ if (!res.ok) {
+ if (Array.isArray(data.errors) && data.errors.length > 0) {
+ setImportErrors(data.errors);
+ } else {
+ toast(data.error ||"Import failed.","error");
+ }
+ return;
+ }
+ toast(data.message ||"Import successful.","success");
  router.refresh();
  }
 
  return (
+ <>
  <div className="flex flex-wrap items-center gap-3">
  <div className="relative w-full max-w-[360px] flex-1">
  <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -101,5 +115,11 @@ export function SuitesHeaderActions({
  }}
  />
  </div>
+ <ImportErrorsModal
+ isOpen={importErrors !== null}
+ errors={importErrors ?? []}
+ onClose={() => setImportErrors(null)}
+ />
+ </>
  );
 }

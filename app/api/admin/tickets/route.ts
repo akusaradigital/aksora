@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isSuperAdmin } from "@/lib/roles";
+import { isPlatformSuperAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Get all tickets (superadmin)
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || !isSuperAdmin(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -42,7 +42,7 @@ export async function GET() {
 // Reply/close ticket (superadmin)
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || !isSuperAdmin(user.role, user.company)) {
+  if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

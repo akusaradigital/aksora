@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { createAdminNotification } from "@/lib/admin-notifications";
 import { emailEnabled, sendEmail } from "@/lib/email";
 import { getWeeklyDigestForCompany, getMonday, renderDigestHtml, toDateStr } from "@/lib/weekly-report-data";
 
@@ -15,6 +16,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!emailEnabled()) {
+    await createAdminNotification({
+      type: "email_delivery_failed",
+      title: "Weekly report email delivery failed",
+      message: "Weekly report cron skipped because RESEND_API_KEY is not set.",
+      meta: { route: "weekly-report", reason: "email_disabled" },
+    });
     return NextResponse.json({ skipped: true, reason: "RESEND_API_KEY not set" });
   }
 
@@ -31,6 +38,7 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   let skippedCompanies = 0;
+  let failedCompanies = 0;
 
   for (const { company } of companies) {
     try {
@@ -58,11 +66,24 @@ export async function GET(request: NextRequest) {
         text: `Weekly QA report for ${company}: ${digest.summary.newBugs} new bugs, ${digest.summary.closedBugs} closed, ${digest.summary.newTasks} new tasks, ${digest.summary.doneTasks} done, ${digest.summary.sessions} sessions.`,
       });
       if (res.ok) sent += recipients.length;
-      else skippedCompanies += 1;
+      else {
+        skippedCompanies += 1;
+        failedCompanies += 1;
+      }
     } catch (err) {
       console.error(`[cron] weekly report failed for ${company}:`, err);
       skippedCompanies += 1;
+      failedCompanies += 1;
     }
+  }
+
+  if (failedCompanies > 0) {
+    await createAdminNotification({
+      type: "email_delivery_failed",
+      title: "Weekly report email delivery failed",
+      message: `Weekly report cron failed for ${failedCompanies} ${failedCompanies === 1 ? "company" : "companies"}.`,
+      meta: { route: "weekly-report", failedCompanies, sentCompanies: sent, skippedCompanies },
+    });
   }
 
   return NextResponse.json({ ok: true, sentTo: sent, companies: companies.length, skippedCompanies });

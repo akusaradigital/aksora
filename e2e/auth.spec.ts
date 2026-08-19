@@ -52,12 +52,12 @@ test.describe("Authentication", () => {
     await expect(passwordInput).toHaveAttribute("type", "password");
   });
 
-  test("should switch between sign in and sign up modes", async ({ page }) => {
+  test("should show the register page with correct elements", async ({ page }) => {
     await page.goto("/register");
 
-    await expect(page.getByText("Get started now")).toBeVisible();
-    await expect(page.getByPlaceholder("John Doe")).toBeVisible();
-    await expect(page.getByText("Software Role")).toBeVisible();
-    await expect(page.getByText("Company Name")).toBeVisible();
+    await expect(page.getByText("Register your access")).toBeVisible();
+    await expect(page.getByPlaceholder("Full name")).toBeVisible();
+    await expect(page.getByPlaceholder("Email address")).toBeVisible();
+    await expect(page.getByPlaceholder("Password")).toBeVisible();
   });
 });

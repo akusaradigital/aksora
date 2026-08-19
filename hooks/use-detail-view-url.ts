@@ -7,8 +7,9 @@ import {
   preserveQueryParams,
 } from "@/lib/shareable-url";
 import type { ModuleKey } from "@/lib/modules";
+import type { TableRow } from "@/components/module/module-workspace-table-row";
 
-type Row = Record<string, string | number> & { id: string | number; publicToken?: string };
+type Row = TableRow & { publicToken?: string };
 
 export interface UseDetailViewUrlOptions {
   module: ModuleKey;

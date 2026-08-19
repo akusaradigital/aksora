@@ -3,8 +3,8 @@
  * Uses environment variables with fallback defaults for local dev.
  */
 export const TEST_USER = {
-  email: process.env.E2E_USER_EMAIL || "admin@demo.com",
-  password: process.env.E2E_USER_PASSWORD || "demo123",
+  email: process.env.E2E_USER_EMAIL || "e2e-test-runner@aksora.local",
+  password: process.env.E2E_USER_PASSWORD || "E2eTest!2026x",
 };
 
 export const TEST_BUG = {

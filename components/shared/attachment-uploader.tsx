@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from"react";
-import { Paperclip, Link, X, Image, FilePdf, ArrowSquareOut } from"@phosphor-icons/react";
+import { Paperclip, Link, X, Image as ImageIcon, FilePdf, ArrowSquareOut } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
 import { compressImage } from"@/lib/image-compress";
 
@@ -15,7 +15,7 @@ interface AttachmentUploaderProps {
 
 function AttachmentIcon({ type, url }: { type: string; url: string }) {
  if (type ==="link") return <Link size={13} weight="bold" className="shrink-0 text-blue-500" />;
- if (url.match(/\.(png|jpe?g|gif|webp)$/i)) return <Image size={13} weight="bold" className="shrink-0 text-emerald-500" />;
+ if (url.match(/\.(png|jpe?g|gif|webp)$/i)) return <ImageIcon size={13} weight="bold" className="shrink-0 text-emerald-500" />;
  if (url.match(/\.pdf$/i)) return <FilePdf size={13} weight="bold" className="shrink-0 text-red-500" />;
  return <Paperclip size={13} weight="bold" className="shrink-0 text-gray-400" />;
 }

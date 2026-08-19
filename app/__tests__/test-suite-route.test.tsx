@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   getTestCasesByScenario: vi.fn(),
   getTestPlanById: vi.fn(),
   getCurrentUser: vi.fn(),
-  isAdminUser: vi.fn(),
+  isPlatformSuperAdmin: vi.fn(),
   detail: vi.fn(() => <div data-testid="suite-detail" />),
 }));
 
@@ -36,7 +36,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-core", () => ({
-  isAdminUser: mocks.isAdminUser,
+  isPlatformSuperAdmin: mocks.isPlatformSuperAdmin,
 }));
 
 vi.mock("@/app/test-suites/[token]/suite-detail", () => ({
@@ -48,7 +48,7 @@ import TestSuiteDetailPage from "@/app/test-suites/[token]/page";
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getCurrentUser.mockResolvedValue({ role: "pm", company: "acme" });
-  mocks.isAdminUser.mockReturnValue(false);
+  mocks.isPlatformSuperAdmin.mockReturnValue(false);
   mocks.db.query.mockResolvedValue([]);
   mocks.db.get.mockResolvedValue(null);
 });

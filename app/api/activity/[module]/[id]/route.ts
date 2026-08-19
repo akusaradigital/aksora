@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminUser } from "@/lib/auth-core";
+import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getTableName } from "@/lib/data-helpers";
 import type { ModuleKey } from "@/lib/modules";
 
@@ -14,7 +14,7 @@ export async function GET(
 
   const { module, id } = await params;
   const company = String(user.company ?? "").trim();
-  const isAdmin = isAdminUser(user.role, company);
+  const isAdmin = isPlatformSuperAdmin(user.role, company);
   const andCompany = isAdmin ? "" : ` AND "company" = ?`;
   const cp = isAdmin ? [] : [company];
 

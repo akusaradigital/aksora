@@ -84,7 +84,19 @@ export function AnnouncementsTab() {
 
 // ─── Tickets Tab ─────────────────────────────────────────────────────────────
 export function TicketsTab() {
-  const [tickets, setTickets] = useState<any[]>([]);
+  type Ticket = {
+    id: number;
+    status: string;
+    subject: string;
+    priority: string;
+    category: string;
+    message: string;
+    company: string;
+    createdBy: string;
+    createdAt: string;
+    adminReply?: string;
+  };
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyId, setReplyId] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");

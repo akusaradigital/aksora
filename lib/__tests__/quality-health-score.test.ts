@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeQualityHealthScore, clamp, computeResolutionRate } from "@/lib/data-dashboard";
+import { computeQualityHealthScore, clamp } from "@/lib/data-dashboard";
 
 describe("clamp", () => {
   it("returns value when within range", () => {
