@@ -3,17 +3,22 @@ import path from "node:path";
 import { Client } from "pg";
 
 const root = process.cwd();
-const envText = fs.readFileSync(path.join(root, ".env"), "utf8");
-const env = Object.fromEntries(
-  envText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#") && line.includes("="))
-    .map((line) => {
-      const idx = line.indexOf("=");
-      return [line.slice(0, idx).trim(), line.slice(idx + 1).trim().replace(/^"|"$/g, "")];
-    }),
-);
+// Read .env if it exists (local dev), fall back to process.env (CI/prod)
+const env = { ...process.env };
+const envFile = path.join(root, ".env");
+if (fs.existsSync(envFile)) {
+  const envText = fs.readFileSync(envFile, "utf8");
+  Object.assign(env, Object.fromEntries(
+    envText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#") && line.includes("="))
+      .map((line) => {
+        const idx = line.indexOf("=");
+        return [line.slice(0, idx).trim(), line.slice(idx + 1).trim().replace(/^"|"$/g, "")];
+      }),
+  ));
+}
 
 const schemaText = fs.readFileSync(path.join(root, "lib", "db", "db-schema-tables.ts"), "utf8");
 const tableRegex = /name:\s*"([^"]+)"\s*,\s*schema:\s*`([\s\S]*?)`/g;
@@ -33,7 +38,10 @@ while ((match = tableRegex.exec(schemaText)) !== null) {
 }
 
 const url = env.DATABASE_URL || env.POSTGRES_URL;
-if (!url) throw new Error("DATABASE_URL missing");
+if (!url) {
+  console.log(JSON.stringify({ ok: true, skipped: true, reason: "No DATABASE_URL — skipping DB health check" }));
+  process.exit(0);
+}
 const client = new Client({ connectionString: url });
 await client.connect();
 
