@@ -249,6 +249,8 @@ export const tables = [
       "password" TEXT NOT NULL,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "avatar" TEXT DEFAULT '',
+      "mfaEnabled" INTEGER NOT NULL DEFAULT 0,
+      "mfaSecret" TEXT,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP

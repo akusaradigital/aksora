@@ -33,9 +33,9 @@ describe("login page", () => {
 
     const html = renderToStaticMarkup(<LoginPage />);
 
-    expect(html).toContain("Welcome back");
-    expect(html).toContain("Use Google or email to enter your workspace.");
-    expect(html).toContain("Sign In");
+    expect(html).toContain("Masuk ke Aksora");
+    expect(html).toContain("Masuk dengan Google atau email untuk mengakses workspace Anda.");
+    expect(html).toContain("Masuk");
     expect(mocks.routerPush).not.toHaveBeenCalled();
   });
 });
