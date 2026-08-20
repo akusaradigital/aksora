@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope, logActivity } from "@/lib/data-helpers";
 import { db } from "@/lib/db";
+import { sendAssignedEmail } from "@/lib/email";
 
 type QuickActionBody = {
   entityType: string;
@@ -58,8 +59,8 @@ export async function PATCH(request: Request) {
     const { company } = getAccessScope(user);
 
     // Verify entity exists within company scope
-    const entity = await db.get<{ id: number }>(
-      `SELECT "id" FROM "${entityType}" WHERE "id" = CAST(? AS INTEGER) AND "company" = ?`,
+    const entity = await db.get<{ id: number; title: string }>(
+      `SELECT "id", "title" FROM "${entityType}" WHERE "id" = CAST(? AS INTEGER) AND "company" = ?`,
       [entityId, company]
     );
 
@@ -76,6 +77,13 @@ export async function PATCH(request: Request) {
         [value, entityId, company]
       );
       await logActivity(company, entityType, String(entityId), "Updated", `Assigned ${entityType} to ${value}`, user.name || user.email || "");
+      const assignee = await db.get<{ email: string | null }>(
+        `SELECT "email" FROM "Assignee" WHERE "name" = ? AND "company" = ? AND "deletedAt" IS NULL`,
+        [value, company]
+      );
+      if (assignee?.email) {
+        sendAssignedEmail(assignee.email, entityType, entity.title, user.name || user.email || "Someone");
+      }
     } else {
       // action === "status"
       await db.run(

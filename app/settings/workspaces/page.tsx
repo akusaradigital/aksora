@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { InviteManager } from "@/components/shared/invite-manager";
+import { WorkspaceBrandingForm } from "@/components/layout/workspace-branding-form";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +44,19 @@ export default async function WorkspacesPage() {
         <InviteManager embedded compact />
         <WorkspaceSwitcher memberships={memberships} activeWorkspaceId={activeWorkspaceId} />
 
+        {activeWorkspace && activeWorkspace.role === "admin" && (
+          <WorkspaceBrandingForm
+            workspaceId={activeWorkspace.workspaceId}
+            initialTimezone={activeWorkspace.timezone || "Asia/Jakarta"}
+            initialSprintFormat={activeWorkspace.sprintFormat || "Sprint {N}"}
+          />
+        )}
+
         {activeWorkspace && (
           <div className="space-y-4 border border-gray-200 p-4">
             <div>
               <p className="text-sm font-bold text-gray-900">Workspace details</p>
-              <p className="mt-1 text-xs text-gray-500">Template: {activeWorkspace.templateKey || 'custom'} · Accent: {activeWorkspace.accentColor || '#2563eb'}</p>
+              <p className="mt-1 text-xs text-gray-500">Template: {activeWorkspace.templateKey || 'custom'} · Accent: {activeWorkspace.accentColor || '#2563eb'} · Timezone: {activeWorkspace.timezone || 'Asia/Jakarta'} · Format: {activeWorkspace.sprintFormat || 'Sprint {N}'}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="border border-gray-200 p-3">

@@ -61,7 +61,7 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 - Schema changes: create tables → add columns → create indexes.
 
 ## Rules
-1. Filter by `company` (unless superadmin). Log all CRUD via `logActivity()`.
+1. Filter by `workspaceId` (unless superadmin). Log all CRUD via `logActivity()`.
 2. Validate session on mutating routes. Zod validation from `lib/modules.ts`.
 3. API: `{ data }` on success, `{ error: string }` + status on failure.
 4. Navigation: `router.refresh()`, never `window.location.reload()`.
@@ -72,24 +72,22 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 9. New components MUST go in a domain folder. Create new folder for new features.
 10. Code & comments in English.
 
-## Do NOT
+## Do NOT (CRITICAL - STRICTLY ENFORCED)
+- **NEVER git push or git commit unless explicitly and unambiguously requested with the exact words "commit" or "push". Slang, affirmations, or casual phrases (e.g., "gas", "gas semua", "lanjut", "oke", "mantap", "sip") MUST NEVER be interpreted as permission to push/commit.**
 - Add packages without checking `package.json`.
 - Add SQLite or `isPostgres` branching.
 - Use `/test-case-management` — it's `/test-cases`.
-- Commit/push unless asked (and ALWAYS bump `version` in `package.json` on any push to `main`).
 - Generate `.md` spec files — implement directly.
 - Run tests unless asked.
 - Put files flat in `components/` root.
 - Duplicate logic from `lib/data-helpers.ts` or `lib/utils.ts`.
 
-## Checks (before any push to main)
-```
-npx tsc --noEmit
-pnpm precheck
-```
-Version bump required in the same commit.
-
-**After completing a task: DO NOT list what was done, DO NOT explain fixes, DO NOT give summary. Just give 5 ideas for next development.**
+## Strict Post-Task Output Rule (MANDATORY)
+**After completing ANY task (regardless of success, failure, or question):**
+1. **DO NOT list what was done.**
+2. **DO NOT explain fixes, changes, or reasoning.**
+3. **DO NOT give any recap, status report, or summary.**
+4. **ONLY output 5 ideas for next development.**
 
 <!-- BEGIN:nextjs-agent-rules -->
 

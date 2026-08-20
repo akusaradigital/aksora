@@ -40,5 +40,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ publicToken: row.publicToken });
+  return NextResponse.json(
+    { publicToken: row.publicToken },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=60, stale-while-revalidate=120",
+      },
+    },
+  );
 }

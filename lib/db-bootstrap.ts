@@ -141,7 +141,7 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 9;
+const CURRENT_MIGRATION_VERSION = 11;
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
@@ -173,11 +173,13 @@ async function backfillWorkspaceIds(deps: DbBootstrapDeps) {
   // 1. Collect distinct non-empty company values across all tables and ensure Workspace rows exist
   for (const table of tablesToBackfill) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res: any = await pool.query(
         `SELECT DISTINCT "company" FROM "${table}" WHERE COALESCE("company", '') != ''`,
       );
       const rows = res?.rows || [];
       for (const row of rows) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const name = String((row as any)?.company || "").trim();
         if (!name) continue;
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "workspace";
@@ -229,6 +231,20 @@ async function backfillWorkspaceIds(deps: DbBootstrapDeps) {
   }
 }
 
+async function pruneOrphanWorkspaceMemberships(deps: DbBootstrapDeps) {
+  const pool = await deps.getPostgresPool();
+  // Remove WorkspaceMembership rows with no matching Workspace or User
+  try {
+    await pool.query(`
+      DELETE FROM "WorkspaceMembership"
+      WHERE "workspaceId" NOT IN (SELECT "id" FROM "Workspace")
+         OR "userId" NOT IN (SELECT "id" FROM "User")
+    `);
+  } catch {
+    // Ignore if tables not ready
+  }
+}
+
 async function migrateTaskDueDateToStartEnd(deps: DbBootstrapDeps) {
   const pool = await deps.getPostgresPool();
   // Add startDate/endDate columns if they don't exist
@@ -266,6 +282,7 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
             await backfillSortOrder(deps);
             await migrateTaskDueDateToStartEnd(deps);
             await backfillWorkspaceIds(deps);
+            await pruneOrphanWorkspaceMemberships(deps);
             await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
           }
           globalBootstrap.__schemaBootstrapDone = true;

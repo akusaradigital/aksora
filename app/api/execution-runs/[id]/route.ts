@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth-core";
-import { logActivity } from "@/lib/data-helpers";
+import { getCurrentUser } from "@/lib/auth";
+import { logActivity, getAccessScope } from "@/lib/data-helpers";
 
 // GET /api/execution-runs/[id] - get run details + verdicts
 export async function GET(
@@ -12,15 +12,12 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const company = user.company || "";
-  const isAdmin = user.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND r."company" = ?';
-  const companyParams = isAdmin ? [] : [company];
+  const { andWhere, params: qParams } = getAccessScope(user);
 
   const run = await db.get<Record<string, unknown>>(
     `SELECT * FROM "ExecutionRun" r
-     WHERE r."id" = CAST(? AS INTEGER) AND r."deletedAt" IS NULL${companyFilter}`,
-    [id, ...companyParams]
+     WHERE r."id" = CAST(? AS INTEGER) AND r."deletedAt" IS NULL${andWhere.replace('"workspaceId"', 'r."workspaceId"').replace('"company"', 'r."company"')}`,
+    [id, ...qParams]
   );
 
   if (!run) {
@@ -50,17 +47,14 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const company = user.company || "";
-  const isAdmin = user.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParams = isAdmin ? [] : [company];
+  const { company, andWhere, params: qParams } = getAccessScope(user);
   const body = await request.json();
 
   // Check run exists
   const run = await db.get<Record<string, unknown>>(
     `SELECT * FROM "ExecutionRun"
-     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
-    [id, ...companyParams]
+     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${andWhere}`,
+    [id, ...qParams]
   );
 
   if (!run) {
@@ -69,7 +63,6 @@ export async function PATCH(
 
   // If finishing the run
   if (body.status === "completed") {
-    // Count verdicts
     const counts = await db.get<{ passed: number; failed: number; blocked: number }>(
       `SELECT
         SUM(CASE WHEN "verdict" = 'Passed' THEN 1 ELSE 0 END) as "passed",
@@ -89,8 +82,8 @@ export async function PATCH(
        SET "status" = 'completed', "passed" = ?, "failed" = ?, "blocked" = ?,
            "notes" = COALESCE(?, "notes"), "tester" = COALESCE(?, "tester"),
            "completedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-      [passed, failed, blocked, body.notes ?? null, body.tester ?? null, id, ...companyParams]
+       WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+      [passed, failed, blocked, body.notes ?? null, body.tester ?? null, id, ...qParams]
     );
 
     await logActivity(company, "ExecutionRun", id, "Completed", `Run #${run.runNumber} completed - ${passed}P/${failed}F/${blocked}B`, user.name || user.email || "");
@@ -103,8 +96,8 @@ export async function PATCH(
     await db.run(
       `UPDATE "ExecutionRun"
        SET "status" = 'abandoned', "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-      [id, ...companyParams]
+       WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+      [id, ...qParams]
     );
     return NextResponse.json({ data: { status: "abandoned" } });
   }
@@ -118,8 +111,8 @@ export async function PATCH(
     sets.push('"updatedAt" = CURRENT_TIMESTAMP');
 
     await db.run(
-      `UPDATE "ExecutionRun" SET ${sets.join(", ")} WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-      [...vals, id, ...companyParams]
+      `UPDATE "ExecutionRun" SET ${sets.join(", ")} WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+      [...vals, id, ...qParams]
     );
   }
 

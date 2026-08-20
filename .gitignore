@@ -93,3 +93,6 @@ logres.gif
 
 # Database backups
 /backups
+
+# graphify skill output
+/graphify-out

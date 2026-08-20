@@ -23,7 +23,31 @@ export function getAccessScope(user: CurrentUser | null = null) {
     ? [workspaceId]
     : [company];
 
-  return { company, isAdmin, workspaceId, where, andWhere, params };
+  const getScopedColumn = (prefix = "") => {
+    const col = workspaceId ? '"workspaceId"' : '"company"';
+    return prefix ? `${prefix}.${col}` : col;
+  };
+
+  const getScopedAndClause = (prefix = "") => {
+    if (isAdmin) return "";
+    return ` AND ${getScopedColumn(prefix)} = ?`;
+  };
+
+  const getScopedWhereClause = (prefix = "") => {
+    if (isAdmin) return "";
+    return ` WHERE ${getScopedColumn(prefix)} = ?`;
+  };
+
+  return { company, isAdmin, workspaceId, where, andWhere, params, getScopedColumn, getScopedAndClause, getScopedWhereClause };
+}
+
+export function buildScopedCondition(isAdmin: boolean, workspaceId: number | null | undefined, company: string, prefix = "", useWhere = false) {
+  const col = workspaceId ? '"workspaceId"' : '"company"';
+  const targetCol = prefix ? `${prefix}.${col}` : col;
+  const verb = useWhere ? "WHERE" : "AND";
+  const clause = isAdmin ? "" : ` ${verb} ${targetCol} = ?`;
+  const params = isAdmin ? [] : workspaceId ? [workspaceId] : [company];
+  return { clause, params };
 }
 
 export function getWriteWorkspaceId(user: CurrentUser | null, dataWorkspaceId?: number | null): number | null {

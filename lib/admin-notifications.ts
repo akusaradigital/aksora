@@ -7,7 +7,8 @@ export type AdminNotificationType =
   | "user_limit_reached"
   | "new_company"
   | "company_suspended"
-  | "email_delivery_failed";
+  | "email_delivery_failed"
+  | "email_domain_pending";
 
 export function getAdminNotificationLabel(type: AdminNotificationType) {
   switch (type) {
@@ -18,6 +19,7 @@ export function getAdminNotificationLabel(type: AdminNotificationType) {
     case "new_company": return "New company";
     case "company_suspended": return "Company suspended";
     case "email_delivery_failed": return "Email delivery failed";
+    case "email_domain_pending": return "Email domain pending verification";
   }
 }
 

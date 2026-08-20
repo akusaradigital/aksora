@@ -104,9 +104,10 @@ export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
     const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null; activeWorkspaceId: number | null }>(
-      `SELECT u."id", u."name", u."email", u."role", u."company", u."password", u."mfaEnabled", u."mfaSecret", w."id" AS "activeWorkspaceId"
+      `SELECT u."id", u."name", u."email", COALESCE(wm."role", u."role") AS "role", u."company", u."password", u."mfaEnabled", u."mfaSecret", w."id" AS "activeWorkspaceId"
        FROM "User" u
        LEFT JOIN "Workspace" w ON w."name" = u."company"
+       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
        WHERE u."email" = ?`,
       [email]
     );
@@ -313,9 +314,10 @@ export async function getCurrentUser() {
     // Fallback: old tokens without embedded user data - hit DB once
     const { db } = await import("./db");
     const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null }>(
-      `SELECT u.id, u.name, u.email, u.role, u.company, w.id AS "activeWorkspaceId"
+      `SELECT u.id, u.name, u.email, COALESCE(wm.role, u.role) AS "role", u.company, w.id AS "activeWorkspaceId"
        FROM "User" u
        LEFT JOIN "Workspace" w ON w.name = u.company
+       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
        WHERE u.email = ?`,
       [decoded.email]
     );

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getAccessScope } from "@/lib/data-helpers";
+import { buildScopedCondition, getAccessScope } from "@/lib/data-helpers";
 import { normalizeRole, getRoleLabel } from "@/lib/roles";
 
 /**
@@ -90,8 +90,7 @@ export function invalidateDashboardCache(company?: string) {
 }
 
 export async function getBugSeverityCounts(company: string, isAdmin: boolean, workspaceId?: number | null): Promise<{ critical: number; high: number; medium: number; low: number }> {
-  const andCompany = isAdmin ? "" : (workspaceId ? ' AND "workspaceId" = ?' : ' AND "company" = ?');
-  const params = isAdmin ? [] : (workspaceId ? [workspaceId] : [company]);
+  const { clause: andCompany, params } = buildScopedCondition(isAdmin, workspaceId, company);
 
   const rows = await selectAll(
     `SELECT LOWER(COALESCE("severity", '')) as sev, COUNT(*) as count
@@ -117,8 +116,7 @@ export async function getBugSeverityCounts(company: string, isAdmin: boolean, wo
  * Returns null when total executed tests is 0.
  */
 export async function getTestPassRate(company: string, isAdmin: boolean, workspaceId?: number | null): Promise<number | null> {
-  const andCompany = isAdmin ? "" : (workspaceId ? ' AND "workspaceId" = ?' : ' AND "company" = ?');
-  const params = isAdmin ? [] : (workspaceId ? [workspaceId] : [company]);
+  const { clause: andCompany, params } = buildScopedCondition(isAdmin, workspaceId, company);
 
   const row = await db.get<{ totalPassed: number | string | null; totalExecuted: number | string | null }>(
     `SELECT
@@ -255,7 +253,7 @@ export async function getTestCaseStatsBySuiteIds(suiteIds: Array<string | number
   const ids = suiteIds.map((id) => String(id)).filter(Boolean);
   if (ids.length === 0) return new Map<string, { passed: number; failed: number; total: number }>();
   const scope = getAccessScope(await getCurrentUser());
-  const tcCompanyWhere = scope.isAdmin ? "" : (scope.workspaceId ? ' AND tc."workspaceId" = ?' : ' AND tc."company" = ?');
+  const tcCompanyWhere = scope.getScopedAndClause("tc");
   const rows = await selectAll(
     `SELECT tc."testSuiteId" as suiteId,
       COUNT(*) as total,

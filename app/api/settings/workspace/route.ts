@@ -30,14 +30,18 @@ export async function GET() {
   const maxUsers = companyRow?.maxUsers ?? getMaxUsersForPlan("free");
 
   return NextResponse.json({
-    data: {
-      companyName: user.company,
-      plan,
-      planExpiry: companyRow?.planExpiry ?? null,
-      maxUsers,
-      currentUsers: Number(userCountRow?.count ?? 0),
-      status: companyRow?.status ?? "active",
-      createdAt: companyRow?.createdAt ?? null,
-    },
-  });
+  data: {
+    companyName: user.company,
+    plan,
+    planExpiry: companyRow?.planExpiry ?? null,
+    maxUsers,
+    currentUsers: Number(userCountRow?.count ?? 0),
+    status: companyRow?.status ?? "active",
+    createdAt: companyRow?.createdAt ?? null,
+  },
+}, {
+  headers: {
+    "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+  },
+});
 }

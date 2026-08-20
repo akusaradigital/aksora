@@ -13,6 +13,7 @@ import {
 } from "@/lib/data/data-dashboard-stats";
 
 type SqlValue = string | number | null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DashboardData = any;
 type SummaryCountsRow = { taskCount: SqlValue; bugCount: SqlValue; caseCount: SqlValue };
 type SprintCountsRow = { suiteCount: SqlValue; sessionCount: SqlValue };

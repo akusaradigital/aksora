@@ -87,9 +87,11 @@ export async function getWorkspaceMembershipsForUser(userId: number) {
     accentColor: string;
     templateKey: string;
     iconPath: string;
+    timezone: string;
+    sprintFormat: string;
     createdByUserId: number | null;
   }>(
-    `SELECT wm."id", wm."workspaceId", wm."role", wm."status", w."name", w."slug", w."accentColor", w."templateKey", w."iconPath", w."createdByUserId"
+    `SELECT wm."id", wm."workspaceId", wm."role", wm."status", w."name", w."slug", w."accentColor", w."templateKey", w."iconPath", COALESCE(w."timezone", 'Asia/Jakarta') as "timezone", COALESCE(w."sprintFormat", 'Sprint {N}') as "sprintFormat", w."createdByUserId"
      FROM "WorkspaceMembership" wm
      INNER JOIN "Workspace" w ON w."id" = wm."workspaceId"
      WHERE wm."userId" = CAST(? AS INTEGER)
@@ -98,12 +100,20 @@ export async function getWorkspaceMembershipsForUser(userId: number) {
   );
 }
 
-export async function updateWorkspaceSettings(workspaceId: number, data: { name: string; accentColor: string; templateKey: string; iconPath?: string }) {
+export async function updateWorkspaceSettings(workspaceId: number, data: { name: string; accentColor?: string; templateKey?: string; iconPath?: string; timezone?: string; sprintFormat?: string }) {
   const trimmedName = String(data.name || "").trim();
   if (!trimmedName) throw new Error("Workspace name is required.");
   await db.run(
-    'UPDATE "Workspace" SET "name" = ?, "accentColor" = ?, "templateKey" = ?, "iconPath" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-    [trimmedName, data.accentColor || '#2563eb', data.templateKey || 'custom', data.iconPath || '', workspaceId],
+    'UPDATE "Workspace" SET "name" = ?, "accentColor" = ?, "templateKey" = ?, "iconPath" = ?, "timezone" = ?, "sprintFormat" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+    [
+      trimmedName,
+      data.accentColor || '#2563eb',
+      data.templateKey || 'custom',
+      data.iconPath || '',
+      data.timezone || 'Asia/Jakarta',
+      data.sprintFormat || 'Sprint {N}',
+      workspaceId
+    ],
   );
 }
 

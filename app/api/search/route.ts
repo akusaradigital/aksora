@@ -19,7 +19,8 @@ import { getScope, SECTION_LABELS, SCOPE_LABELS, type SearchResult } from "./sea
 
 type SearchCacheEntry = { expiresAt: number; payload: unknown };
 const SEARCH_CACHE_KEY = "__aksora_search_cache";
-const searchCache = (globalThis as any)[SEARCH_CACHE_KEY] ?? ((globalThis as any)[SEARCH_CACHE_KEY] = new Map<string, SearchCacheEntry>());
+const globalStore = globalThis as unknown as Record<string, Map<string, SearchCacheEntry> | undefined>;
+const searchCache = globalStore[SEARCH_CACHE_KEY] ?? (globalStore[SEARCH_CACHE_KEY] = new Map<string, SearchCacheEntry>());
 
 // Simple garbage collection to prevent memory leaks
 function cleanupCache() {

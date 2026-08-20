@@ -11,36 +11,10 @@ import {
 } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
 import { isManagementAdmin } from "@/lib/roles";
+import { checkMemoryRateLimit } from "@/lib/rate-limit";
 
 function assertModule(value: string): ModuleKey | null {
   return moduleOrder.includes(value as ModuleKey) ? (value as ModuleKey) : null;
-}
-
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-let lastCleanup = Date.now();
-
-function checkRateLimit(ip: string) {
-  const now = Date.now();
-  const limit = 60;
-  const window = 60 * 1000;
-
-  if (now - lastCleanup > 5 * 60 * 1000) {
-    for (const [key, val] of rateLimitMap) {
-      if (now > val.resetTime) rateLimitMap.delete(key);
-    }
-    lastCleanup = now;
-  }
-
-  const record = rateLimitMap.get(ip);
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + window });
-    return true;
-  }
-
-  if (record.count >= limit) return false;
-
-  record.count++;
-  return true;
 }
 
 import { friendlyErrorMessage, logError } from "@/lib/logger";
@@ -60,7 +34,7 @@ export async function POST(
   { params }: { params: Promise<{ module: string }> },
 ) {
   const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
-  if (!checkRateLimit(ip)) {
+  if (checkMemoryRateLimit(ip, 60, 60 * 1000).limited) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -122,7 +96,7 @@ export async function DELETE(
   { params }: { params: Promise<{ module: string }> },
 ) {
   const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
-  if (!checkRateLimit(ip)) {
+  if (checkMemoryRateLimit(ip, 60, 60 * 1000).limited) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -181,7 +155,7 @@ export async function PATCH(
   { params }: { params: Promise<{ module: string }> },
 ) {
   const ip = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown";
-  if (!checkRateLimit(ip)) {
+  if (checkMemoryRateLimit(ip, 60, 60 * 1000).limited) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 

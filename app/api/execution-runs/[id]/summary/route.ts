@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth-core";
+import { getCurrentUser } from "@/lib/auth";
+import { getAccessScope } from "@/lib/data-helpers";
 
 // GET /api/execution-runs/[id]/summary - get run summary with comparison to previous run
 export async function GET(
@@ -11,16 +12,13 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const company = user.company || "";
-  const isAdmin = user.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParams = isAdmin ? [] : [company];
+  const { andWhere, params: qParams } = getAccessScope(user);
 
   // Get current run
   const run = await db.get<Record<string, unknown>>(
     `SELECT * FROM "ExecutionRun"
-     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
-    [id, ...companyParams]
+     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${andWhere}`,
+    [id, ...qParams]
   );
 
   if (!run) {
@@ -44,9 +42,8 @@ export async function GET(
      WHERE "testSuiteId" = CAST(? AS INTEGER)
        AND "runNumber" < CAST(? AS INTEGER)
        AND "status" = 'completed'
-       AND "deletedAt" IS NULL${companyFilter}
-     ORDER BY "runNumber" DESC LIMIT 1`,
-    [run.testSuiteId, run.runNumber, ...companyParams]
+       AND "deletedAt" IS NULL${andWhere}`,
+    [run.testSuiteId, run.runNumber, ...qParams]
   );
 
   const prevVerdicts: Record<number, string> = {};

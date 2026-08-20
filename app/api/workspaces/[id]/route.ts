@@ -21,6 +21,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     accentColor?: string;
     templateKey?: string;
     iconPath?: string;
+    timezone?: string;
+    sprintFormat?: string;
     transferToUserId?: number;
   } | null;
 
@@ -42,6 +44,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     accentColor: String(body?.accentColor || "#2563eb"),
     templateKey: String(body?.templateKey || "custom"),
     iconPath: String(body?.iconPath || ""),
+    timezone: String(body?.timezone || "Asia/Jakarta"),
+    sprintFormat: String(body?.sprintFormat || "Sprint {N}"),
   });
   return NextResponse.json({ ok: true });
 }

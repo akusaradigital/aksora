@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import {
   authEnabled,
   createSessionToken,
-  createTempMfaToken,
   registerUser,
   sessionCookieName,
 } from "@/lib/auth";

@@ -23,6 +23,7 @@ import {
   ClockCounterClockwise,
   Headset,
   Key,
+  MicrophoneStage,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +63,7 @@ export const groups: SidebarGroup[] = [
   {
     title: "Documentation",
     items: [
+      { href: "/standup", label: "Daily Standup", icon: MicrophoneStage },
       { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
       { href: "/activity-log", label: "Activity Log", icon: ClockCounterClockwise },
     ],
@@ -91,13 +93,13 @@ export const groups: SidebarGroup[] = [
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/api-keys", "/settings/support", "/work-logs"],
-  fullstack: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
-  ai: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
-  qa: ["/", "/dashboard", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
-  fe: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
-  be: ["/", "/dashboard", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
-  pm: ["/", "/dashboard", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  admin: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/api-keys", "/settings/support", "/work-logs"],
+  fullstack: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  ai: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  qa: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  fe: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  be: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
+  pm: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs"],
 };
 
 function canSeeHref(role: string, href: string) {

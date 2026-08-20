@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Sidebar } from "./sidebar";
 import { GlobalSearch } from "@/components/shared/search/global-search";
 import { NotificationPanel } from "./sidebar";
-import { Bell, CaretDown, CaretUp, Gear, List, SignOut, UserCircle } from "@phosphor-icons/react";
+import { Bell, Buildings, CaretDown, CaretUp, Gear, List, SignOut, UserCircle } from "@phosphor-icons/react";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { cn } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
@@ -15,9 +15,20 @@ import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 import { CommandPalette } from "@/components/shared/search/command-palette";
 import { OnboardingTour } from "@/components/layout/onboarding-tour";
 import { useAssignmentNotifications } from "@/hooks/use-assignment-notifications";
+import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+import { WorkspaceOnboardingModal } from "@/components/layout/workspace-onboarding-modal";
 
 type AppWrapperProps = {
   children: React.ReactNode;
+};
+
+type WorkspaceMembership = {
+  id: number;
+  workspaceId: number;
+  role: string;
+  status: string;
+  name: string;
+  slug: string;
 };
 
 type AppUser = {
@@ -26,6 +37,8 @@ type AppUser = {
   name?: string | null;
   email?: string | null;
   avatar?: string | null;
+  activeWorkspaceId?: number | null;
+  memberships?: WorkspaceMembership[];
 };
 
 export function AppWrapper({ children }: AppWrapperProps) {
@@ -46,7 +59,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const companyName = String(user?.company || "").trim();
   const accountLabel = companyName || (user ? getRoleLabel(user?.role || "") : "Workspace");
 
-  const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security"];
+  const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security", "/onboarding"];
   const isAuthScreen = marketingPaths.includes(pathname);
   const isSuperadminScreen = pathname.startsWith("/admin/overview");
 
@@ -56,8 +69,13 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const refreshUser = async () => {
     try {
       const response = await fetch("/api/auth/me");
-      const data = await response.json();
-      setUser(data.user || null);
+      const data = await response.json() as { user?: AppUser | null };
+      const fetchedUser = data.user || null;
+      setUser(fetchedUser);
+      // Redirect to onboarding if logged in but has no workspace membership
+      if (fetchedUser && (fetchedUser.memberships?.length ?? 0) === 0 && !pathname.startsWith("/onboarding")) {
+        router.replace("/onboarding");
+      }
     } catch {
       setUser(null);
     }
@@ -154,6 +172,9 @@ export function AppWrapper({ children }: AppWrapperProps) {
 
   return (
     <div suppressHydrationWarning className="flex min-h-screen bg-[var(--bg-app)] overflow-x-hidden">
+      {mounted && user && !user.activeWorkspaceId && (user.memberships?.length ?? 0) === 0 && (
+        <WorkspaceOnboardingModal />
+      )}
       <CommandPalette />
       <OnboardingTour />
       {mobileOpen && (
@@ -292,6 +313,23 @@ export function AppWrapper({ children }: AppWrapperProps) {
                         </div>
                       )}
                     </div>
+
+                    {(user?.memberships?.length ?? 0) >= 1 && (
+                      <div className="mt-3 border-t border-gray-100 pt-3">
+                        <WorkspaceSwitcher
+                          memberships={user?.memberships ?? []}
+                          activeWorkspaceId={user?.activeWorkspaceId}
+                          compact
+                          onSwitched={() => setAccountOpen(false)}
+                        />
+                        <div className="mt-2 border-t border-gray-100 pt-2">
+                          <Link href="/settings/workspaces" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-sky-700 hover:text-sky-900">
+                            <Buildings size={14} weight="bold" />
+                            Manage Workspaces
+                          </Link>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3">
                       <Link href="/settings/profile" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">

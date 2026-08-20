@@ -90,7 +90,11 @@ export default function GanttPage() {
     "July", "August", "September", "October", "November", "December",
   ], []);
 
-  useEffect(() => { setPeriodPickerYear(focusDate.getFullYear()); }, [focusDate]);
+  // Sync picker year when focus date changes, but check current state value to prevent synchronous cascading renders
+  const focusYear = focusDate.getFullYear();
+  useEffect(() => {
+    setPeriodPickerYear(prev => prev !== focusYear ? focusYear : prev);
+  }, [focusYear]);
 
   const fetchRangeKey = useMemo(() => {
     if (viewMode === "year") return `${currentYear}-01-01:${currentYear}-12-31`;

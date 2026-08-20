@@ -22,13 +22,31 @@ const globalForDb = globalThis as unknown as {
 async function getPostgresPool() {
   if (!globalForDb.pgPool) {
     const isNeon = databaseUrl.includes("neon.tech") || databaseUrl.includes("neon-");
+    let connectionString = databaseUrl;
+
+    // ponytail: auto-detect and switch to neon pooler host if neon.tech is used without -pooler
+    if (isNeon && !connectionString.includes("-pooler")) {
+      try {
+        const urlObj = new URL(connectionString);
+        if (urlObj.hostname.endsWith(".neon.tech") && !urlObj.hostname.includes("-pooler")) {
+          const parts = urlObj.hostname.split(".");
+          parts[0] = `${parts[0]}-pooler`;
+          urlObj.hostname = parts.join(".");
+          connectionString = urlObj.toString();
+        }
+      } catch {
+        // Fallback to original connection string if parsing fails
+      }
+    }
+
     const poolConfig = {
-      connectionString: databaseUrl,
+      connectionString,
       max: isNeon ? 10 : 20,
       min: isNeon ? 0 : 2,
       idleTimeoutMillis: isNeon ? 10000 : 30000,
-      connectionTimeoutMillis: isNeon ? 10000 : 5000,
+      connectionTimeoutMillis: isNeon ? 5000 : 5000,
       allowExitOnIdle: isNeon,
+      statement_timeout: 8000,
     };
     let pool;
     if (isNeon) {
@@ -48,14 +66,37 @@ async function getPostgresPool() {
 
 async function ensureSchema() {
   if (globalForDb.schemaReady) return;
-  await ensureSchemaBootstrap({
-    getPostgresPool,
-    getSchemaInitPromise: () => globalForDb.schemaInitPromise,
-    setSchemaInitPromise: (value) => {
-      globalForDb.schemaInitPromise = value;
-    },
-  });
+  // ponytail: ensure concurrent requests await the exact same bootstrap promise to prevent races
+  if (!globalForDb.schemaInitPromise) {
+    globalForDb.schemaInitPromise = ensureSchemaBootstrap({
+      getPostgresPool,
+      getSchemaInitPromise: () => globalForDb.schemaInitPromise,
+      setSchemaInitPromise: (value) => {
+        globalForDb.schemaInitPromise = value;
+      },
+    });
+  }
+  await globalForDb.schemaInitPromise;
   globalForDb.schemaReady = true;
+}
+
+function isTransientError(err: unknown): boolean {
+  if (!err) return false;
+  const code = typeof err === "object" && "code" in err ? String((err as { code: unknown }).code || "") : "";
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    code === "57P01" ||
+    code === "08006" ||
+    code === "08001" ||
+    message.includes("ECONNRESET") ||
+    message.includes("ETIMEDOUT") ||
+    message.includes("timeout exceeded") ||
+    message.includes("pool timeout")
+  );
+}
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
@@ -65,9 +106,23 @@ async function queryRaw<T>(queryStr: string, params: unknown[] = []): Promise<T[
     const { rows } = await tx.query(pgQuery, params);
     return rows as T[];
   }
-  const pool = await getPostgresPool();
-  const { rows } = await pool.query(pgQuery, params);
-  return rows as T[];
+
+  let attempts = 0;
+  while (true) {
+    try {
+      const pool = await getPostgresPool();
+      const { rows } = await pool.query(pgQuery, params);
+      return rows as T[];
+    } catch (err) {
+      attempts++;
+      if (attempts <= 2 && isTransientError(err)) {
+        const backoff = Math.min(150, 50 * Math.pow(2, attempts - 1) + Math.random() * 50);
+        await sleep(backoff);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
@@ -77,8 +132,23 @@ async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
     await tx.query(pgQuery, params);
     return;
   }
-  const pool = await getPostgresPool();
-  await pool.query(pgQuery, params);
+
+  let attempts = 0;
+  while (true) {
+    try {
+      const pool = await getPostgresPool();
+      await pool.query(pgQuery, params);
+      return;
+    } catch (err) {
+      attempts++;
+      if (attempts <= 2 && isTransientError(err)) {
+        const backoff = Math.min(150, 50 * Math.pow(2, attempts - 1) + Math.random() * 50);
+        await sleep(backoff);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function execRaw(queryStr: string): Promise<void> {

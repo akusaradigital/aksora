@@ -246,3 +246,90 @@ export function AuditLogTab() {
     </div>
   );
 }
+
+// ─── A/B Test Tab ────────────────────────────────────────────────────────────
+export function AbTestTab() {
+  type AbRow = { variant: string; eventType: string; count: number };
+  const [rows, setRows] = useState<AbRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/ab-test").then((r) => r.json()).then((j) => setRows(j.data || []))
+      .catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold text-gray-800">Hero Headline A/B Test</h2>
+      <div className="overflow-x-auto border border-gray-200 bg-white">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <th className="px-4 py-2">Variant</th><th className="px-4 py-2">Event</th><th className="px-4 py-2">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.variant}-${r.eventType}`} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2.5 font-bold text-gray-800">{r.variant}</td>
+                <td className="px-4 py-2.5 text-gray-600">{r.eventType}</td>
+                <td className="px-4 py-2.5 text-gray-700">{r.count}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (<tr><td colSpan={3} className="px-4 py-6 text-center text-xs text-gray-400">No events recorded yet.</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Email Log Tab ───────────────────────────────────────────────────────────
+type EmailEvent = { id: number; email: string; type: string; subject: string; createdAt: string };
+
+export function EmailLogTab() {
+  const [rows, setRows] = useState<EmailEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/email-events").then((r) => r.json()).then((j) => setRows(j.data || []))
+      .catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingSkeleton />;
+
+  const typeColors: Record<string, string> = {
+    "email.delivered": "bg-emerald-50 text-emerald-700",
+    "email.sent": "bg-blue-50 text-blue-700",
+    "email.bounced": "bg-rose-50 text-rose-700",
+    "email.complained": "bg-rose-50 text-rose-700",
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold text-gray-800">Email Delivery Log</h2>
+      <div className="overflow-x-auto border border-gray-200 bg-white">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <th className="px-4 py-2">Recipient</th><th className="px-4 py-2">Event</th><th className="px-4 py-2">Subject</th><th className="px-4 py-2">When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2.5 font-medium text-gray-800">{r.email}</td>
+                <td className="px-4 py-2.5"><span className={`px-1.5 py-0.5 text-[10px] font-bold ${typeColors[r.type] || "bg-gray-50 text-gray-600"}`}>{r.type}</span></td>
+                <td className="px-4 py-2.5 text-gray-600">{r.subject || "—"}</td>
+                <td className="px-4 py-2.5 text-gray-400">{formatDateTime(r.createdAt)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-gray-400">No email events yet.</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

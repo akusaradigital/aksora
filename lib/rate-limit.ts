@@ -46,6 +46,30 @@ function toMs(value: Date | string | null | undefined): number {
   return Number.isFinite(time) ? time : 0;
 }
 
+// In-memory sliding window fallback when DB is down or for high-frequency requests
+const memoryRateLimitStore = new Map<string, { count: number; expiresAt: number }>();
+
+export function checkMemoryRateLimit(
+  key: string,
+  limit = 60,
+  windowMs = 60 * 1000,
+): { limited: boolean; remaining: number; resetAfterMs: number } {
+  const now = Date.now();
+  const entry = memoryRateLimitStore.get(key);
+
+  if (!entry || now > entry.expiresAt) {
+    memoryRateLimitStore.set(key, { count: 1, expiresAt: now + windowMs });
+    return { limited: false, remaining: limit - 1, resetAfterMs: windowMs };
+  }
+
+  if (entry.count >= limit) {
+    return { limited: true, remaining: 0, resetAfterMs: Math.max(0, entry.expiresAt - now) };
+  }
+
+  entry.count += 1;
+  return { limited: false, remaining: limit - entry.count, resetAfterMs: Math.max(0, entry.expiresAt - now) };
+}
+
 export function rateLimitKey(ip: string, email: string): string {
   return `${ip}|${email.toLowerCase().trim()}`;
 }

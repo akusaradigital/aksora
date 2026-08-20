@@ -50,7 +50,11 @@ export async function GET() {
       dailyDigest: row.dailyDigest === 1,
     };
 
-    return NextResponse.json({ preferences });
+    return NextResponse.json({ preferences }, {
+      headers: {
+        "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      },
+    });
   } catch (error) {
     console.error("NotificationPreferences GET error:", error);
     return NextResponse.json({ preferences: DEFAULT_PREFS });

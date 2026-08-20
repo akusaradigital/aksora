@@ -3,7 +3,18 @@
 import { Suspense, type ChangeEvent, type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Eye, EyeSlash, ShieldCheck } from "@phosphor-icons/react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeSlash,
+  ShieldCheck,
+  ChartLine,
+  Bug,
+  Checks,
+  Sparkle,
+  Users
+} from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { FormFieldError } from "@/components/shared/form-field-error";
@@ -12,9 +23,9 @@ import { getPublicRoleOptions } from "@/lib/roles";
 import { GoogleSignInButton } from "@/components/oauth/google-signin-button";
 
 const inputClass =
-  "w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-blue-500 focus:outline-none";
+  "w-full border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none";
 const selectClass =
-  "w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none";
+  "w-full border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-sm text-slate-900 transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none";
 
 function LoginContent() {
   const router = useRouter();
@@ -133,90 +144,169 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <main className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-5 py-10 lg:py-14">
-        <div className="mb-6 flex items-center justify-between gap-4 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">
-          <Link href="/" className="inline-flex items-center gap-2 text-slate-600 transition hover:text-slate-950">
-            <ArrowLeft size={12} weight="bold" />
-            Back to homepage
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col md:flex-row">
+      {/* Left panel - Visual Branding & Interactive Look */}
+      <section className="hidden md:flex md:w-1/2 lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex-col justify-between p-12 lg:p-16 border-r border-slate-800/50">
+        {/* Subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+
+        {/* Ambient glow blobs */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[450px] h-[450px] bg-purple-600/10 rounded-full blur-3xl" />
+
+        {/* Logo and Brand */}
+        <div className="relative flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-black text-xl">
+            A
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white bg-clip-text bg-gradient-to-r from-white to-slate-300">
+            Aksora
+          </span>
+        </div>
+
+        {/* Value Proposition & Visual Mockup */}
+        <div className="relative my-auto py-8">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/5 text-xs font-semibold tracking-wider text-blue-400 uppercase mb-6">
+            <Sparkle size={12} weight="fill" />
+            Enterprise QA Workspace
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight text-white max-w-lg">
+            One Team. <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400">
+              One Unified Flow.
+            </span>
+          </h2>
+          <p className="mt-4 text-slate-400 text-base max-w-md leading-relaxed">
+            Sederhanakan manajemen pengujian tim Anda. Hubungkan perencanaan test case, eksekusi sprint, standup harian, dan pelaporan bug dalam satu workspace terintegrasi.
+          </p>
+
+          {/* Premium CSS-based UI mockup */}
+          <div className="mt-12 max-w-md rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 backdrop-blur-md shadow-2xl shadow-black/40">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono tracking-wider">Aksora Dashboard v0.12.0</span>
+            </div>
+
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                    <Checks size={16} weight="bold" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200">Execution Run #182</p>
+                    <p className="text-[10px] text-slate-500">Workspace: QA-Daily-Hub</p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Passed</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-400">
+                    <Bug size={16} weight="bold" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200">Bug #401: Auth token crash</p>
+                    <p className="text-[10px] text-slate-500">Reported by PM Admin</p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 font-semibold border border-rose-500/20">High</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                    <ChartLine size={16} weight="bold" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200">Active Sprint 12</p>
+                    <p className="text-[10px] text-slate-500">Sprint Goal: Core APIs stability</p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer info */}
+        <div className="relative flex items-center justify-between text-xs text-slate-500 border-t border-slate-800/40 pt-6">
+          <span>&copy; {new Date().getFullYear()} Aksora Platform.</span>
+          <span className="flex items-center gap-1">
+            <Users size={12} weight="bold" />
+            Akusara Digital
+          </span>
+        </div>
+      </section>
+
+      {/* Right panel - Auth Form */}
+      <section className="flex-1 bg-white flex flex-col justify-between p-6 sm:p-12 lg:p-16 text-slate-900 min-h-screen md:min-h-0">
+        {/* Navigation & Access Info */}
+        <div className="flex items-center justify-between gap-4 text-xs font-semibold tracking-wider text-slate-500 mb-8 md:mb-0">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-slate-600 transition hover:text-blue-600"
+          >
+            <ArrowLeft size={14} weight="bold" />
+            <span>Kembali ke Beranda</span>
           </Link>
-          <span className="inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5">
+          <span className="inline-flex items-center gap-1.5 border border-slate-100 bg-slate-50/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-600 font-bold uppercase tracking-wider">
             <ShieldCheck size={14} weight="bold" className="text-blue-600" />
             Workspace access
           </span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-          <section className="border border-slate-200 bg-white p-6 lg:p-8">
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-blue-600">
-              {mode === "signup" ? "Create account" : mode === "forgot" ? "Recover access" : "Sign in"}
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-              {mode === "signup" ? "Create your workspace account" : mode === "forgot" ? "Reset your password" : "Welcome back"}
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
+        {/* Form Container */}
+        <div className="my-auto max-w-md w-full mx-auto py-8">
+          <div className="mb-8">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">
+              {mode === "signup" ? "Create Account" : mode === "forgot" ? "Password Recovery" : "Welcome Back"}
+            </span>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
               {mode === "signup"
-                ? "Create an account for the team member who needs access."
+                ? "Daftar Akun Baru"
                 : mode === "forgot"
-                  ? "Enter your email and we will send a reset link if the account exists."
-                  : "Use Google or email to enter your workspace."}
+                  ? "Atur Ulang Sandi"
+                  : "Masuk ke Aksora"}
+            </h1>
+            <p className="mt-2.5 text-sm leading-relaxed text-slate-500">
+              {mode === "signup"
+                ? "Mulai berkolaborasi dengan tim dalam mengelola kualitas software."
+                : mode === "forgot"
+                  ? "Masukkan email Anda dan kami akan mengirimkan instruksi pemulihan."
+                  : "Masuk dengan Google atau email untuk mengakses workspace Anda."}
             </p>
+          </div>
 
-            <div className="mt-8 space-y-3">
-              <div className="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4">
-                <Check size={16} weight="bold" className="mt-0.5 text-emerald-600" />
-                <div>
-                  <p className="text-sm font-semibold text-slate-950">Google sign-in</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">Use the button below if your account already exists.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 border border-slate-200 bg-slate-50 p-4">
-                <Check size={16} weight="bold" className="mt-0.5 text-emerald-600" />
-                <div>
-                  <p className="text-sm font-semibold text-slate-950">Email sign-in</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">The form supports sign in, sign up, and password reset in one place.</p>
-                </div>
-              </div>
-            </div>
-
+          {/* Form wrapper */}
+          <div className="border border-slate-100 bg-white shadow-xl shadow-slate-200/50 rounded-2xl p-6 sm:p-8">
             {mode !== "forgot" && (
-              <button
-                type="button"
-                onClick={() => handleModeChange(mode === "signin" ? "signup" : "signin")}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-              >
-                <ArrowRight size={14} weight="bold" className={mode === "signin" ? "rotate-0" : "rotate-180"} />
-                <span>{mode === "signin" ? "Switch to create account" : "Use sign in"}</span>
-              </button>
-            )}
-          </section>
-
-          <section className="border border-slate-200 bg-white p-6 lg:p-8">
-            {mode !== "forgot" && (
-              <div className="border border-slate-200 bg-slate-50 p-4">
+              <div>
                 <GoogleSignInButton inviteToken={inviteToken} />
-                <div className="my-4 flex items-center gap-3">
-                  <span className="h-px flex-1 bg-slate-200" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">or use email</span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
-                  <span className="inline-flex items-center gap-1 border border-slate-200 bg-white px-2.5 py-1">
-                    <Check size={12} weight="bold" className="text-emerald-600" />
-                    Google
-                  </span>
-                  <span className="inline-flex items-center gap-1 border border-slate-200 bg-white px-2.5 py-1">
-                    <Check size={12} weight="bold" className="text-emerald-600" />
-                    Email
-                  </span>
+                <div className="my-5 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-slate-100" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">atau gunakan email</span>
+                  <span className="h-px flex-1 bg-slate-100" />
                 </div>
               </div>
             )}
 
-            <form noValidate onSubmit={submit} className="mt-6 space-y-5">
+            <form noValidate onSubmit={submit} className="space-y-4">
               {mode === "signup" && (
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Full Name</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nama Lengkap</label>
                   <input
                     type="text"
                     name="name"
@@ -229,8 +319,8 @@ function LoginContent() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Email Address</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Alamat Email</label>
                 <input
                   type="email"
                   name="email"
@@ -244,16 +334,16 @@ function LoginContent() {
 
               {mode !== "forgot" && (
                 <>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Password</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Kata Sandi</label>
                       {mode === "signin" && (
                         <button
                           type="button"
                           onClick={() => handleModeChange("forgot")}
-                          className="text-[11px] font-bold uppercase tracking-[0.25em] text-blue-600 transition hover:text-blue-700"
+                          className="text-[10px] font-bold uppercase tracking-wider text-blue-600 transition hover:text-blue-700"
                         >
-                          Forgot?
+                          Lupa sandi?
                         </button>
                       )}
                     </div>
@@ -280,15 +370,15 @@ function LoginContent() {
 
                   {mode === "signup" && (
                     <>
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Software Role</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Peran Pekerjaan</label>
                         <select
                           name="role"
                           value={formData.role}
                           onChange={handleInputChange}
                           className={selectClass}
                         >
-                          <option value="">Select your role</option>
+                          <option value="">Pilih peran Anda</option>
                           {getPublicRoleOptions().map((role) => (
                             <option key={role.value} value={role.value}>
                               {role.label}
@@ -298,14 +388,14 @@ function LoginContent() {
                         <FormFieldError message={fieldErrors.role} className="px-1" />
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">Company Name</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nama Workspace / Perusahaan</label>
                         <input
                           type="text"
                           name="company"
                           value={formData.company}
                           onChange={handleInputChange}
-                          placeholder="e.g. Acme Corp"
+                          placeholder="Contoh: Acme Corp"
                           className={inputClass}
                         />
                         <FormFieldError message={fieldErrors.company} className="px-1" />
@@ -317,56 +407,67 @@ function LoginContent() {
 
               {error && <InlineAlert variant="error" message={error} compact className="px-1" />}
 
-              <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 pt-2">
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center justify-center gap-2 bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-5 py-3 text-sm font-semibold transition-all shadow-md shadow-blue-500/15 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
                 >
                   <span>
                     {pending
-                      ? "Processing..."
+                      ? "Memproses..."
                       : mode === "signup"
-                        ? "Create Account"
+                        ? "Daftar Sekarang"
                         : mode === "forgot"
-                          ? "Send Reset Link"
-                          : "Sign In"}
+                          ? "Kirim Link Atur Ulang"
+                          : "Masuk"}
                   </span>
                   {!pending && <ArrowRight size={16} weight="bold" />}
                 </button>
-
-                <p className="text-xs leading-5 text-slate-500">
-                  {mode === "signup"
-                    ? "Creating an account without an invite sets up your own new workspace."
-                    : "Google sign-in and email sign-in share the same form."}
-                </p>
               </div>
 
-              {mode === "forgot" && (
-                <button
-                  type="button"
-                  onClick={() => handleModeChange("signin")}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-                >
-                  <ArrowLeft size={14} weight="bold" />
-                  <span>Back to sign in</span>
-                </button>
+              {mode !== "forgot" ? (
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange(mode === "signin" ? "signup" : "signin")}
+                    className="text-xs text-slate-500 transition hover:text-blue-600"
+                  >
+                    {mode === "signin" ? (
+                      <span>Belum punya akun? <strong className="text-blue-600">Daftar di sini</strong></span>
+                    ) : (
+                      <span>Sudah memiliki akun? <strong className="text-blue-600">Masuk di sini</strong></span>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange("signin")}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600"
+                  >
+                    <ArrowLeft size={12} weight="bold" />
+                    <span>Kembali ke halaman masuk</span>
+                  </button>
+                </div>
               )}
             </form>
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
-              <span>Aksora</span>
-            </div>
-          </section>
+          </div>
         </div>
-      </main>
+
+        {/* Footer */}
+        <div className="md:hidden text-center text-xs text-slate-400 border-t border-slate-100 pt-6">
+          &copy; {new Date().getFullYear()} Aksora. Built by Akusara Digital.
+        </div>
+      </section>
 
       <ConfirmModal
         isOpen={showSuccessModal}
-        title="Registration Successful"
-        message="Your account has been created successfully. You can now sign in with your email and password."
-        confirmText="Sign In Now"
-        cancelText="Close"
+        title="Pendaftaran Berhasil"
+        message="Akun Anda berhasil dibuat. Silakan masuk menggunakan email dan kata sandi Anda."
+        confirmText="Masuk Sekarang"
+        cancelText="Tutup"
         type="info"
         onConfirm={() => setShowSuccessModal(false)}
         onCancel={() => setShowSuccessModal(false)}
@@ -379,7 +480,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 text-3xl font-black tracking-tighter text-blue-600">
+        <div className="flex min-h-screen items-center justify-center bg-slate-900 text-3xl font-black tracking-tighter text-blue-500">
           Aksora
         </div>
       }

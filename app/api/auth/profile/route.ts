@@ -22,6 +22,10 @@ export async function GET() {
       email: user.email,
       role: user.role,
       company: user.company,
+    }, {
+      headers: {
+        "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      },
     });
   } catch (error) {
     console.error("Profile Fetch Error:", error);

@@ -14,6 +14,7 @@ type OverdueBugRow = {
   title: string;
   severity: string | null;
   createdAt: string | Date;
+  company: string;
 };
 
 type SprintDeadlineRow = {
@@ -21,6 +22,7 @@ type SprintDeadlineRow = {
   publicToken: string | null;
   name: string;
   endDate: string | Date;
+  company: string;
 };
 
 type TestPlanDeadlineRow = {
@@ -28,6 +30,7 @@ type TestPlanDeadlineRow = {
   publicToken: string | null;
   title: string;
   endDate: string | Date;
+  company: string;
 };
 
 export async function GET() {
@@ -46,7 +49,6 @@ export async function GET() {
     });
   }
   const andCompany = isAdmin ? "" : ` AND "company" = ANY(?::text[])`;
-  const cp = isAdmin ? [] : [workspaces];
   const todayIso = new Date().toISOString().slice(0, 10);
   const plus3Iso = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
   const plus2Iso = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
@@ -55,11 +57,11 @@ export async function GET() {
   const notifications: NotificationItem[] = [];
 
   const [overdueBugs, deadlineSprints, deadlinePlans] = await Promise.all([
-    db.query<any>(
+    db.query<OverdueBugRow>(
       `SELECT id, "publicToken", title, severity, "createdAt", "company" FROM "Bug" WHERE status = 'open' AND ${overdueExpr}${andCompany} ORDER BY "createdAt" ASC LIMIT 10`,
       isAdmin ? [] : [workspaces],
     ),
-    db.query<any>(
+    db.query<SprintDeadlineRow>(
       `SELECT id, "publicToken", name, "endDate", "company" FROM "Sprint"
        WHERE status != 'completed'
          AND status != 'closed'
@@ -70,7 +72,7 @@ export async function GET() {
        ORDER BY "endDate" ASC LIMIT 5`,
       isAdmin ? [todayIso, plus3Iso] : [todayIso, plus3Iso, workspaces],
     ),
-    db.query<any>(
+    db.query<TestPlanDeadlineRow>(
       `SELECT id, "publicToken", title, "endDate", "company" FROM "TestPlan"
        WHERE status != 'closed'
          AND status != 'completed'

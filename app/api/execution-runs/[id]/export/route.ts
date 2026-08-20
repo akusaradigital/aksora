@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth-core";
+import { getCurrentUser } from "@/lib/auth";
+import { getAccessScope } from "@/lib/data-helpers";
 
 // GET /api/execution-runs/[id]/export - export run as printable HTML (for PDF via browser print)
 export async function GET(
@@ -11,17 +12,14 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const company = user.company || "";
-  const isAdmin = user.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParams = isAdmin ? [] : [company];
+  const { company, andWhere, params: qParams } = getAccessScope(user);
 
   const run = await db.get<Record<string, unknown>>(
     `SELECT r.*, s."title" as "suiteTitle"
      FROM "ExecutionRun" r
      JOIN "TestSuite" s ON s."id" = r."testSuiteId"
-     WHERE r."id" = CAST(? AS INTEGER) AND r."deletedAt" IS NULL${companyFilter.replace('r.', '')}`,
-    [id, ...companyParams]
+     WHERE r."id" = CAST(? AS INTEGER) AND r."deletedAt" IS NULL${andWhere.replace('"workspaceId"', 'r."workspaceId"').replace('"company"', 'r."company"')}`,
+    [id, ...qParams]
   );
 
   if (!run) {

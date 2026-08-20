@@ -4,6 +4,7 @@ import { authEnabled, registerUser } from "@/lib/auth";
 import { isInviteRole, normalizeRole } from "@/lib/roles";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
 import { ensureWorkspaceForUser, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
+import { sendWelcomeEmail, sendInviteAcceptedEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   if (!authEnabled()) {
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest) {
     if ("error" in consume) {
       return NextResponse.json({ error: consume.error }, { status: 400 });
     }
+    sendWelcomeEmail(email, String(invite.company ?? "your workspace"));
+    sendInviteAcceptedEmail(invite.createdBy, email, String(invite.company ?? "your workspace"));
     return NextResponse.json({ ok: true });
   }
 
@@ -87,6 +90,7 @@ export async function POST(request: NextRequest) {
   if (createdUser) {
     await ensureWorkspaceForUser(createdUser.company, createdUser.id, normalizeRole(createdUser.role));
   }
+  sendWelcomeEmail(email, workspaceName);
 
   return NextResponse.json({ ok: true });
 }

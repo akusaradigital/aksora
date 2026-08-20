@@ -53,6 +53,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_unique" ON "SearchToken"("com
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_lookup" ON "SearchToken"("company", "entityType", "entityIdInt", "token");
 CREATE INDEX IF NOT EXISTS "idx_searchtoken_workspace_token" ON "SearchToken"("workspaceId", "entityType", "token");
 CREATE INDEX IF NOT EXISTS "idx_sprint_workspace" ON "Sprint"("workspaceId");
+CREATE INDEX IF NOT EXISTS "idx_emailevent_email_type" ON "EmailEvent"("email", "type");
 CREATE INDEX IF NOT EXISTS "idx_sprint_workspace_updated" ON "Sprint"("workspaceId", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_sprint_workspace_name" ON "Sprint"("workspaceId", "name");
 CREATE INDEX IF NOT EXISTS "idx_sprint_workspace_status" ON "Sprint"("workspaceId", "status");
@@ -93,12 +94,12 @@ CREATE INDEX IF NOT EXISTS "idx_deployment_project_active_date" ON "Deployment"(
 CREATE INDEX IF NOT EXISTS "idx_deployment_workspace_status" ON "Deployment"("workspaceId", "status");
 CREATE INDEX IF NOT EXISTS "idx_deployment_workspace_date" ON "Deployment"("workspaceId", "date");
 CREATE INDEX IF NOT EXISTS "idx_deployment_workspace_active_date" ON "Deployment"("workspaceId", "date" DESC, "createdAt" DESC) WHERE "deletedAt" IS NULL;
-CREATE INDEX IF NOT EXISTS "idx_execrun_company_suite" ON "ExecutionRun"("company", "testSuiteId");
-CREATE INDEX IF NOT EXISTS "idx_execrun_company_status" ON "ExecutionRun"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_execrun_workspace_suite" ON "ExecutionRun"("workspaceId", "testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_execrun_workspace_status" ON "ExecutionRun"("workspaceId", "status");
 CREATE INDEX IF NOT EXISTS "idx_execrun_suite_number" ON "ExecutionRun"("testSuiteId", "runNumber" DESC);
-CREATE INDEX IF NOT EXISTS "idx_execrun_company_active" ON "ExecutionRun"("company", "startedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_execrun_workspace_active" ON "ExecutionRun"("workspaceId", "startedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_caseverdict_run" ON "CaseVerdict"("executionRunId");
-CREATE INDEX IF NOT EXISTS "idx_caseverdict_company_run" ON "CaseVerdict"("company", "executionRunId");
+CREATE INDEX IF NOT EXISTS "idx_caseverdict_workspace_run" ON "CaseVerdict"("workspaceId", "executionRunId");
 CREATE INDEX IF NOT EXISTS "idx_caseverdict_testcase" ON "CaseVerdict"("testCaseId");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_caseverdict_run_case" ON "CaseVerdict"("executionRunId", "testCaseId");
 CREATE INDEX IF NOT EXISTS "idx_dashcomment_workspace_entity" ON "DashboardComment"("workspaceId", "entityType", "entityId");
@@ -130,6 +131,8 @@ CREATE INDEX IF NOT EXISTS "idx_adminnotif_created" ON "AdminNotification"("crea
 CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_module" ON "ModuleView"("workspaceId", "module");
 CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_user_module" ON "ModuleView"("workspaceId", "userId", "module");
 CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_shared" ON "ModuleView"("workspaceId", "shared");
+CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_active_module" ON "ModuleView"("workspaceId", "module") WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_active_user" ON "ModuleView"("workspaceId", "userId", "module") WHERE "deletedAt" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_notifpref_user" ON "NotificationPreference"("userId");
 CREATE INDEX IF NOT EXISTS "idx_notifpref_workspace" ON "NotificationPreference"("workspaceId");
 `;

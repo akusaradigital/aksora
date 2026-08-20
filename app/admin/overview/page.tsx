@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Buildings, CurrencyCircleDollar, Megaphone, Headset, ClockCounterClockwise, ShieldCheck, SignOut, Export } from "@phosphor-icons/react";
+import { Buildings, CurrencyCircleDollar, Megaphone, Headset, ClockCounterClockwise, ShieldCheck, SignOut, Export, ChartLine, EnvelopeSimple } from "@phosphor-icons/react";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
 
 const OverviewTab = dynamic(() => import("./admin-overview-tab").then((m) => m.OverviewTab), {
@@ -26,8 +26,16 @@ const AuditLogTab = dynamic(() => import("./admin-other-tabs").then((m) => m.Aud
   ssr: false,
   loading: () => <div className="h-64 border border-gray-200 bg-gray-50 animate-pulse" />,
 });
+const AbTestTab = dynamic(() => import("./admin-other-tabs").then((m) => m.AbTestTab), {
+  ssr: false,
+  loading: () => <div className="h-64 border border-gray-200 bg-gray-50 animate-pulse" />,
+});
+const EmailLogTab = dynamic(() => import("./admin-other-tabs").then((m) => m.EmailLogTab), {
+  ssr: false,
+  loading: () => <div className="h-64 border border-gray-200 bg-gray-50 animate-pulse" />,
+});
 
-type Tab = "overview" | "revenue" | "announcements" | "tickets" | "audit";
+type Tab = "overview" | "revenue" | "announcements" | "tickets" | "audit" | "abtest" | "emails";
 type AdminUser = { name?: string; email?: string } | null;
 
 export default function AdminOverviewPage() {
@@ -56,6 +64,8 @@ export default function AdminOverviewPage() {
     { key: "announcements", label: "Announcements", icon: <Megaphone size={14} weight="bold" /> },
     { key: "tickets", label: "Tickets", icon: <Headset size={14} weight="bold" /> },
     { key: "audit", label: "Audit Log", icon: <ClockCounterClockwise size={14} weight="bold" /> },
+    { key: "abtest", label: "A/B Test", icon: <ChartLine size={14} weight="bold" /> },
+    { key: "emails", label: "Emails", icon: <EnvelopeSimple size={14} weight="bold" /> },
   ];
 
   return (
@@ -97,6 +107,8 @@ export default function AdminOverviewPage() {
         {tab === "announcements" && <AnnouncementsTab />}
         {tab === "tickets" && <TicketsTab />}
         {tab === "audit" && <AuditLogTab />}
+        {tab === "abtest" && <AbTestTab />}
+        {tab === "emails" && <EmailLogTab />}
       </main>
 
       <footer className="border-t border-gray-200 bg-white px-4 py-3 text-center">

@@ -139,9 +139,9 @@ export default function OgImage() {
             fontSize: "14px",
           }}
         >
-          <span>✓ Free for small teams</span>
-          <span>✓ Setup in 2 minutes</span>
-          <span>✓ No credit card required</span>
+          <span>• Free for small teams</span>
+          <span>• Setup in 2 minutes</span>
+          <span>• No credit card required</span>
         </div>
       </div>
     ),

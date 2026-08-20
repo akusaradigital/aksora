@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth-core";
+import { getCurrentUser } from "@/lib/auth";
+import { getAccessScope } from "@/lib/data-helpers";
 
 // PATCH /api/execution-runs/[id]/verdict - auto-save a single verdict
 export async function PATCH(
@@ -11,10 +12,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: runId } = await params;
-  const company = user.company || "";
-  const isAdmin = user.role === "admin" && !company;
-  const companyFilter = isAdmin ? "" : ' AND "company" = ?';
-  const companyParams = isAdmin ? [] : [company];
+  const { company, workspaceId, andWhere, params: qParams } = getAccessScope(user);
   const body = await request.json();
 
   const { testCaseId, verdict, actualResult, evidence, duration } = body;
@@ -30,8 +28,8 @@ export async function PATCH(
   // Verify run exists and is in-progress
   const run = await db.get<{ status: string }>(
     `SELECT "status" FROM "ExecutionRun"
-     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
-    [runId, ...companyParams]
+     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${andWhere}`,
+    [runId, ...qParams]
   );
 
   if (!run) {
@@ -65,9 +63,9 @@ export async function PATCH(
     );
   } else {
     await db.run(
-      `INSERT INTO "CaseVerdict" ("company", "executionRunId", "testCaseId", "verdict", "actualResult", "evidence", "duration", "executedAt")
-       VALUES (?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?, ${verdict !== "Pending" ? "CURRENT_TIMESTAMP" : "NULL"})`,
-      [company, runId, testCaseId, verdict, actualResult || "", evidence || "", duration || 0]
+      `INSERT INTO "CaseVerdict" ("company", "workspaceId", "executionRunId", "testCaseId", "verdict", "actualResult", "evidence", "duration", "executedAt")
+       VALUES (?, ?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?, ${verdict !== "Pending" ? "CURRENT_TIMESTAMP" : "NULL"})`,
+      [company, workspaceId, runId, testCaseId, verdict, actualResult || "", evidence || "", duration || 0]
     );
   }
 

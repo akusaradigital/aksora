@@ -68,8 +68,9 @@ export function RunExecutionView({
   const [tester, setTester] = useState(run.tester);
   const [notes, setNotes] = useState(run.notes);
   const [elapsed, setElapsed] = useState(0);
-  const [caseStartTime, setCaseStartTime] = useState(Date.now());
-  const startTimeRef = useRef(Date.now());
+  const [caseStartTime, setCaseStartTime] = useState(() => Date.now());
+  const [initialTime] = useState(() => Date.now());
+  const startTimeRef = useRef<number>(initialTime);
   const saveQueue = useRef<Map<number, CaseItem>>(new Map());
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

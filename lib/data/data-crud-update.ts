@@ -35,7 +35,7 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: ModuleData) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
-  const { company, where: _where, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
+  const { company, andWhere: companyFilter, params: companyParam } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
   // Sanitize: prevent literal "undefined"/"null" strings (from String(undefined)) being

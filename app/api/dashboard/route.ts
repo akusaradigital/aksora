@@ -95,7 +95,7 @@ export async function GET(request: Request) {
     try {
       const { company, isAdmin, workspaceId } = getAccessScope(user);
       bugSeverityCounts = await getBugSeverityCounts(company, isAdmin, workspaceId);
-      (data as any).bugSeverityCounts = bugSeverityCounts;
+      (data as Record<string, unknown>).bugSeverityCounts = bugSeverityCounts;
     } catch {
       // Omit bugSeverityCounts from response without error
     }

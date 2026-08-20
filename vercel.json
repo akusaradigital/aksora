@@ -8,6 +8,14 @@
     {
       "path": "/api/cron/health-monitor",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/check-email-domain",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sprint-deadline-reminder",
+      "schedule": "0 8 * * *"
     }
   ]
 }

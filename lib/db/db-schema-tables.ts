@@ -259,6 +259,7 @@ export const tables = [
     schema: `
       "id" SERIAL_OR_PK,
       "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "workspaceId" INTEGER,
       "name" TEXT NOT NULL,
       "keyHash" TEXT NOT NULL,
       "keyPrefix" TEXT NOT NULL,
@@ -313,6 +314,8 @@ export const tables = [
       "accentColor" TEXT NOT NULL DEFAULT '#2563eb',
       "templateKey" TEXT NOT NULL DEFAULT 'custom',
       "iconPath" TEXT NOT NULL DEFAULT '',
+      "timezone" TEXT NOT NULL DEFAULT 'Asia/Jakarta',
+      "sprintFormat" TEXT NOT NULL DEFAULT 'Sprint {N}',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -321,8 +324,8 @@ export const tables = [
     name: "WorkspaceMembership",
     schema: `
       "id" SERIAL_OR_PK,
-      "workspaceId" INTEGER NOT NULL,
-      "userId" INTEGER NOT NULL,
+      "workspaceId" INTEGER NOT NULL REFERENCES "Workspace"("id") ON DELETE CASCADE,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "status" TEXT NOT NULL DEFAULT 'active',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -559,6 +562,25 @@ export const tables = [
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "AbTestEvent",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "variant" TEXT NOT NULL,
+      "eventType" TEXT NOT NULL,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "EmailEvent",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "email" TEXT NOT NULL,
+      "type" TEXT NOT NULL,
+      "subject" TEXT NOT NULL DEFAULT '',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
   {
