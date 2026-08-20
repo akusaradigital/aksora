@@ -1,8 +1,15 @@
 import { ImageResponse } from "next/og";
+import fs from "fs";
+import path from "path";
 
 export const alt = "Aksora — One Team. One Flow.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+const logoBase64 = fs.readFileSync(
+  path.join(process.cwd(), "public", "icon-light.png")
+).toString("base64");
+const logoDataUri = `data:image/png;base64,${logoBase64}`;
 
 export default function OgImage() {
   return new ImageResponse(
@@ -42,41 +49,16 @@ export default function OgImage() {
           >
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                backgroundColor: "#2563eb",
                 display: "flex",
+                width: "64px",
+                height: "64px",
+                borderRadius: "16px",
+                backgroundColor: "white",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "white",
-                position: "relative",
               }}
             >
-              <span style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1 }}>
-                A
-              </span>
-              <span
-                style={{
-                  position: "absolute",
-                  left: "9px",
-                  top: "24px",
-                  width: "30px",
-                  height: "3px",
-                  borderRadius: "2px",
-                  backgroundColor: "white",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  left: "30px",
-                  top: "18px",
-                  borderLeft: "7px solid white",
-                  borderTop: "4px solid transparent",
-                  borderBottom: "4px solid transparent",
-                }}
-              />
+              <img src={logoDataUri} width={48} height={48} />
             </div>
             <span style={{ color: "white", fontSize: "28px", fontWeight: 700 }}>
               Aksora

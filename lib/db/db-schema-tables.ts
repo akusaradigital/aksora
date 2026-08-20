@@ -251,6 +251,10 @@ export const tables = [
       "avatar" TEXT DEFAULT '',
       "mfaEnabled" INTEGER NOT NULL DEFAULT 0,
       "mfaSecret" TEXT,
+      "emailVerified" INTEGER NOT NULL DEFAULT 1,
+      "otpCode" TEXT,
+      "otpExpiresAt" DATE_TYPE,
+      "otpAttempts" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP

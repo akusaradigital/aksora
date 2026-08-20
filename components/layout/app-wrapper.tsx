@@ -17,6 +17,8 @@ import { OnboardingTour } from "@/components/layout/onboarding-tour";
 import { useAssignmentNotifications } from "@/hooks/use-assignment-notifications";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { WorkspaceOnboardingModal } from "@/components/layout/workspace-onboarding-modal";
+import { AppSplashScreen } from "@/components/layout/app-splash-screen";
+import { InstallPromptBanner } from "@/components/layout/install-prompt-banner";
 
 type AppWrapperProps = {
   children: React.ReactNode;
@@ -50,6 +52,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [user, setUser] = useState<AppUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [accountOpen, setAccountOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -78,6 +81,8 @@ export function AppWrapper({ children }: AppWrapperProps) {
       }
     } catch {
       setUser(null);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -170,6 +175,10 @@ export function AppWrapper({ children }: AppWrapperProps) {
     return <>{children}</>;
   }
 
+  if (authLoading) {
+    return <AppSplashScreen />;
+  }
+
   return (
     <div suppressHydrationWarning className="flex min-h-screen bg-[var(--bg-app)] overflow-x-hidden">
       {mounted && user && !user.activeWorkspaceId && (user.memberships?.length ?? 0) === 0 && (
@@ -177,6 +186,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
       )}
       <CommandPalette />
       <OnboardingTour />
+      <InstallPromptBanner />
       {mobileOpen && (
         <div className="fixed inset-0 z-30 bg-black/20 md:hidden" onClick={() => setMobileOpen(false)} />
       )}

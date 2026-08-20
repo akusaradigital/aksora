@@ -113,6 +113,21 @@ export function sendInviteAcceptedEmail(inviterEmail: string, acceptedEmail: str
   }).catch(() => {});
 }
 
+export function sendOtpEmail(to: string, code: string) {
+  if (!isEmail(to)) return Promise.resolve();
+  const html = emailShell(`
+    <h1 style="font-size:20px;color:#0f172a;margin:0 0 12px;">Verify your email</h1>
+    <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px;">Enter this code to finish creating your Aksora account. It expires in 10 minutes.</p>
+    <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0f172a;margin:0 0 20px;">${code}</p>
+  `);
+  return sendEmail({
+    to: [to],
+    subject: `${code} is your Aksora verification code`,
+    html,
+    text: `Your Aksora verification code is ${code}. It expires in 10 minutes.`,
+  }).catch(() => {});
+}
+
 export function sendAssignedEmail(to: string, entityType: string, title: string, assignedBy: string) {
   if (!isEmail(to)) return Promise.resolve();
   if (checkMemoryRateLimit(`email:assigned:${to}`, 10, 60 * 60 * 1000).limited) return Promise.resolve();

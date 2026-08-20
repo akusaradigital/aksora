@@ -286,6 +286,47 @@ export function AbTestTab() {
   );
 }
 
+// ─── Abuse Signals Tab ───────────────────────────────────────────────────────
+type AbuseRow = { key: string; attempts: number; firstAttempt: string; lockedUntil: string | null };
+
+export function AbuseTab() {
+  const [rows, setRows] = useState<AbuseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/rate-limit-abuse").then((r) => r.json()).then((j) => setRows(j.data || []))
+      .catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold text-gray-800">Rate Limit / Bot Abuse Signals</h2>
+      <div className="overflow-x-auto border border-gray-200 bg-white">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <th className="px-4 py-2">Key</th><th className="px-4 py-2">Attempts</th><th className="px-4 py-2">First Attempt</th><th className="px-4 py-2">Locked Until</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2.5 font-mono text-gray-800">{r.key}</td>
+                <td className="px-4 py-2.5 font-bold text-gray-700">{r.attempts}</td>
+                <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{formatDateTime(r.firstAttempt)}</td>
+                <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{r.lockedUntil ? formatDateTime(r.lockedUntil) : "—"}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (<tr><td colSpan={4} className="px-4 py-6 text-center text-xs text-gray-400">No abuse signals recorded.</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── Email Log Tab ───────────────────────────────────────────────────────────
 type EmailEvent = { id: number; email: string; type: string; subject: string; createdAt: string };
 

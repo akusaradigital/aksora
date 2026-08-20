@@ -2,6 +2,7 @@
 
 import { Suspense, type ChangeEvent, type FormEvent, useState } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -21,6 +22,7 @@ import { FormFieldError } from "@/components/shared/form-field-error";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { getPublicRoleOptions } from "@/lib/roles";
 import { GoogleSignInButton } from "@/components/oauth/google-signin-button";
+import { OtpVerifyForm } from "./otp-verify-form";
 
 const inputClass =
   "w-full border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none";
@@ -33,7 +35,8 @@ function LoginContent() {
   const nextUrl = searchParams.get("next") || "/dashboard";
   const inviteToken = searchParams.get("inviteToken") || "";
 
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "verify-otp">("signin");
+  const [verifyEmail, setVerifyEmail] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -117,15 +120,35 @@ function LoginContent() {
           password: formData.password,
           role: formData.role,
           company: formData.company,
+          turnstileToken: mode === "signup"
+            ? (document.querySelector('[name="cf-turnstile-response"]') as HTMLInputElement | null)?.value || ""
+            : undefined,
         }),
       });
+
+      if (mode === "signup") {
+        (window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset();
+      }
 
       const contentType = res.headers.get("content-type") || "";
       const data = contentType.includes("application/json") ? await res.json() : { error: await res.text() };
 
-      if (!res.ok) throw new Error(data.error || "Authentication failed");
+      if (!res.ok) {
+        if (data.code === "EMAIL_NOT_VERIFIED") {
+          setVerifyEmail(formData.email);
+          setMode("verify-otp");
+          return;
+        }
+        throw new Error(data.error || "Authentication failed");
+      }
 
       if (mode === "signup") {
+        if (data.requiresVerification) {
+          setVerifyEmail(formData.email);
+          setFormData({ name: "", email: "", password: "", role: "", company: "" });
+          setMode("verify-otp");
+          return;
+        }
         setShowSuccessModal(true);
         setFormData({ name: "", email: "", password: "", role: "", company: "" });
         handleModeChange("signin");
@@ -272,26 +295,41 @@ function LoginContent() {
         <div className="my-auto max-w-md w-full mx-auto py-8">
           <div className="mb-8">
             <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">
-              {mode === "signup" ? "Create Account" : mode === "forgot" ? "Password Recovery" : "Welcome Back"}
+              {mode === "signup" ? "Create Account" : mode === "forgot" ? "Password Recovery" : mode === "verify-otp" ? "Verify Email" : "Welcome Back"}
             </span>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
               {mode === "signup"
                 ? "Daftar Akun Baru"
                 : mode === "forgot"
                   ? "Atur Ulang Sandi"
-                  : "Masuk ke Aksora"}
+                  : mode === "verify-otp"
+                    ? "Verifikasi Email"
+                    : "Masuk ke Aksora"}
             </h1>
             <p className="mt-2.5 text-sm leading-relaxed text-slate-500">
               {mode === "signup"
                 ? "Mulai berkolaborasi dengan tim dalam mengelola kualitas software."
                 : mode === "forgot"
                   ? "Masukkan email Anda dan kami akan mengirimkan instruksi pemulihan."
-                  : "Masuk dengan Google atau email untuk mengakses workspace Anda."}
+                  : mode === "verify-otp"
+                    ? `Kami mengirim kode 6 digit ke ${verifyEmail}. Masukkan di bawah untuk mengaktifkan akun Anda.`
+                    : "Masuk dengan Google atau email untuk mengakses workspace Anda."}
             </p>
           </div>
 
           {/* Form wrapper */}
           <div className="border border-slate-100 bg-white shadow-xl shadow-slate-200/50 rounded-2xl p-6 sm:p-8">
+            {mode === "verify-otp" ? (
+              <OtpVerifyForm
+                email={verifyEmail}
+                onVerified={() => {
+                  setShowSuccessModal(true);
+                  handleModeChange("signin");
+                }}
+                onBack={() => handleModeChange("signin")}
+              />
+            ) : (
+              <>
             {mode !== "forgot" && (
               <div>
                 <GoogleSignInButton inviteToken={inviteToken} />
@@ -405,6 +443,10 @@ function LoginContent() {
                 </>
               )}
 
+              {mode === "signup" && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} data-action="turnstile-spin-v1" />
+              )}
+
               {error && <InlineAlert variant="error" message={error} compact className="px-1" />}
 
               <div className="flex flex-col gap-3 pt-2">
@@ -453,6 +495,8 @@ function LoginContent() {
                 </div>
               )}
             </form>
+              </>
+            )}
           </div>
         </div>
 
@@ -472,6 +516,9 @@ function LoginContent() {
         onConfirm={() => setShowSuccessModal(false)}
         onCancel={() => setShowSuccessModal(false)}
       />
+      {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+      )}
     </div>
   );
 }
