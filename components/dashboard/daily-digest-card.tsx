@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bug, CalendarBlank, SunHorizon, Kanban, ArrowsClockwise, X, Warning } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 
 type DigestItem = {
   id: number;
@@ -55,6 +56,8 @@ function writeDismissedKey(key: string) {
  * has not dismissed it today and the digest endpoint reports `hasData: true`.
  */
 export function DailyDigestCard() {
+  const { dict } = useTranslation();
+  const t = dict.dashboard.morningDigest;
   const [data, setData] = useState<DigestPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -100,7 +103,7 @@ export function DailyDigestCard() {
     return (
       <div className=" border border-gray-200 bg-white p-5" data-testid="daily-digest-card-loading">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-          <SunHorizon size={14} weight="bold" /> Preparing your morning digest…
+          <SunHorizon size={14} weight="bold" /> {t.preparing}
         </div>
       </div>
     );
@@ -111,7 +114,7 @@ export function DailyDigestCard() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
             <Warning size={14} weight="bold" />
-            Unable to load digest right now.
+            {t.unableToLoad}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -119,13 +122,13 @@ export function DailyDigestCard() {
               onClick={fetchDigest}
               className="inline-flex h-7 items-center gap-1  bg-white px-3 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
             >
-              <ArrowsClockwise size={11} weight="bold" /> Retry
+              <ArrowsClockwise size={11} weight="bold" /> {t.retry}
             </button>
             <button
               type="button"
               onClick={handleDismiss}
               className="text-amber-500 hover:text-amber-700"
-              aria-label="Dismiss"
+              aria-label={t.dismiss}
             >
               <X size={12} weight="bold" />
             </button>
@@ -147,15 +150,15 @@ export function DailyDigestCard() {
             <SunHorizon size={16} weight="bold" />
           </span>
           <div>
-            <h3 className="text-sm font-black text-slate-900">Morning Digest</h3>
-            <p className="text-[11px] text-slate-500">Updates since your last session</p>
+            <h3 className="text-sm font-black text-slate-900">{t.title}</h3>
+            <p className="text-[11px] text-slate-500">{t.subtitle}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
           className="flex h-7 w-7 items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-          aria-label="Dismiss digest"
+          aria-label={t.dismiss}
         >
           <X size={12} weight="bold" />
         </button>
@@ -163,28 +166,28 @@ export function DailyDigestCard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DigestSection
-          title="New Bugs"
+          title={t.newBugs}
           icon={<Bug size={12} weight="bold" className="text-rose-500" />}
           items={data.newBugs}
-          empty="No new bugs"
+          empty={t.noNewBugs}
         />
         <DigestSection
-          title="Your Items"
+          title={t.yourItems}
           icon={<Kanban size={12} weight="bold" className="text-blue-600" />}
           items={data.assignedItems}
-          empty="No assigned items"
+          empty={t.noAssignedItems}
         />
         <DigestSection
-          title="Status Changes"
+          title={t.statusChanges}
           icon={<ArrowsClockwise size={12} weight="bold" className="text-amber-500" />}
           items={data.statusChanges}
-          empty="No status changes"
+          empty={t.noStatusChanges}
         />
         <DigestSection
-          title="Upcoming Deadlines"
+          title={t.upcomingDeadlines}
           icon={<CalendarBlank size={12} weight="bold" className="text-emerald-600" />}
           items={data.upcomingDeadlines}
-          empty="No deadlines in 2 days"
+          empty={t.noDeadlines}
         />
       </div>
     </section>

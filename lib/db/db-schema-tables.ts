@@ -249,6 +249,7 @@ export const tables = [
       "password" TEXT NOT NULL,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "avatar" TEXT DEFAULT '',
+      "locale" TEXT NOT NULL DEFAULT 'en',
       "mfaEnabled" INTEGER NOT NULL DEFAULT 0,
       "mfaSecret" TEXT,
       "emailVerified" INTEGER NOT NULL DEFAULT 1,
@@ -269,6 +270,7 @@ export const tables = [
       "name" TEXT NOT NULL,
       "keyHash" TEXT NOT NULL,
       "keyPrefix" TEXT NOT NULL,
+      "allowedModules" TEXT NOT NULL DEFAULT '*',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "lastUsedAt" DATE_TYPE,
       "revokedAt" DATE_TYPE,
@@ -604,6 +606,17 @@ export const tables = [
       "dailyDigest" INTEGER NOT NULL DEFAULT 1,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "PasswordResetToken",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "token" TEXT NOT NULL UNIQUE,
+      "expiresAt" DATE_TYPE NOT NULL,
+      "usedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   }
 ];

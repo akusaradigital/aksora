@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings } from"@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -90,6 +90,15 @@ export default async function SettingsPage() {
  color:"text-gray-600",
  bg:"bg-gray-50",
  disabled: true
+ },
+ {
+ title:"Appearance",
+ description:"Choose light, dark, or system theme.",
+ href:"/settings/appearance",
+ icon: Moon,
+ color:"text-purple-600",
+ bg:"bg-purple-50",
+ disabled: false
  },
  {
  title:"About Aksora",

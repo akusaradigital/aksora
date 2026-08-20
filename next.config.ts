@@ -8,6 +8,9 @@ const bundleAnalyzer = withBundleAnalyzer({
 const nextConfig: NextConfig = {
   turbopack: {},
   serverExternalPackages: ["pdfkit", "exceljs"],
+  experimental: {
+    optimizePackageImports: ["@phosphor-icons/react", "recharts"],
+  },
   headers: async () => [
     {
       source: "/api/:path*",

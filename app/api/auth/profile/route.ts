@@ -16,12 +16,19 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const dbUser = await db.get<{ mfaEnabled: number; locale?: string }>(
+      'SELECT "mfaEnabled", "locale" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+      [user.id]
+    );
+
     return NextResponse.json({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       company: user.company,
+      locale: dbUser?.locale || user.locale || "en",
+      mfaEnabled: Boolean(dbUser?.mfaEnabled),
     }, {
       headers: {
         "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
@@ -47,11 +54,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, role, password } = body;
+    const { name, role, password, locale, language } = body;
 
     if (!name || name.trim().length === 0) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+
+    const requestedLocale = locale || language;
+    const nextLocale = requestedLocale === "id" ? "id" : requestedLocale === "en" ? "en" : user.locale || "en";
 
     const oldName = (user.name || user.email || "").trim();
     const newName = name.trim();
@@ -79,8 +89,8 @@ export async function PATCH(request: NextRequest) {
       const hashedPassword = await hashPassword(password);
 
       await db.run(
-        'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [newName, nextRole, hashedPassword, user.id]
+        'UPDATE "User" SET "name" = ?, "role" = ?, "locale" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+        [newName, nextRole, nextLocale, hashedPassword, user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
@@ -91,8 +101,8 @@ export async function PATCH(request: NextRequest) {
       });
     } else {
       await db.run(
-        'UPDATE "User" SET "name" = ?, "role" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-        [newName, nextRole, user.id]
+        'UPDATE "User" SET "name" = ?, "role" = ?, "locale" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+        [newName, nextRole, nextLocale, user.id]
       );
       await syncAssigneeFromUser({
         id: user.id,
@@ -113,6 +123,7 @@ export async function PATCH(request: NextRequest) {
       name: newName,
       role: nextRole,
       company: user.company,
+      locale: nextLocale,
     };
     const response = NextResponse.json({ success: true, user: updatedUser });
     response.cookies.set(sessionCookieName(), await createSessionToken(user.email, updatedUser), {
@@ -121,6 +132,11 @@ export async function PATCH(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 6,
+    });
+    response.cookies.set("locale", nextLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
     });
     return response;
   } catch (error) {

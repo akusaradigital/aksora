@@ -7,7 +7,7 @@ describe("auth logout route", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
-    expect(response.headers.get("set-cookie")).toContain("aksora_session=");
+    expect(response.headers.get("set-cookie")).toContain("aksora_token=");
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 });

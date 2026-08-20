@@ -45,7 +45,7 @@ function getRateLimitKey(request: NextRequest) {
   return token ? `apikey:${hashApiKey(token)}` : "";
 }
 
-async function withApiUser<T>(request: NextRequest, handler: (user: { id: number; name: string; email: string; role: string; company: string }) => Promise<T>) {
+async function withApiUser<T>(request: NextRequest, handler: (user: import("@/lib/auth-context").ApiUser) => Promise<T>) {
   const user = await authenticateApiRequest(request);
   if (!user) return null;
   return apiUserContext.run(user, () => handler(user));
@@ -56,6 +56,13 @@ async function handleAuthFailure(rateLimitToken: string) {
     await recordFailedAttempt(rateLimitToken, API_KEY_RATE_LIMIT);
   }
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function checkModuleAccess(allowedModules: string[] | undefined, moduleKey: ModuleKey): boolean {
+  if (!allowedModules || allowedModules.length === 0 || allowedModules.includes("*")) {
+    return true;
+  }
+  return allowedModules.includes(moduleKey);
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ module: string }> }) {
@@ -72,6 +79,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const result = await withApiUser(request, async (user) => {
+    if (!checkModuleAccess(user.allowedModules, moduleKey)) {
+      return NextResponse.json({ error: "This API key does not have access to the requested module." }, { status: 403 });
+    }
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -80,7 +90,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!result) return handleAuthFailure(rateLimitToken);
 
   if (rateLimitToken) await recordFailedAttempt(rateLimitToken, API_KEY_RATE_LIMIT);
-  return NextResponse.json({ data: result });
+  return result instanceof NextResponse ? result : NextResponse.json({ data: result });
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ module: string }> }) {
@@ -97,6 +107,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const result = await withApiUser(request, async (user) => {
+    if (!checkModuleAccess(user.allowedModules, moduleKey)) {
+      return NextResponse.json({ error: "This API key does not have access to the requested module." }, { status: 403 });
+    }
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -139,6 +152,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const result = await withApiUser(request, async (user) => {
+    if (!checkModuleAccess(user.allowedModules, moduleKey)) {
+      return NextResponse.json({ error: "This API key does not have access to the requested module." }, { status: 403 });
+    }
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -185,6 +201,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   const result = await withApiUser(request, async (user) => {
+    if (!checkModuleAccess(user.allowedModules, moduleKey)) {
+      return NextResponse.json({ error: "This API key does not have access to the requested module." }, { status: 403 });
+    }
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

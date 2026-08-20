@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createApiKeyForUser, listApiKeysForUser, revokeApiKey } from "@/lib/api-keys";
+import { moduleOrder } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,12 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await request.json().catch(() => null) as { name?: string; expiresInDays?: unknown } | null;
+  const body = await request.json().catch(() => null) as {
+    name?: string;
+    expiresInDays?: unknown;
+    workspaceId?: unknown;
+    allowedModules?: unknown;
+  } | null;
   const name = String(body?.name ?? "").trim();
   if (!name) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -30,7 +36,33 @@ export async function POST(request: NextRequest) {
     expiresInDays = expiresInDaysRaw;
   }
 
-  const created = await createApiKeyForUser(user.id, name, expiresInDays);
+  let workspaceId: number | null = null;
+  if (body?.workspaceId !== undefined && body?.workspaceId !== null && body?.workspaceId !== "") {
+    const parsedWsId = Number(body.workspaceId);
+    if (!Number.isInteger(parsedWsId) || parsedWsId <= 0) {
+      return NextResponse.json({ error: "workspaceId must be a valid positive integer." }, { status: 400 });
+    }
+    workspaceId = parsedWsId;
+  } else if (user.activeWorkspaceId) {
+    workspaceId = user.activeWorkspaceId;
+  }
+
+  let allowedModules: string[] = ["*"];
+  if (Array.isArray(body?.allowedModules)) {
+    const rawModules = body.allowedModules.map((m) => String(m).trim()).filter(Boolean);
+    if (rawModules.length === 0 || rawModules.includes("*")) {
+      allowedModules = ["*"];
+    } else {
+      const validModules = new Set<string>([...moduleOrder, "*"]);
+      const invalid = rawModules.filter((m) => !validModules.has(m));
+      if (invalid.length > 0) {
+        return NextResponse.json({ error: `Invalid module(s): ${invalid.join(", ")}` }, { status: 400 });
+      }
+      allowedModules = rawModules;
+    }
+  }
+
+  const created = await createApiKeyForUser(user.id, name, expiresInDays, workspaceId, allowedModules);
   return NextResponse.json({ data: created }, { status: 201 });
 }
 

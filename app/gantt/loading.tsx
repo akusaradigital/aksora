@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { Lightning } from "@phosphor-icons/react/dist/ssr";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
@@ -9,9 +10,9 @@ export default function Loading() {
       description="View timelines, dependencies, and delivery windows across your workspace."
       crumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Gantt / Timeline" }]}
     >
-      <div className="space-y-4 animate-pulse">
-        <div className="h-10 bg-gray-100" />
-        <div className="h-[500px] bg-gray-100" />
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-[500px] w-full" />
       </div>
     </PageShell>
   );

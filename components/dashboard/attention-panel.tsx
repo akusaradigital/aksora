@@ -55,7 +55,7 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
   const showQuickActions = canUseQuickActions(userRole);
 
   return (
-    <div className="lg:col-span-3 flex flex-col border border-slate-200 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
+    <div className="flex flex-col border border-slate-200 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-sm font-black text-slate-900">Attention Needed</h3>

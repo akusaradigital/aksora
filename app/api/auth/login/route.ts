@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json().catch(() => null) as { email?: string; password?: string } | null;
+    const body = await request.json().catch(() => null) as { email?: string; password?: string; rememberMe?: boolean } | null;
     const email = body?.email?.trim() || "";
     const password = body?.password || "";
+    const rememberMe = Boolean(body?.rememberMe);
 
     // Input validation
     if (!email || !password) {
@@ -69,14 +70,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const token = await createSessionToken(email, user);
+    const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 6; // 30 days if rememberMe, else 6 hours
+    const token = await createSessionToken(email, user, maxAge * 1000);
     const response = NextResponse.json({ ok: true, role: user.role, company: user.company });
     response.cookies.set(sessionCookieName(), token, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 6,
+      maxAge,
     });
     return response;
   } catch (error) {

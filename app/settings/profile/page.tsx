@@ -15,6 +15,17 @@ export default async function ProfilePage() {
  redirect("/login");
  }
 
+ const { db } = await import("@/lib/db");
+ const dbUser = await db.get<{ mfaEnabled: number }>(
+   'SELECT "mfaEnabled" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+   [user.id]
+ );
+
+ const userWithMfa = {
+   ...user,
+   mfaEnabled: Boolean(dbUser?.mfaEnabled),
+ };
+
  const isAdmin = isManagementAdmin(user.role, user.company);
 
  const crumbs = isAdmin
@@ -51,7 +62,7 @@ export default async function ProfilePage() {
  <p className="text-sm text-gray-500">Manage your identity within the Aksora platform.</p>
  </div>
 
- <ProfileForm user={JSON.parse(JSON.stringify(user))} />
+ <ProfileForm user={JSON.parse(JSON.stringify(userWithMfa))} />
  
  <div className="mt-12 pt-8 border-t border-gray-100">
  <div className="flex items-start gap-4 p-4  bg-gray-50 border border-gray-100">

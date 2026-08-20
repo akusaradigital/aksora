@@ -26,6 +26,7 @@ import {
   MicrophoneStage,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,60 +36,62 @@ export type SidebarGroup = { title: string; items: SidebarItem[] };
 
 // ─── Navigation Data ─────────────────────────────────────────────────────────
 
-export const groups: SidebarGroup[] = [
-  {
-    title: "",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: SquaresFour },
-    ],
-  },
-  {
-    title: "Test Management",
-    items: [
-      { href: "/test-plans", label: "Test Plans", icon: ClipboardText },
-      { href: "/test-suites", label: "Test Suites", icon: Table },
-      { href: "/test-cases", label: "Test Cases", icon: Checks },
-      { href: "/test-execution", label: "Test Sessions", icon: PlayCircle },
-    ],
-  },
-  {
-    title: "Work Tracking",
-    items: [
-      { href: "/tasks", label: "Tasks", icon: Kanban },
-      { href: "/bugs", label: "Bugs", icon: Bug },
-      { href: "/sprints", label: "Sprints", icon: Kanban },
-      { href: "/work-logs", label: "Work Log", icon: ClockCountdown },
-    ],
-  },
-  {
-    title: "Documentation",
-    items: [
-      { href: "/standup", label: "Daily Standup", icon: MicrophoneStage },
-      { href: "/meeting-notes", label: "Meeting Notes", icon: Note },
-      { href: "/activity-log", label: "Activity Log", icon: ClockCounterClockwise },
-    ],
-  },
-  {
-    title: "Reports",
-    items: [
-      { href: "/weekly-report", label: "Report", icon: ChartLineUp },
-      { href: "/reports/test-coverage", label: "Test Coverage", icon: ChartPieSlice },
-      { href: "/reports/flaky-tests", label: "Flaky Tests", icon: ShuffleAngular },
-      { href: "/reports/test-gap", label: "Test Gap Analysis", icon: MagnifyingGlass },
-      { href: "/deployments", label: "Deployment Log", icon: RocketLaunch },
-      { href: "/reports/workload", label: "Workload Heatmap", icon: Users },
-      { href: "/gantt", label: "Gantt / Timeline", icon: Rows },
-    ],
-  },
-  {
-    title: "System Settings",
-    items: [
-      { href: "/settings", label: "Settings", icon: Gear },
-      { href: "/settings/api-keys", label: "API Keys", icon: Key },
-      { href: "/settings/support", label: "Support", icon: Headset },
-    ],
-  },
-];
+export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
+  return [
+    {
+      title: "",
+      items: [
+        { href: "/dashboard", label: t.dashboard, icon: SquaresFour },
+      ],
+    },
+    {
+      title: t.groupTestManagement,
+      items: [
+        { href: "/test-plans", label: t.testPlans, icon: ClipboardText },
+        { href: "/test-suites", label: t.testSuites, icon: Table },
+        { href: "/test-cases", label: t.testCases, icon: Checks },
+        { href: "/test-execution", label: t.testSessions, icon: PlayCircle },
+      ],
+    },
+    {
+      title: t.groupWorkTracking,
+      items: [
+        { href: "/tasks", label: t.tasks, icon: Kanban },
+        { href: "/bugs", label: t.bugs, icon: Bug },
+        { href: "/sprints", label: t.sprints, icon: Kanban },
+        { href: "/work-logs", label: t.workLog, icon: ClockCountdown },
+      ],
+    },
+    {
+      title: t.groupDocumentation,
+      items: [
+        { href: "/standup", label: t.dailyStandup, icon: MicrophoneStage },
+        { href: "/meeting-notes", label: t.meetingNotes, icon: Note },
+        { href: "/activity-log", label: t.activityLog, icon: ClockCounterClockwise },
+      ],
+    },
+    {
+      title: t.groupReports,
+      items: [
+        { href: "/weekly-report", label: t.report, icon: ChartLineUp },
+        { href: "/reports/test-coverage", label: t.testCoverage, icon: ChartPieSlice },
+        { href: "/reports/flaky-tests", label: t.flakyTests, icon: ShuffleAngular },
+        { href: "/reports/test-gap", label: t.testGapAnalysis, icon: MagnifyingGlass },
+        { href: "/deployments", label: t.deploymentLog, icon: RocketLaunch },
+        { href: "/reports/workload", label: t.workloadHeatmap, icon: Users },
+        { href: "/gantt", label: t.ganttTimeline, icon: Rows },
+      ],
+    },
+    {
+      title: t.groupSystemSettings,
+      items: [
+        { href: "/settings", label: t.settings, icon: Gear },
+        { href: "/settings/api-keys", label: t.apiKeys, icon: Key },
+        { href: "/settings/support", label: t.support, icon: Headset },
+      ],
+    },
+  ];
+}
 
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
@@ -111,8 +114,8 @@ function canSeeHref(role: string, href: string) {
   return false;
 }
 
-export function filterGroups(role: string) {
-  return groups
+export function filterGroups(role: string, t: Dictionary["sidebar"]) {
+  return getGroups(t)
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => canSeeHref(role, item.href)),

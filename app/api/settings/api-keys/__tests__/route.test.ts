@@ -69,7 +69,7 @@ describe("settings api keys route", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(201);
-    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Main", 90);
+    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Main", 90, null, ["*"]);
     expect(payload.data).toMatchObject({ id: 1, rawKey: "aksora_test" });
   });
 

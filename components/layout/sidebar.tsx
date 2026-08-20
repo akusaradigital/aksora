@@ -8,6 +8,8 @@ import { createPortal } from "react-dom";
 import { normalizeRole } from "@/lib/roles";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { filterGroups, SidebarSection } from "@/components/layout/sidebar-nav";
+import { useTranslation } from "@/hooks/use-translation";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 // Re-export NotificationPanel for consumers that import from sidebar
 export { NotificationPanel } from "@/components/layout/sidebar-notifications";
@@ -77,9 +79,10 @@ export function Sidebar({
   userRole?: string;
 }) {
   const pathname = usePathname();
+  const { dict: t } = useTranslation();
   const [tooltip, setTooltip] = useState<TooltipState>(null);
   const role = normalizeRole(userRole);
-  const visibleGroups = filterGroups(role);
+  const visibleGroups = filterGroups(role, t.sidebar);
 
   function showTooltip(e: React.MouseEvent<HTMLElement>, label: string) {
     if (!collapsed) return;
@@ -95,7 +98,7 @@ export function Sidebar({
       <aside
         suppressHydrationWarning
         className={cn(
-          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] transition-all duration-150 ease-in-out",
+          "fixed inset-y-0 left-0 top-0 z-[var(--z-sidebar)] flex h-full border-r border-slate-200 bg-[linear-gradient(180deg,var(--bg-sidebar)_0%,var(--bg-app)_100%)] transition-all duration-150 ease-in-out",
           collapsed ? "w-[64px]" : "w-[240px]",
         )}
       >
@@ -130,14 +133,19 @@ export function Sidebar({
 
           {/* Bottom actions */}
           <div className={cn("mt-auto border-t border-slate-200 py-2", collapsed ? "px-1" : "px-0")}>
+            {!collapsed && (
+              <div className="px-3 pb-2">
+                <LanguageSwitcher />
+              </div>
+            )}
             <SidebarActionButton
               collapsed={collapsed}
               onClick={onToggle}
-              onMouseEnter={(e) => showTooltip(e, collapsed ? "Expand" : "")}
+              onMouseEnter={(e) => showTooltip(e, collapsed ? t.sidebar.expand : "")}
               onMouseLeave={hideTooltip}
               tone="text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               icon={collapsed ? <CaretRight size={16} weight="bold" /> : <CaretLeft size={16} weight="bold" />}
-              label="Collapse"
+              label={t.sidebar.collapse}
             />
           </div>
         </div>

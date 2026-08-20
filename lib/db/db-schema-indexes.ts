@@ -135,4 +135,6 @@ CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_active_module" ON "ModuleVi
 CREATE INDEX IF NOT EXISTS "idx_moduleview_workspace_active_user" ON "ModuleView"("workspaceId", "userId", "module") WHERE "deletedAt" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_notifpref_user" ON "NotificationPreference"("userId");
 CREATE INDEX IF NOT EXISTS "idx_notifpref_workspace" ON "NotificationPreference"("workspaceId");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_passwordreset_token" ON "PasswordResetToken"("token");
+CREATE INDEX IF NOT EXISTS "idx_passwordreset_user" ON "PasswordResetToken"("userId");
 `;

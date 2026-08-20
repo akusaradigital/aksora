@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: mocks.getCurrentUser,
   createSessionToken: mocks.createSessionToken,
-  sessionCookieName: () => "aksora_session",
+  sessionCookieName: () => "aksora_token",
 }));
 
 vi.mock("@/lib/auth-core", () => ({
@@ -90,26 +90,28 @@ describe("auth profile route", () => {
       name: "User",
       role: "fullstack",
       company: "acme",
+      locale: "en",
     });
     mocks.createSessionToken.mockResolvedValueOnce("token-123");
 
     const response = await PATCH(
       new Request("http://localhost/api/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({ name: " Updated User ", role: "qa", password: "secret1" }),
+        body: JSON.stringify({ name: " Updated User ", role: "qa", password: "secret1", locale: "id" }),
       }) as NextRequest,
     );
 
     expect(mocks.hashPassword).toHaveBeenCalledWith("secret1");
     expect(mocks.db.run).toHaveBeenCalledWith(
-      'UPDATE "User" SET "name" = ?, "role" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-      ["Updated User", "qa", "hashed:secret1", 1],
+      'UPDATE "User" SET "name" = ?, "role" = ?, "locale" = ?, "password" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
+      ["Updated User", "qa", "id", "hashed:secret1", 1],
     );
     expect(mocks.createSessionToken).toHaveBeenCalledWith("user@example.com", {
       id: 1,
       name: "Updated User",
       role: "qa",
       company: "acme",
+      locale: "id",
     });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -119,8 +121,10 @@ describe("auth profile route", () => {
         name: "Updated User",
         role: "qa",
         company: "acme",
+        locale: "id",
       },
     });
-    expect(response.headers.get("set-cookie")).toContain("aksora_session=token-123");
+    expect(response.headers.get("set-cookie")).toContain("aksora_token=token-123");
+    expect(response.headers.get("set-cookie")).toContain("locale=id");
   });
 });

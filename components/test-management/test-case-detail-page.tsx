@@ -6,6 +6,8 @@ import { PlayCircle } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/page-shell";
 import { toast } from "@/components/ui/toast";
 import { TestCaseDetailEditor, type TestCaseRow } from "@/components/test-management/test-case-detail-editor";
+import { useTranslation } from "@/hooks/use-translation";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 export function TestCaseDetailPage({
   scenario,
@@ -21,6 +23,8 @@ export function TestCaseDetailPage({
   plan: { title?: string; publicToken?: string } | null;
 }) {
   const router = useRouter();
+  const { dict } = useTranslation();
+  const t = dict.testManagement.detailPage;
   const [isPending, startTransition] = useTransition();
   const suiteId = String(scenario.id ?? "");
   void suiteToken;
@@ -34,7 +38,7 @@ export function TestCaseDetailPage({
 
   async function handleSubmitExecution() {
     if (rows.length === 0 || isPending) return;
-    
+
     const total = rows.length;
     const p = rows.filter(c => String(c.status) === "Passed" || String(c.status) === "Success").length;
     const f = rows.filter(c => String(c.status) === "Failed").length;
@@ -59,45 +63,45 @@ export function TestCaseDetailPage({
       fd.append("blocked", String(b));
       fd.append("result", resVal);
       fd.append("notes", `Automated submission from execution group ${suiteLabel}`);
-      
+
       try {
         const res = await fetch("/api/items/test-sessions", { method: "POST", body: fd });
         if (res.ok) {
-          toast("Execution session recorded!", "success");
+          toast(t.submitSuccess, "success");
           router.push("/test-sessions");
         } else {
-          toast("Failed to record session", "error");
+          toast(t.submitFailed, "error");
         }
       } catch {
-        toast("An error occurred", "error");
+        toast(t.submitError, "error");
       }
     });
   }
 
   const actions = (
-    <button 
-      onClick={handleSubmitExecution} 
+    <button
+      onClick={handleSubmitExecution}
       disabled={isPending || rows.length === 0}
       className="flex h-10 items-center gap-2  bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
     >
       <PlayCircle size={18} weight="bold" />
-      Submit for Test Sessions
+      {t.submitSessions}
     </button>
   );
 
   return (
       <PageShell
-        title={suiteLabel || "Test Case Detail"}
+        title={suiteLabel || t.defaultTitle}
         description={plan?.title
-          ? `Spreadsheet-style input for all test cases in this execution group. Test Plans: ${plan.title}.`
-          : "Spreadsheet-style input for all test cases in this execution group."}
+          ? interpolate(t.descriptionWithPlan, { planTitle: plan.title })
+          : t.descriptionDefault}
         crumbs={crumbs}
         actions={actions}
       >
-      <TestCaseDetailEditor 
-        suiteId={suiteId} 
-        suiteTitle={suiteLabel || "Test Case Detail"} 
-        initialCases={rows as unknown as TestCaseRow[]} 
+      <TestCaseDetailEditor
+        suiteId={suiteId}
+        suiteTitle={suiteLabel || t.defaultTitle}
+        initialCases={rows as unknown as TestCaseRow[]}
       />
     </PageShell>
   );

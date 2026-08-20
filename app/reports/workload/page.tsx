@@ -18,6 +18,7 @@ import { cn } from"@/lib/utils";
 import { getRoleLabel } from"@/lib/roles";
 import Link from"next/link";
 import { CaretRight } from"@phosphor-icons/react";
+import { useTranslation } from "@/hooks/use-translation";
 
 type WorkloadItem = {
  id: string;
@@ -31,6 +32,8 @@ type WorkloadItem = {
 };
 
 export default function WorkloadPage() {
+ const { dict } = useTranslation();
+ const t = dict.reports.workload;
  const [data, setData] = useState<WorkloadItem[]>([]);
  const [efficiency, setEfficiency] = useState(0);
  const [loading, setLoading] = useState(true);
@@ -101,8 +104,8 @@ export default function WorkloadPage() {
  return (
  <PageShell
  icon={<TrendUp size={22} weight="bold" />}
- title="Resource Workload"
- description="Visual breakdown of task and plan assignments per team member."
+ title={t.title}
+ description={t.description}
  crumbs={[{ label:"Dashboard", href:"/dashboard" }, { label:"Workload Heatmap" }]}
   actions={
   <div className="flex items-center gap-2">
@@ -111,13 +114,13 @@ export default function WorkloadPage() {
   className="inline-flex h-10 items-center justify-center gap-1.5 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
   >
   <FileArrowDown size={14} weight="bold" />
-  Export
+  {t.export}
   </Link>
   <div className="relative">
   <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
   <input
   type="text"
-  placeholder="Search by name or role..."
+  placeholder={t.searchPlaceholder}
   value={search}
   onChange={(e) => setSearch(e.target.value)}
   className="h-10 w-64  border border-gray-200 bg-white pl-10 pr-4 text-xs font-semibold shadow-sm outline-none transition focus:ring-2 focus:ring-blue-500/20"

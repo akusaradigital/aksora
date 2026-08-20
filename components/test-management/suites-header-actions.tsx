@@ -5,10 +5,11 @@ import { useEffect, useRef, useState, useTransition } from"react";
 import { FilePdf, FileXls, MagnifyingGlass, UploadSimple } from"@phosphor-icons/react";
 import { toast } from"@/components/ui/toast";
 import { ImportErrorsModal, type ImportRowError } from"@/components/shared/import-errors-modal";
+import { useTranslation } from "@/hooks/use-translation";
 
 export function SuitesHeaderActions({
  initialSearch,
- placeholder ="Search suites...",
+ placeholder,
  exportModule ="test-suites",
  importModule ="test-suites",
 }: {
@@ -17,6 +18,9 @@ export function SuitesHeaderActions({
  exportModule?: string;
  importModule?: string;
 }) {
+ const { dict } = useTranslation();
+ const t = dict.testManagement.suites;
+ const inputPlaceholder = placeholder || t.searchPlaceholder;
  const router = useRouter();
  const pathname = usePathname();
  const uploadRef = useRef<HTMLInputElement | null>(null);
@@ -55,11 +59,11 @@ export function SuitesHeaderActions({
  if (Array.isArray(data.errors) && data.errors.length > 0) {
  setImportErrors(data.errors);
  } else {
- toast(data.error ||"Import failed.","error");
+ toast(data.error || t.importFailed,"error");
  }
  return;
  }
- toast(data.message ||"Import successful.","success");
+ toast(data.message || t.importSuccess,"success");
  router.refresh();
  }
 
@@ -76,22 +80,22 @@ export function SuitesHeaderActions({
  setValue(nextValue);
  updateQuery(nextValue);
  }}
- placeholder={placeholder}
+ placeholder={inputPlaceholder}
  className="h-11 w-full  border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
  />
  </div>
  <a
  href={`/api/export/${exportModule}`}
- title="Export Excel"
- aria-label="Export Excel"
+ title={t.exportExcel}
+ aria-label={t.exportExcel}
  className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FileXls size={16} weight="bold" />
  </a>
  <a
  href={`/api/export/${exportModule}?format=pdf`}
- title="Print / Export PDF"
- aria-label="Print / Export PDF"
+ title={t.exportPdf}
+ aria-label={t.exportPdf}
  className="inline-flex h-11 w-11 items-center justify-center  border border-gray-200 bg-white text-gray-600 shadow-sm transition-all  hover:bg-blue-500 hover:text-white hover:border-blue-500"
  >
  <FilePdf size={16} weight="bold" />

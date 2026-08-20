@@ -198,7 +198,8 @@ export default async function ModulePage({
     kanbanRows = rows;
 
     if (moduleKey === "tasks" || moduleKey === "bugs" || moduleKey === "test-cases" || moduleKey === "sprints") {
-      const allRows = await getModuleRows(moduleKey as ModuleKey);
+      // ponytail: 500 is a soft cap, not real pagination — no team realistically has >500 open items in one status board. Add per-column virtualization if that ever changes.
+      const allRows = await getModuleRows(moduleKey as ModuleKey, 500);
       kanbanRows = allRows as Record<string, unknown>[];
     }
 

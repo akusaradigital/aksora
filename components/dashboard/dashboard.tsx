@@ -258,7 +258,7 @@ export function Dashboard({
       )}
 
       {/* Quick Stats */}
-      <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-3">
         <BugStatCard value={openBugs} bugSeverityCounts={bugSeverityCounts} />
         <StatCard label="Active Tasks" value={openTasks} icon={<Kanban size={20} weight="bold" className="text-blue-600" />} color="bg-blue-50" href="/tasks" />
         <StatCard label="Test Cases" value={testCases} icon={<Checks size={20} weight="bold" className="text-emerald-500" />} color="bg-emerald-50" href="/test-cases" />
@@ -281,12 +281,12 @@ export function Dashboard({
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 [&>*]:flex-1">
           <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-white shadow-sm" />
           <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-white shadow-sm" />
           <ResolutionRateMetric resolutionRate={resolutionRate} />
           {qualityHealthScore && (
-            <div className="flex flex-1 items-center justify-center bg-white border border-slate-100 shadow-sm p-4">
+            <div className="flex items-center justify-center bg-white border border-slate-100 shadow-sm p-4">
               <QualityHealthScore qualityHealthScore={qualityHealthScore} />
             </div>
           )}

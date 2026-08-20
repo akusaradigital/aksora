@@ -41,12 +41,12 @@ async function getPostgresPool() {
 
     const poolConfig = {
       connectionString,
-      max: isNeon ? 10 : 20,
-      min: isNeon ? 0 : 2,
-      idleTimeoutMillis: isNeon ? 10000 : 30000,
-      connectionTimeoutMillis: isNeon ? 5000 : 5000,
-      allowExitOnIdle: isNeon,
-      statement_timeout: 8000,
+      max: isNeon ? 5 : 10,
+      min: 0,
+      idleTimeoutMillis: isNeon ? 5000 : 15000,
+      connectionTimeoutMillis: 3000,
+      allowExitOnIdle: true,
+      statement_timeout: 5000,
     };
     let pool;
     if (isNeon) {

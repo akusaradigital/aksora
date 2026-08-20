@@ -14,6 +14,8 @@ import { toast } from "@/components/ui/toast";
 import { parseCSV, mapCSVToTestCases, type InvalidRow } from "@/components/test-management/csv-parser";
 import type { TestCaseRow } from "@/components/test-management/test-case-detail-helpers";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 type ImportStep = "upload" | "preview" | "importing" | "done";
 
@@ -25,6 +27,8 @@ interface ImportResult {
 
 export function TestCaseImportButton({ suiteId }: { suiteId: string }) {
   const [open, setOpen] = useState(false);
+  const { dict } = useTranslation();
+  const t = dict.testManagement.importModal;
 
   return (
     <>
@@ -34,7 +38,7 @@ export function TestCaseImportButton({ suiteId }: { suiteId: string }) {
         className="flex h-10 items-center gap-2 border border-gray-200 bg-white px-4 text-xs font-bold text-gray-700 transition hover:bg-gray-50"
       >
         <FileArrowUp size={18} weight="bold" />
-        Import CSV
+        {t.buttonText}
       </button>
       {open && (
         <TestCaseImportModal suiteId={suiteId} onClose={() => setOpen(false)} />
@@ -51,6 +55,8 @@ function TestCaseImportModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { dict } = useTranslation();
+  const t = dict.testManagement.importModal;
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ImportStep>("upload");
   const [fileName, setFileName] = useState("");
@@ -65,7 +71,7 @@ function TestCaseImportModal({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".csv")) {
-      toast("Please select a .csv file", "error");
+      toast(t.errorSelectCsv, "error");
       return;
     }
     setFileName(file.name);
@@ -125,11 +131,11 @@ function TestCaseImportModal({
     setStep("done");
 
     if (succeeded > 0) {
-      toast(`${succeeded} test case(s) imported successfully`, "success");
+      toast(interpolate(t.successToast, { count: succeeded }), "success");
       router.refresh();
     }
     if (failed > 0) {
-      toast(`${failed} test case(s) failed to import`, "error");
+      toast(interpolate(t.failedToast, { count: failed }), "error");
     }
   }
 
@@ -157,7 +163,7 @@ function TestCaseImportModal({
       <div className="relative flex max-h-[85vh] w-full max-w-4xl flex-col bg-white border border-gray-200 shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-          <h2 className="text-sm font-bold text-gray-900">Import Test Cases from CSV</h2>
+          <h2 className="text-sm font-bold text-gray-900">{t.title}</h2>
           <button
             onClick={handleClose}
             disabled={step === "importing"}
@@ -171,6 +177,7 @@ function TestCaseImportModal({
         <div className="flex-1 overflow-auto px-5 py-4">
           {step === "upload" && (
             <UploadStep
+              t={t}
               fileRef={fileRef}
               onFileChange={handleFileChange}
               onDownloadTemplate={handleDownloadTemplate}
@@ -178,6 +185,7 @@ function TestCaseImportModal({
           )}
           {step === "preview" && (
             <PreviewStep
+              t={t}
               fileName={fileName}
               headers={headers}
               allRows={allParsedRows}
@@ -186,10 +194,10 @@ function TestCaseImportModal({
             />
           )}
           {step === "importing" && (
-            <ImportingStep progress={progress} total={validRows.length} />
+            <ImportingStep t={t} progress={progress} total={validRows.length} />
           )}
           {step === "done" && result && (
-            <DoneStep result={result} />
+            <DoneStep t={t} result={result} />
           )}
         </div>
 
@@ -200,7 +208,7 @@ function TestCaseImportModal({
               onClick={handleClose}
               className="h-8 border border-gray-200 px-4 text-xs font-medium text-gray-600 hover:bg-gray-50"
             >
-              Cancel
+              {t.cancel}
             </button>
           )}
           {step === "preview" && (
@@ -209,7 +217,7 @@ function TestCaseImportModal({
                 onClick={() => { setStep("upload"); setFileName(""); setValidRows([]); setInvalidRows([]); }}
                 className="h-8 border border-gray-200 px-4 text-xs font-medium text-gray-600 hover:bg-gray-50"
               >
-                Back
+                {t.back}
               </button>
               <button
                 onClick={handleImport}
@@ -217,7 +225,7 @@ function TestCaseImportModal({
                 className="flex h-8 items-center gap-1.5 bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 <FileArrowUp size={14} weight="bold" />
-                Import {validRows.length} Valid Row{validRows.length !== 1 ? "s" : ""}
+                {interpolate(t.importButton, { count: validRows.length, plural: validRows.length !== 1 ? "s" : "" })}
               </button>
             </>
           )}
@@ -226,7 +234,7 @@ function TestCaseImportModal({
               onClick={handleClose}
               className="h-8 bg-gray-800 px-4 text-xs font-bold text-white hover:bg-gray-900"
             >
-              Close
+              {t.close}
             </button>
           )}
         </div>
@@ -236,10 +244,12 @@ function TestCaseImportModal({
 }
 
 function UploadStep({
+  t,
   fileRef,
   onFileChange,
   onDownloadTemplate,
 }: {
+  t: (typeof import("@/lib/i18n/dictionaries/en").default)["testManagement"]["importModal"];
   fileRef: React.RefObject<HTMLInputElement | null>;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDownloadTemplate: () => void;
@@ -249,10 +259,10 @@ function UploadStep({
       <div className="flex flex-col items-center gap-2 text-center">
         <FileArrowUp size={40} weight="bold" className="text-gray-300" />
         <p className="text-sm font-medium text-gray-700">
-          Upload a CSV file to bulk import test cases
+          {t.uploadTitle}
         </p>
         <p className="text-xs text-gray-400">
-          Expected columns: TC ID, Case Name, Type Case, Pre-condition, Test Step, Expected Result, Actual Result, Status, Priority
+          {t.expectedColumns}
         </p>
       </div>
 
@@ -262,14 +272,14 @@ function UploadStep({
           className="flex h-9 items-center gap-2 bg-blue-600 px-4 text-xs font-bold text-white hover:bg-blue-700"
         >
           <FileArrowUp size={14} weight="bold" />
-          Choose CSV File
+          {t.chooseFile}
         </button>
         <button
           onClick={onDownloadTemplate}
           className="flex h-9 items-center gap-2 border border-gray-200 px-4 text-xs font-medium text-gray-600 hover:bg-gray-50"
         >
           <DownloadSimple size={14} weight="bold" />
-          Download Template
+          {t.downloadTemplate}
         </button>
       </div>
 
@@ -285,12 +295,14 @@ function UploadStep({
 }
 
 function PreviewStep({
+  t,
   fileName,
   headers,
   allRows,
   validRows,
   invalidRows,
 }: {
+  t: (typeof import("@/lib/i18n/dictionaries/en").default)["testManagement"]["importModal"];
   fileName: string;
   headers: string[];
   allRows: string[][];
@@ -301,15 +313,15 @@ function PreviewStep({
     <div className="flex flex-col gap-3">
       {/* Summary */}
       <div className="flex items-center gap-4 text-xs">
-        <span className="font-medium text-gray-700">File: {fileName}</span>
+        <span className="font-medium text-gray-700">{interpolate(t.fileLabel, { fileName })}</span>
         <span className="flex items-center gap-1 text-emerald-600">
           <CheckCircle size={14} weight="bold" />
-          {validRows.length} valid
+          {interpolate(t.validCount, { count: validRows.length })}
         </span>
         {invalidRows.length > 0 && (
           <span className="flex items-center gap-1 text-red-600">
             <WarningCircle size={14} weight="bold" />
-            {invalidRows.length} invalid
+            {interpolate(t.invalidCount, { count: invalidRows.length })}
           </span>
         )}
       </div>
@@ -317,7 +329,7 @@ function PreviewStep({
       {/* Invalid rows errors */}
       {invalidRows.length > 0 && (
         <div className="border border-red-100 bg-red-50 p-3">
-          <p className="mb-1 text-xs font-bold text-red-700">Validation Errors:</p>
+          <p className="mb-1 text-xs font-bold text-red-700">{t.validationErrors}</p>
           <ul className="max-h-24 overflow-auto text-[11px] text-red-600 space-y-0.5">
             {invalidRows.slice(0, 10).map((inv) => (
               <li key={inv.row}>
@@ -325,7 +337,7 @@ function PreviewStep({
               </li>
             ))}
             {invalidRows.length > 10 && (
-              <li className="text-red-500">...and {invalidRows.length - 10} more</li>
+              <li className="text-red-500">{interpolate(t.moreErrors, { count: invalidRows.length - 10 })}</li>
             )}
           </ul>
         </div>
@@ -397,13 +409,13 @@ function PreviewStep({
   );
 }
 
-function ImportingStep({ progress, total }: { progress: number; total: number }) {
+function ImportingStep({ t, progress, total }: { t: (typeof import("@/lib/i18n/dictionaries/en").default)["testManagement"]["importModal"]; progress: number; total: number }) {
   const pct = total > 0 ? Math.round((progress / total) * 100) : 0;
   return (
     <div className="flex flex-col items-center gap-4 py-10">
       <SpinnerGap size={32} weight="bold" className="animate-spin text-blue-600" />
       <p className="text-sm font-medium text-gray-700">
-        Importing test cases... {progress}/{total}
+        {interpolate(t.importingTitle, { progress, total })}
       </p>
       <div className="h-2 w-64 overflow-hidden bg-gray-100">
         <div
@@ -415,7 +427,7 @@ function ImportingStep({ progress, total }: { progress: number; total: number })
   );
 }
 
-function DoneStep({ result }: { result: ImportResult }) {
+function DoneStep({ t, result }: { t: (typeof import("@/lib/i18n/dictionaries/en").default)["testManagement"]["importModal"]; result: ImportResult }) {
   return (
     <div className="flex flex-col items-center gap-3 py-8">
       {result.failed === 0 ? (
@@ -423,11 +435,11 @@ function DoneStep({ result }: { result: ImportResult }) {
       ) : (
         <WarningCircle size={36} weight="bold" className="text-amber-500" />
       )}
-      <p className="text-sm font-bold text-gray-800">Import Complete</p>
+      <p className="text-sm font-bold text-gray-800">{t.importComplete}</p>
       <div className="flex items-center gap-4 text-xs">
-        <span className="text-emerald-600 font-medium">{result.succeeded} succeeded</span>
+        <span className="text-emerald-600 font-medium">{interpolate(t.succeededCount, { count: result.succeeded })}</span>
         {result.failed > 0 && (
-          <span className="text-red-600 font-medium">{result.failed} failed</span>
+          <span className="text-red-600 font-medium">{interpolate(t.failedCount, { count: result.failed })}</span>
         )}
       </div>
       {result.errors.length > 0 && (

@@ -7,7 +7,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const logoBase64 = fs.readFileSync(
-  path.join(process.cwd(), "public", "icon-light.png")
+  path.join(process.cwd(), "public", "icon-dark.png")
 ).toString("base64");
 const logoDataUri = `data:image/png;base64,${logoBase64}`;
 
@@ -22,7 +22,7 @@ export default function OgImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#030712",
+          backgroundColor: "#ffffff",
           fontFamily: "Inter, sans-serif",
         }}
       >
@@ -33,7 +33,7 @@ export default function OgImage() {
             inset: 0,
             opacity: 0.05,
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+              "linear-gradient(rgba(15,23,42,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.4) 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
@@ -53,14 +53,14 @@ export default function OgImage() {
                 width: "64px",
                 height: "64px",
                 borderRadius: "16px",
-                backgroundColor: "white",
+                backgroundColor: "#f1f5f9",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <img src={logoDataUri} width={48} height={48} />
             </div>
-            <span style={{ color: "white", fontSize: "28px", fontWeight: 700 }}>
+            <span style={{ color: "#0f172a", fontSize: "28px", fontWeight: 700 }}>
               Aksora
             </span>
           </div>
@@ -77,7 +77,7 @@ export default function OgImage() {
         >
           <h1
             style={{
-              color: "white",
+              color: "#0f172a",
               fontSize: "52px",
               fontWeight: 700,
               lineHeight: 1.2,
@@ -92,7 +92,7 @@ export default function OgImage() {
               fontWeight: 700,
               lineHeight: 1.2,
               margin: 0,
-              background: "linear-gradient(to right, #60a5fa, #67e8f9)",
+              background: "linear-gradient(to right, #2563eb, #0891b2)",
               backgroundClip: "text",
               color: "transparent",
             }}
@@ -101,7 +101,7 @@ export default function OgImage() {
           </h1>
           <p
             style={{
-              color: "#9ca3af",
+              color: "#64748b",
               fontSize: "20px",
               marginTop: "16px",
             }}
@@ -117,7 +117,7 @@ export default function OgImage() {
             bottom: "40px",
             display: "flex",
             gap: "24px",
-            color: "#6b7280",
+            color: "#94a3b8",
             fontSize: "14px",
           }}
         >

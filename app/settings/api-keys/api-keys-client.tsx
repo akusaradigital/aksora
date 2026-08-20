@@ -22,10 +22,30 @@ export type ApiKeyItem = {
   id: string | number;
   name: string;
   keyPrefix: string;
+  workspaceId?: number | null;
+  allowedModules?: string;
   createdAt: string;
   lastUsedAt?: string | null;
   revokedAt?: string | null;
   expiresAt?: string | null;
+};
+
+const AVAILABLE_MODULES = [
+  { key: "tasks", label: "Tasks" },
+  { key: "bugs", label: "Bugs" },
+  { key: "test-cases", label: "Test Cases" },
+  { key: "test-plans", label: "Test Plans" },
+  { key: "test-suites", label: "Test Suites" },
+  { key: "test-sessions", label: "Test Sessions" },
+  { key: "meeting-notes", label: "Meeting Notes" },
+  { key: "sprints", label: "Sprints" },
+  { key: "work-logs", label: "Work Logs" },
+  { key: "deployments", label: "Deployments" },
+] as const;
+
+type WorkspaceOption = {
+  id: number;
+  name: string;
 };
 
 export function ApiKeysClient() {
@@ -33,10 +53,15 @@ export function ApiKeysClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Workspaces state
+  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+
   // Create Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
   const [expiresInDaysOption, setExpiresInDaysOption] = useState<string>("no_expiration");
+  const [selectedModules, setSelectedModules] = useState<string[]>(["*"]);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -68,9 +93,58 @@ export function ApiKeysClient() {
     }
   };
 
+  const fetchWorkspaces = async () => {
+    try {
+      const res = await fetch("/api/workspaces");
+      if (res.ok) {
+        const data = await res.json();
+        const wsList = (data.workspaces || []).map((w: { workspaceId?: number; id?: number; name: string }) => ({
+          id: Number(w.workspaceId ?? w.id),
+          name: w.name,
+        }));
+        setWorkspaces(wsList);
+        if (wsList.length > 0 && !selectedWorkspaceId) {
+          setSelectedWorkspaceId(String(wsList[0].id));
+        }
+      }
+    } catch {
+      // workspace fetch is optional
+    }
+  };
+
   useEffect(() => {
     fetchKeys();
+    fetchWorkspaces();
   }, []);
+
+  const handleToggleModule = (moduleKey: string) => {
+    if (selectedModules.includes("*")) {
+      // Switching from all modules to specific selection
+      const allKeys = AVAILABLE_MODULES.map((m) => m.key);
+      setSelectedModules(allKeys.filter((k) => k !== moduleKey));
+    } else if (selectedModules.includes(moduleKey)) {
+      setSelectedModules(selectedModules.filter((k) => k !== moduleKey));
+    } else {
+      const updated = [...selectedModules, moduleKey];
+      if (updated.length === AVAILABLE_MODULES.length) {
+        setSelectedModules(["*"]);
+      } else {
+        setSelectedModules(updated);
+      }
+    }
+  };
+
+  const handleSelectAllModules = () => {
+    setSelectedModules(["*"]);
+  };
+
+  const handleDeselectAllModules = () => {
+    setSelectedModules([]);
+  };
+
+  const isModuleChecked = (moduleKey: string) => {
+    return selectedModules.includes("*") || selectedModules.includes(moduleKey);
+  };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,13 +156,21 @@ export function ApiKeysClient() {
     else if (expiresInDaysOption === "90") expiresInDays = 90;
     else if (expiresInDaysOption === "365") expiresInDays = 365;
 
+    const workspaceId = selectedWorkspaceId ? Number(selectedWorkspaceId) : null;
+    const allowedModules = selectedModules.length === 0 ? ["*"] : selectedModules;
+
     setCreateLoading(true);
     setCreateError(null);
     try {
       const res = await fetch("/api/settings/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, expiresInDays }),
+        body: JSON.stringify({
+          name,
+          expiresInDays,
+          workspaceId,
+          allowedModules,
+        }),
       });
 
       if (!res.ok) {
@@ -102,6 +184,7 @@ export function ApiKeysClient() {
       setIsCreateOpen(false);
       setKeyName("");
       setExpiresInDaysOption("no_expiration");
+      setSelectedModules(["*"]);
       toast("API key created successfully", "success");
       fetchKeys();
     } catch (err) {
@@ -234,6 +317,8 @@ export function ApiKeysClient() {
                 <tr>
                   <th className="px-6 py-3">Key Name</th>
                   <th className="px-6 py-3">Prefix</th>
+                  <th className="px-6 py-3">Workspace</th>
+                  <th className="px-6 py-3">Permissions</th>
                   <th className="px-6 py-3">Created</th>
                   <th className="px-6 py-3">Expires</th>
                   <th className="px-6 py-3">Last Used</th>
@@ -245,6 +330,12 @@ export function ApiKeysClient() {
                 {keys.map((key) => {
                   const isRevoked = Boolean(key.revokedAt);
                   const isExpired = Boolean(key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now());
+                  const wsMatch = workspaces.find((w) => w.id === key.workspaceId);
+                  const wsLabel = wsMatch ? wsMatch.name : key.workspaceId ? `WS #${key.workspaceId}` : "Default";
+                  const rawModules = String(key.allowedModules ?? "*").trim();
+                  const isAllModules = !rawModules || rawModules === "*";
+                  const moduleList = isAllModules ? [] : rawModules.split(",").map((m) => m.trim()).filter(Boolean);
+
                   return (
                     <tr key={key.id} className="hover:bg-slate-50/50 transition">
                       <td className="px-6 py-4 font-bold text-slate-900">{key.name}</td>
@@ -252,6 +343,29 @@ export function ApiKeysClient() {
                         <code className="bg-slate-100 px-2 py-1 font-mono text-[11px] font-semibold text-slate-800 border border-slate-200">
                           {key.keyPrefix || "aksora_xxx"}...
                         </code>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-800">
+                          {wsLabel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isAllModules ? (
+                          <span className="inline-flex items-center rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                            All Modules (*)
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {moduleList.map((m) => (
+                              <span
+                                key={m}
+                                className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-700"
+                              >
+                                {m}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-slate-500">{formatDate(key.createdAt)}</td>
                       <td className="px-6 py-4 text-slate-500">{formatExpireDate(key.expiresAt)}</td>
@@ -383,6 +497,28 @@ export function ApiKeysClient() {
                 </p>
               </div>
 
+              {workspaces.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Workspace Scope
+                  </label>
+                  <select
+                    value={selectedWorkspaceId}
+                    onChange={(e) => setSelectedWorkspaceId(e.target.value)}
+                    className="w-full h-9 border border-slate-300 bg-white px-2 text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {workspaces.map((ws) => (
+                      <option key={ws.id} value={String(ws.id)}>
+                        {ws.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Operations using this API key will be isolated to this workspace.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Expiration
@@ -399,6 +535,50 @@ export function ApiKeysClient() {
                 </select>
                 <p className="mt-1 text-[11px] text-slate-500">
                   The key will automatically expire after the selected duration.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Module Permissions
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllModules}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllModules}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 border border-slate-200 bg-slate-50 p-3 max-h-48 overflow-y-auto">
+                  {AVAILABLE_MODULES.map((m) => {
+                    const checked = isModuleChecked(m.key);
+                    return (
+                      <label key={m.key} className="flex items-center gap-2 cursor-pointer text-xs text-slate-800 hover:text-slate-950 select-none">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleModule(m.key)}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
+                        />
+                        <span>{m.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Select which modules this key is allowed to query and modify.
                 </p>
               </div>
 

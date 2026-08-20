@@ -5,6 +5,9 @@ import { AppWrapper } from "@/components/layout/app-wrapper";
 import { Toaster } from "@/components/ui/toast";
 import { ServiceWorkerRegister } from "@/components/layout/service-worker-register";
 import { WebVitals } from "@/components/layout/web-vitals";
+import { getLocale, getDictionary } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/i18n/locale-context";
+import { ThemeProvider } from "@/lib/theme/theme-context";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -75,13 +78,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const initialDict = getDictionary(locale);
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} className="scroll-smooth" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -90,6 +95,20 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#2563eb" />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                try {
+                  var t = localStorage.getItem('theme') || 'system';
+                  var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  document.documentElement.classList.toggle('dark', dark);
+                } catch(e){}
+              })();
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           suppressHydrationWarning
@@ -140,12 +159,16 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <AppWrapper>
-          {children}
-        </AppWrapper>
-        <Toaster />
-        <ServiceWorkerRegister />
-        <WebVitals />
+        <ThemeProvider>
+          <LocaleProvider locale={locale} initialDict={initialDict}>
+            <AppWrapper>
+              {children}
+            </AppWrapper>
+            <Toaster />
+            <ServiceWorkerRegister />
+            <WebVitals />
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,22 +2,30 @@ import { cn } from"@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
  return (
- <div className={cn("animate-pulse  bg-gray-200", className)} />
+ <div className={cn("animate-shimmer bg-slate-100 motion-reduce:animate-none", className)} />
  );
 }
 
+// ponytail: hand-mirrors dashboard.tsx's grid shape so the loader doesn't jump when real content mounts. Update both together.
 export function DashboardSkeleton() {
  return (
- <div className="space-y-6 pb-12">
- <Skeleton className="h-[300px] w-full " />
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
- {[...Array(5)].map((_, i) => (
- <Skeleton key={i} className="h-32 " />
+ <div className="space-y-6 pb-14">
+ <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+ <Skeleton className="h-40" />
+ <Skeleton className="h-40" />
+ </div>
+ <div className="grid gap-4 sm:grid-cols-3">
+ {[...Array(3)].map((_, i) => (
+ <Skeleton key={i} className="h-28" />
  ))}
  </div>
- <div className="grid gap-6 xl:grid-cols-2">
- <Skeleton className="h-[400px] " />
- <Skeleton className="h-[400px] " />
+ <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
+ <Skeleton className="h-[300px]" />
+ <Skeleton className="h-[300px]" />
+ </div>
+ <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+ <Skeleton className="h-72" />
+ <Skeleton className="h-72" />
  </div>
  </div>
  );

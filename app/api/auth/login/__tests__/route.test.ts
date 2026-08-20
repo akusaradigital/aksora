@@ -11,7 +11,7 @@ vi.mock("@/lib/auth", () => ({
   authEnabled: mocks.authEnabled,
   validateCredentials: mocks.validateCredentials,
   createSessionToken: mocks.createSessionToken,
-  sessionCookieName: () => "aksora_session",
+  sessionCookieName: () => "aksora_token",
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -56,7 +56,7 @@ describe("auth login route", () => {
   });
 
   it("sets the session cookie for valid credentials", async () => {
-    mocks.validateCredentials.mockResolvedValueOnce({ id: 1, email: "user@example.com" });
+    mocks.validateCredentials.mockResolvedValueOnce({ id: 1, email: "user@example.com", emailVerified: 1 });
     mocks.createSessionToken.mockResolvedValueOnce("token-123");
 
     const response = await POST(
@@ -66,12 +66,17 @@ describe("auth login route", () => {
       }) as NextRequest,
     );
 
-    expect(mocks.createSessionToken).toHaveBeenCalledWith("user@example.com", {
-      id: 1,
-      email: "user@example.com",
-    });
+    expect(mocks.createSessionToken).toHaveBeenCalledWith(
+      "user@example.com",
+      {
+        id: 1,
+        email: "user@example.com",
+        emailVerified: 1,
+      },
+      21600000,
+    );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
-    expect(response.headers.get("set-cookie")).toContain("aksora_session=token-123");
+    expect(response.headers.get("set-cookie")).toContain("aksora_token=token-123");
   });
 });

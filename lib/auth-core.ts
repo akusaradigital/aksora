@@ -13,7 +13,9 @@ import {
 } from "@/lib/roles";
 import { apiUserContext } from "@/lib/auth-context";
 
-const COOKIE_NAME = "aksora_session";
+const PRIMARY_COOKIE_NAME = "aksora_token";
+const FALLBACK_COOKIE_NAME = "aksora_session";
+const COOKIE_NAME = PRIMARY_COOKIE_NAME;
 
 export { WORKSPACE_ROLES, INVITE_ROLES, normalizeRole, isPlatformSuperAdmin, isInviteRole, getRoleLabel, getInviteRoleOptions, getPublicRoleOptions };
 
@@ -103,8 +105,8 @@ export function authEnabled() {
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null; emailVerified: number; activeWorkspaceId: number | null }>(
-      `SELECT u."id", u."name", u."email", COALESCE(wm."role", u."role") AS "role", u."company", u."password", u."mfaEnabled", u."mfaSecret", u."emailVerified", w."id" AS "activeWorkspaceId"
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null; emailVerified: number; activeWorkspaceId: number | null; locale?: string }>(
+      `SELECT u."id", u."name", u."email", COALESCE(wm."role", u."role") AS "role", u."company", u."password", u."mfaEnabled", u."mfaSecret", u."emailVerified", w."id" AS "activeWorkspaceId", u."locale"
        FROM "User" u
        LEFT JOIN "Workspace" w ON w."name" = u."company"
        LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
@@ -134,6 +136,7 @@ export async function validateCredentials(email: string, password: string) {
       mfaEnabled: Boolean(user.mfaEnabled),
       mfaSecret: user.mfaSecret || null,
       emailVerified: Boolean(user.emailVerified),
+      locale: user.locale || "en",
     };
   } catch (err) {
     console.error("Auth DB error:", err);
@@ -196,7 +199,8 @@ export async function verifyTempMfaToken(token: string | undefined | null) {
 
 export async function createSessionToken(
   email: string,
-  user?: { id: number; name: string; role: string; company: string; activeWorkspaceId?: number | null }
+  user?: { id: number; name: string; role: string; company: string; activeWorkspaceId?: number | null; locale?: string },
+  ttlMs?: number,
 ) {
   const { secret } = getAuthConfig();
   if (!secret) {
@@ -219,8 +223,9 @@ export async function createSessionToken(
   const payload = toBase64UrlBytes(JSON.stringify({
     email,
     ts: Date.now(),
+    ...(ttlMs ? { ttl: ttlMs } : {}),
     ...(pv ? { pv } : {}),
-    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company, activeWorkspaceId: user.activeWorkspaceId ?? null } : {}),
+    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company, activeWorkspaceId: user.activeWorkspaceId ?? null, locale: user.locale || "en" } : {}),
   }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
@@ -235,8 +240,9 @@ export async function verifySessionToken(token: string | undefined | null) {
   if (!payload || !signature) return false;
   if ((await sign(payload, secret)) !== signature) return false;
   try {
-    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string; ts?: number };
-    if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return false;
+    const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string; ts?: number; ttl?: number };
+    const maxAge = decoded.ttl || SESSION_DURATION;
+    if (decoded.ts && Date.now() - decoded.ts > maxAge) return false;
     return Boolean(decoded.email);
   } catch {
     return false;
@@ -246,13 +252,21 @@ export async function verifySessionToken(token: string | undefined | null) {
 export async function getCurrentUser() {
   const apiUser = apiUserContext.getStore();
   if (apiUser) {
-    return { ...apiUser, role: normalizeRole(apiUser.role) };
+    return {
+      ...apiUser,
+      role: normalizeRole(apiUser.role),
+      activeWorkspaceId: apiUser.workspaceId ?? null,
+    };
   }
 
   let token = "";
   try {
     const { cookies } = await import("next/headers");
-    token = (await cookies()).get(COOKIE_NAME)?.value ?? "";
+    const cookieStore = await cookies();
+    token =
+      cookieStore.get(PRIMARY_COOKIE_NAME)?.value ||
+      cookieStore.get(FALLBACK_COOKIE_NAME)?.value ||
+      "";
   } catch {
     return null;
   }
@@ -270,7 +284,7 @@ export async function getCurrentUser() {
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {
       email?: string; ts?: number; pv?: string;
-      id?: number; name?: string; role?: string; company?: string; activeWorkspaceId?: number | null;
+      id?: number; name?: string; role?: string; company?: string; activeWorkspaceId?: number | null; locale?: string;
     };
     if (!decoded.email) return null;
     if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return null;
@@ -309,13 +323,14 @@ export async function getCurrentUser() {
         role: normalizeRole(decoded.role),
         company: decoded.company,
         activeWorkspaceId,
+        locale: decoded.locale || "en",
       };
     }
 
     // Fallback: old tokens without embedded user data - hit DB once
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null }>(
-      `SELECT u.id, u.name, u.email, COALESCE(wm.role, u.role) AS "role", u.company, w.id AS "activeWorkspaceId"
+    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null; locale?: string }>(
+      `SELECT u.id, u.name, u.email, COALESCE(wm.role, u.role) AS "role", u.company, w.id AS "activeWorkspaceId", u.locale
        FROM "User" u
        LEFT JOIN "Workspace" w ON w.name = u.company
        LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
@@ -323,7 +338,7 @@ export async function getCurrentUser() {
       [decoded.email]
     );
     if (!user) return null;
-    return { ...user, role: normalizeRole(user.role), activeWorkspaceId: user.activeWorkspaceId ?? null };
+    return { ...user, role: normalizeRole(user.role), activeWorkspaceId: user.activeWorkspaceId ?? null, locale: user.locale || "en" };
   } catch {
     return null;
   }

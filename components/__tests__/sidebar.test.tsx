@@ -11,6 +11,46 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/hooks/use-translation", () => ({
+  useTranslation: () => ({
+    dict: {
+      sidebar: {
+        dashboard: "Dashboard",
+        groupTestManagement: "Test Management",
+        testPlans: "Test Plans",
+        testSuites: "Test Suites",
+        testCases: "Test Cases",
+        testSessions: "Test Sessions",
+        groupWorkTracking: "Work Tracking",
+        tasks: "Tasks",
+        bugs: "Bugs",
+        sprints: "Sprints",
+        workLog: "Work Log",
+        groupDocumentation: "Documentation",
+        dailyStandup: "Daily Standup",
+        meetingNotes: "Meeting Notes",
+        activityLog: "Activity Log",
+        groupReports: "Reports",
+        report: "Report",
+        testCoverage: "Test Coverage",
+        flakyTests: "Flaky Tests",
+        testGapAnalysis: "Test Gap Analysis",
+        deploymentLog: "Deployment Log",
+        workloadHeatmap: "Workload Heatmap",
+        ganttTimeline: "Gantt / Timeline",
+        groupSystemSettings: "System Settings",
+        settings: "Settings",
+        apiKeys: "API Keys",
+        support: "Support",
+        collapse: "Collapse",
+        expand: "Expand",
+      },
+    },
+    locale: "en",
+    setLocale: () => {},
+  }),
+}));
+
 import { Sidebar } from "@/components/layout/sidebar";
 
 describe("Sidebar", () => {

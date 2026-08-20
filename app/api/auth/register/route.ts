@@ -20,14 +20,14 @@ function getClientIp(request: NextRequest): string {
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 
-async function issueOtp(userId: number, email: string) {
+async function issueOtp(userId: number, email: string, name?: string) {
   const code = String(randomInt(100000, 1000000));
   const { db } = await import("@/lib/db");
   await db.run(
     'UPDATE "User" SET "emailVerified" = 0, "otpCode" = ?, "otpExpiresAt" = ?, "otpAttempts" = 0 WHERE "id" = CAST(? AS INTEGER)',
     [code, new Date(Date.now() + OTP_TTL_MS).toISOString(), userId],
   );
-  sendOtpEmail(email, code);
+  sendOtpEmail(email, code, name);
 }
 
 export async function POST(request: NextRequest) {
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     if ("error" in consume) {
       return NextResponse.json({ error: consume.error }, { status: 400 });
     }
-    sendWelcomeEmail(email, String(invite.company ?? "your workspace"));
+    sendWelcomeEmail(email, String(invite.company ?? "your workspace"), name || undefined);
     sendInviteAcceptedEmail(invite.createdBy, email, String(invite.company ?? "your workspace"));
     await clearRateLimit(limitKey);
     return NextResponse.json({ ok: true });
@@ -144,12 +144,12 @@ export async function POST(request: NextRequest) {
   // Public signups need OTP verification to prove there's a real inbox behind the address.
   // Skipped entirely if email sending isn't configured — otherwise dev/local signups would lock themselves out.
   if (createdUser && emailEnabled()) {
-    await issueOtp(createdUser.id, email);
+    await issueOtp(createdUser.id, email, name || undefined);
     await clearRateLimit(limitKey);
     return NextResponse.json({ ok: true, requiresVerification: true });
   }
 
-  sendWelcomeEmail(email, workspaceName);
+  sendWelcomeEmail(email, workspaceName, name || undefined);
   await clearRateLimit(limitKey);
   return NextResponse.json({ ok: true });
 }

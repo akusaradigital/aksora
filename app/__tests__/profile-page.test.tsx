@@ -18,6 +18,12 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUser: mocks.getCurrentUser,
 }));
 
+vi.mock("@/lib/db", () => ({
+  db: {
+    get: vi.fn().mockResolvedValue({ mfaEnabled: 0 }),
+  },
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));

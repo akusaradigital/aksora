@@ -6,6 +6,9 @@ export type ApiUser = {
   email: string;
   role: string;
   company: string;
+  locale?: string;
+  workspaceId?: number | null;
+  allowedModules?: string[];
 };
 
 export const apiUserContext = new AsyncLocalStorage<ApiUser>();

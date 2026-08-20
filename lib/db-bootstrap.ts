@@ -167,7 +167,7 @@ async function backfillWorkspaceIds(deps: DbBootstrapDeps) {
     "Task", "Bug", "TestCase", "TestPlan", "TestSession", "TestSuite", "Sprint",
     "MeetingNote", "Assignee", "User", "Deployment", "ExecutionRun", "CaseVerdict",
     "DashboardComment", "PresenceHeartbeat", "DashboardFilter", "WorkLog", "ModuleView",
-    "NotificationPreference", "CollaborationPresence", "ActivityLog", "SearchToken",
+    "NotificationPreference", "CollaborationPresence", "ActivityLog", "SearchToken", "ApiKey",
   ];
 
   // 1. Collect distinct non-empty company values across all tables and ensure Workspace rows exist

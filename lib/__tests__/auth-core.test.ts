@@ -163,7 +163,7 @@ describe("auth-core", () => {
     await expect(registerUser("user@example.com", "secret")).resolves.toEqual({ error: "Email address is already registered. Please use a different email." });
   });
   it("exposes the cookie name", () => {
-    expect(sessionCookieName()).toBe("aksora_session");
+    expect(sessionCookieName()).toBe("aksora_token");
   });
 });
 

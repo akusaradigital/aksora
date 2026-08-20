@@ -24,8 +24,18 @@ vi.mock("@/lib/workspace-memberships", () => ({
   ensureWorkspaceMembership: vi.fn(),
 }));
 
-vi.mock("@/lib/plan-limits", () => ({
-  checkCompanyUserLimit: vi.fn().mockResolvedValue({ allowed: true }),
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimitKey: (_ip: string, email: string) => `test|${email}`,
+  isRateLimited: () => ({ limited: false }),
+  recordFailedAttempt: () => {},
+  clearRateLimit: () => {},
+}));
+
+vi.mock("@/lib/email", () => ({
+  sendWelcomeEmail: vi.fn(),
+  sendInviteAcceptedEmail: vi.fn(),
+  sendOtpEmail: vi.fn(),
+  emailEnabled: () => false,
 }));
 
 vi.mock("@/lib/invites", () => ({
@@ -36,6 +46,10 @@ vi.mock("@/lib/invites", () => ({
 vi.mock("@/lib/roles", () => ({
   isInviteRole: vi.fn(),
   normalizeRole: vi.fn((role: string) => role),
+}));
+
+vi.mock("@/lib/plan-limits", () => ({
+  checkCompanyUserLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
 
 import { POST } from "@/app/api/auth/register/route";
@@ -81,6 +95,46 @@ describe("auth register route", () => {
     );
 
     expect(mocks.registerUser).toHaveBeenCalledWith("user@example.com", "secret", "User", "admin", "User's Workspace");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+  });
+
+  it("registers invited user with invite role and workspace", async () => {
+    const { getInviteByToken, markInviteAccepted } = await import("@/lib/invites");
+    const { isInviteRole } = await import("@/lib/roles");
+    const { ensureWorkspaceMembership } = await import("@/lib/workspace-memberships");
+    const { db } = await import("@/lib/db");
+
+    (getInviteByToken as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      token: "valid-token",
+      role: "qa",
+      company: "Acme Corp",
+      workspaceId: 42,
+      status: "pending",
+      createdBy: "owner@acme.com",
+    });
+    (isInviteRole as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce(true);
+    mocks.registerUser.mockResolvedValueOnce({ ok: true });
+    (markInviteAccepted as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true });
+
+    const mockedDb = db as unknown as { get: ReturnType<typeof vi.fn> };
+    mockedDb.get.mockResolvedValueOnce({ id: 99, role: "qa", company: "Acme Corp" });
+
+    const response = await POST(
+      new Request("http://localhost/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "invited@example.com",
+          password: "password123",
+          name: "Invited QA",
+          inviteToken: "valid-token",
+        }),
+      }) as NextRequest,
+    );
+
+    expect(mocks.registerUser).toHaveBeenCalledWith("invited@example.com", "password123", "Invited QA", "qa", "Acme Corp");
+    expect(ensureWorkspaceMembership).toHaveBeenCalledWith(42, 99, "qa");
+    expect(markInviteAccepted).toHaveBeenCalledWith("valid-token", "invited@example.com");
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
   });

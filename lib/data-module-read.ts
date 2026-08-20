@@ -18,10 +18,12 @@ function hydrateDeploymentNotes<T extends Record<string, unknown>>(row: T) {
   };
 }
 
-export async function getModuleRows(module: ModuleKey) {
+export async function getModuleRows(module: ModuleKey, limit?: number) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
   const { isAdmin, where, andWhere, params: qParams } = scope;
+  // ponytail: limit only wired for kanban-fed modules below; other callers (e.g. sortOrder reindex) need the full set, so default stays unbounded.
+  const limitClause = limit ? ` LIMIT ${Math.max(1, Math.floor(limit))}` : "";
 
   switch (module) {
     case "test-plans":
@@ -36,11 +38,11 @@ export async function getModuleRows(module: ModuleKey) {
     case "test-sessions":
       return await selectAll(`SELECT "id", "company", "publicToken", "project", "date", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "createdAt", "updatedAt", "deletedAt" FROM "TestSession" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY "updatedAt" DESC`, qParams);
     case "test-cases":
-      return (await selectAll(`SELECT "id", "company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams)).map((item) => normalizeTestCaseRow(item));
+      return (await selectAll(`SELECT "id", "company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "TestCase" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams)).map((item) => normalizeTestCaseRow(item));
     case "bugs":
-      return await selectAll(`SELECT "id", "company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams);
     case "tasks":
-      return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams);
     case "test-suites": {
       const suiteCompanyWhere = scope.getScopedAndClause("ts");
       const tcCompanyWhere = scope.getScopedAndClause("tc");
@@ -100,7 +102,7 @@ export async function getModuleRows(module: ModuleKey) {
             ORDER BY tp2."updatedAt" DESC LIMIT 1) AS "_planInfo"
         FROM "Sprint" s
         ${sprintWhere}
-        ORDER BY s."startDate" DESC
+        ORDER BY s."startDate" DESC${limitClause}
       `, isAdmin ? [] : [...qParams, ...qParams]);
       return sprintRows.map((row) => {
         const info = String(row._planInfo ?? "");

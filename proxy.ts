@@ -4,10 +4,13 @@ import { verifySessionToken } from "@/lib/auth-core";
 const publicPaths = [
   "/login",
   "/register",
+  "/reset-password",
   "/api/auth/login",
   "/api/auth/google",
   "/api/auth/register",
   "/api/auth/logout",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/api/auth/me",
   "/api/health",
   "/favicon.ico",
@@ -65,16 +68,34 @@ function checkRateLimit(ip: string): boolean {
   return record.count <= RATE_LIMIT_MAX;
 }
 
+function detectLocale(header: string | null): "en" | "id" {
+  if (!header) return "en";
+  const first = header.split(",")[0]?.trim().toLowerCase() ?? "";
+  return first.startsWith("id") ? "id" : "en";
+}
+
+function withLocale(request: NextRequest, response: NextResponse): NextResponse {
+  if (!request.cookies.get("locale")) {
+    response.cookies.set("locale", detectLocale(request.headers.get("accept-language")), {
+      httpOnly: false,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Exact match for root landing page
   if (pathname === "/") {
-    return NextResponse.next();
+    return withLocale(request, NextResponse.next());
   }
 
   if (publicPaths.some((path) => pathname === path || pathname.startsWith(path))) {
-    return NextResponse.next();
+    return pathname.startsWith("/api") ? NextResponse.next() : withLocale(request, NextResponse.next());
   }
 
   // Rate limiting for API routes
@@ -88,9 +109,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const token = request.cookies.get("aksora_session")?.value;
+  const token =
+    request.cookies.get("aksora_token")?.value ||
+    request.cookies.get("aksora_session")?.value;
   if (await verifySessionToken(token)) {
-    return NextResponse.next();
+    return withLocale(request, NextResponse.next());
   }
 
   // For API routes, return 401 instead of redirect

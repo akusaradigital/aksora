@@ -10,11 +10,6 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Only admins can set up MFA for now
-  if (!isManagementAdmin(user.role, user.company)) {
-    return NextResponse.json({ error: "MFA setup is currently restricted to administrators." }, { status: 403 });
-  }
-
   // Generate a new secret but keep mfaEnabled false until verified
   const secret = generateTotpSecret();
   const uri = generateTotpUri(secret, user.email);
@@ -30,10 +25,6 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  if (!isManagementAdmin(user.role, user.company)) {
-    return NextResponse.json({ error: "MFA setup is currently restricted to administrators." }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => null) as { code?: string } | null;
   const code = String(body?.code ?? "").trim();
@@ -66,10 +57,6 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  if (!isManagementAdmin(user.role, user.company)) {
-    return NextResponse.json({ error: "MFA management is currently restricted to administrators." }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => null) as { code?: string } | null;
   const code = String(body?.code ?? "").trim();
