@@ -194,8 +194,30 @@ export function DashboardRealtime() {
         // Not authenticated - don't connect
       });
 
+    // Close the SSE connection while the tab is backgrounded so the serverless
+    // function isn't kept alive polling for a tab nobody is looking at, and
+    // reconnect (with missed-notification catch-up via `since`) when visible.
+    const handleVisibilityChange = () => {
+      if (!mountedRef.current) return;
+      if (document.hidden) {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+      } else if (!eventSourceRef.current) {
+        attemptRef.current = 0;
+        connectRef.current();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       mountedRef.current = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       // Cleanup: close EventSource on unmount
       if (eventSourceRef.current) {

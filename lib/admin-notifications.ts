@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { notifyChannel, ADMIN_NOTIFY_CHANNEL } from "@/lib/db-notify";
 
 export type AdminNotificationType =
   | "new_ticket"
@@ -47,6 +48,7 @@ export async function createAdminNotification(params: {
         params.meta ? JSON.stringify(params.meta) : "",
       ]
     );
+    void notifyChannel(ADMIN_NOTIFY_CHANNEL, { type: params.type, companyId: params.companyId ?? null });
   } catch (e) {
     console.error("Failed to create admin notification:", e);
   }

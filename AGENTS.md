@@ -74,6 +74,7 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 
 ## Do NOT (CRITICAL - STRICTLY ENFORCED)
 - **NEVER git push or git commit unless explicitly and unambiguously requested with the exact words "commit" or "push". Slang, affirmations, or casual phrases (e.g., "gas", "gas semua", "lanjut", "oke", "mantap", "sip") MUST NEVER be interpreted as permission to push/commit.**
+- **NEVER add a `Co-Authored-By` trailer (or any co-author credit) to commit messages.**
 - Add packages without checking `package.json`.
 - Add SQLite or `isPostgres` branching.
 - Use `/test-case-management` — it's `/test-cases`.

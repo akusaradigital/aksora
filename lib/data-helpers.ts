@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
+import { notifyChannel, ACTIVITY_NOTIFY_CHANNEL } from "@/lib/db-notify";
 
 export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 
@@ -165,6 +166,18 @@ export async function logActivity(company: string, type: string, id: string, act
         summary,
       }, wsId);
     }
+
+    // Fire-and-forget: wakes any SSE stream LISTENing on this channel instead
+    // of it having to poll ActivityLog/Task/Bug on a timer.
+    void notifyChannel(ACTIVITY_NOTIFY_CHANNEL, {
+      company,
+      workspaceId: wsId,
+      entityType: type,
+      entityId: id,
+      action,
+      summary: summary.slice(0, 300),
+      actor: actor || "",
+    });
   } catch (e) {
     console.error("Activity logging failed:", e);
   }

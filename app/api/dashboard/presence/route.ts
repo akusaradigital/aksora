@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { upsertHeartbeat, removeStalePresence } from "@/lib/data";
 import { db } from "@/lib/db";
+import { checkMemoryRateLimit } from "@/lib/rate-limit";
 
 type PresenceBody = {
   action: "heartbeat" | "disconnect";
@@ -36,6 +37,13 @@ export async function POST(request: Request) {
 
   if (body.action !== "heartbeat" && body.action !== "disconnect") {
     return errorResponse("action must be 'heartbeat' or 'disconnect'", "VALIDATION_ERROR", 400);
+  }
+
+  // Client sends heartbeats every 30-60s; guard against a runaway loop
+  // (buggy effect, stuck retry) hammering the DB with writes.
+  const { limited } = checkMemoryRateLimit(`presence:${user.id}`, 10, 10_000);
+  if (limited) {
+    return errorResponse("Too many requests", "RATE_LIMITED", 429);
   }
 
   const { company } = getAccessScope(user);

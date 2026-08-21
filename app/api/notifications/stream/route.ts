@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
+import { listenChannel, ACTIVITY_NOTIFY_CHANNEL } from "@/lib/db-notify";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // SSE endpoint for real-time user assignment notifications
 export async function GET() {
@@ -24,6 +26,7 @@ export async function GET() {
   }
 
   let closed = false;
+  let unlisten: (() => Promise<void>) | null = null;
   let lastCheckedTime = new Date().toISOString();
 
   const stream = new ReadableStream({
@@ -33,12 +36,8 @@ export async function GET() {
         encoder.encode(`event: connected\ndata: ${JSON.stringify({ connected: true })}\n\n`),
       );
 
-      // Poll for new tasks or bugs assigned to this user every 10 seconds
-      const interval = setInterval(async () => {
-        if (closed) {
-          clearInterval(interval);
-          return;
-        }
+      const checkForAssignments = async () => {
+        if (closed) return;
 
         try {
           const now = new Date().toISOString();
@@ -106,25 +105,50 @@ export async function GET() {
             })),
           ];
 
-          if (events.length > 0) {
-            for (const event of events) {
-              controller.enqueue(
-                encoder.encode(`event: assignment\ndata: ${JSON.stringify(event)}\n\n`),
-              );
-            }
-          } else {
-            // Heartbeat to keep connection alive
-            controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+          for (const event of events) {
+            controller.enqueue(
+              encoder.encode(`event: assignment\ndata: ${JSON.stringify(event)}\n\n`),
+            );
           }
         } catch {
-          // Ignore polling errors during SSE stream
+          // Ignore query errors during SSE stream
         }
-      }, 10000);
+      };
+
+      // React to Task/Bug NOTIFYs (from logActivity) instead of polling. A
+      // notify only tells us *something* changed, so we re-run the same
+      // "did anything get (re)assigned to me since lastCheckedTime" check.
+      try {
+        unlisten = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
+          try {
+            const parsed = JSON.parse(payload || "{}");
+            if (parsed.entityType === "Task" || parsed.entityType === "Bug") {
+              void checkForAssignments();
+            }
+          } catch {
+            // Malformed payload — ignore
+          }
+        });
+      } catch {
+        // If LISTEN setup fails, the heartbeat below still keeps the client
+        // connected and it will reconnect and retry shortly after.
+      }
+
+      // Heartbeat so proxies/load balancers don't kill an idle-looking connection.
+      const heartbeat = setInterval(() => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+        } catch {
+          // ignore
+        }
+      }, 30000);
 
       // Clean up after 5 minutes to avoid hanging lambdas indefinitely
       setTimeout(() => {
         closed = true;
-        clearInterval(interval);
+        clearInterval(heartbeat);
+        void unlisten?.();
         try {
           controller.close();
         } catch {
@@ -134,6 +158,7 @@ export async function GET() {
     },
     cancel() {
       closed = true;
+      void unlisten?.();
     },
   });
 

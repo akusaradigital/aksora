@@ -171,6 +171,57 @@ async function execRaw(queryStr: string): Promise<void> {
   }
 }
 
+export type ListenClient = {
+  query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+  on: (event: "notification", listener: (msg: { channel: string; payload?: string }) => void) => void;
+  removeListener: (event: "notification", listener: (msg: { channel: string; payload?: string }) => void) => void;
+  release: () => void;
+};
+
+// Dedicated connection for LISTEN/NOTIFY, entirely separate from the shared
+// query pool. Two reasons this can't just be `pool.connect()`:
+//  1. Our pool points at Neon's "-pooler" host (PgBouncer, transaction mode),
+//     which does not reliably keep a LISTEN bound to one server connection —
+//     notifications can silently go missing.
+//  2. Checking a client out of the shared pool (max 5 on Neon) to hold it open
+//     for a long-lived SSE stream starves the app's own queries of pool slots.
+// The caller owns the lifetime and MUST call release() when done.
+export async function acquireListenClient(): Promise<ListenClient> {
+  const isNeon = databaseUrl.includes("neon.tech") || databaseUrl.includes("neon-");
+
+  let connectionString = databaseUrl;
+  if (isNeon) {
+    try {
+      const urlObj = new URL(databaseUrl);
+      if (urlObj.hostname.includes("-pooler")) {
+        urlObj.hostname = urlObj.hostname.replace("-pooler", "");
+        connectionString = urlObj.toString();
+      }
+    } catch {
+      // Fall back to the configured URL if parsing fails
+    }
+  }
+
+  const { Client } = isNeon ? await import("@neondatabase/serverless") : await import("pg");
+  const client = new Client({ connectionString }) as unknown as {
+    connect: () => Promise<void>;
+    query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+    on: ListenClient["on"];
+    removeListener: ListenClient["removeListener"];
+    end: () => Promise<void>;
+  };
+  await client.connect();
+
+  return {
+    query: (text, params) => client.query(text, params),
+    on: (event, listener) => client.on(event, listener),
+    removeListener: (event, listener) => client.removeListener(event, listener),
+    release: () => {
+      void client.end();
+    },
+  };
+}
+
 export const db = {
   async query<T>(queryStr: string, params: unknown[] = []): Promise<T[]> {
     await ensureSchema();

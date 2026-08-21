@@ -115,6 +115,19 @@ export function usePresenceHeartbeat() {
     window.addEventListener("keydown", handleActivity);
     window.addEventListener("touchstart", handleActivity);
 
+    // Pause heartbeats while the tab is backgrounded to avoid burning
+    // function invocations / DB connections for tabs nobody is looking at.
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopHeartbeatInterval();
+      } else if (isMountedRef.current) {
+        sendHeartbeat();
+        startHeartbeatInterval();
+        resetInactivityTimer();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Disconnect on page unload
     const handleBeforeUnload = () => {
       sendDisconnect();
@@ -128,6 +141,7 @@ export function usePresenceHeartbeat() {
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("keydown", handleActivity);
       window.removeEventListener("touchstart", handleActivity);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
 
       // Stop heartbeat interval

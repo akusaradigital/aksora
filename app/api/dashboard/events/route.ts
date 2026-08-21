@@ -2,12 +2,16 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope } from "@/lib/data-helpers";
 import { getOnlineMembers } from "@/lib/data";
 import { db } from "@/lib/db";
+import { listenChannel, ACTIVITY_NOTIFY_CHANNEL } from "@/lib/db-notify";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const HEARTBEAT_MS = 30_000; // 30 seconds keep-alive
-const POLL_MS = 5_000; // 5 seconds polling cadence for diff detection
+// Presence has no natural "changed" event to LISTEN for (it's lastSeen-based),
+// so it stays on a cheap poll. Notifications react to NOTIFY instead (below).
+const PRESENCE_POLL_MS = 20_000;
 const MAX_MISSED_NOTIFICATIONS = 50;
 
 type SseNotification = {
@@ -106,7 +110,7 @@ async function getNotificationsSince(
  *
  * Authenticates via session cookie; scope by company.
  *
- * Note: This Node.js runtime SSE handler uses simple polling under the hood (5s)
+ * Note: This Node.js runtime SSE handler uses simple polling under the hood (20s)
  * rather than database triggers to keep deployment simple. Heartbeat every 30s
  * keeps the connection alive across proxies.
  */
@@ -127,6 +131,7 @@ export async function GET(request: Request) {
   let lastMembersSignature = "";
   let lastNotificationCheck = since;
   let closed = false;
+  let unlisten: (() => Promise<void>) | null = null;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -164,10 +169,9 @@ export async function GET(request: Request) {
         safeEnqueue(`: heartbeat ${Date.now()}\n\n`);
       }, HEARTBEAT_MS);
 
-      // Polling loop for presence + notification diffs
-      const pollTimer = setInterval(async () => {
+      // Presence has no NOTIFY hook, so it stays on a cheap low-frequency poll.
+      const presenceTimer = setInterval(async () => {
         if (closed) return;
-
         try {
           const members = await getOnlineMembers(company);
           const sig = membersSignature(members);
@@ -178,7 +182,10 @@ export async function GET(request: Request) {
         } catch {
           // ignore transient errors; keep stream open
         }
+      }, PRESENCE_POLL_MS);
 
+      const checkNotifications = async () => {
+        if (closed) return;
         try {
           const fresh = await getNotificationsSince(company, user.name || "", lastNotificationCheck);
           if (fresh.length > 0) {
@@ -188,14 +195,30 @@ export async function GET(request: Request) {
         } catch {
           // ignore transient errors
         }
-      }, POLL_MS);
+      };
+
+      // React to ActivityLog NOTIFYs (from logActivity) instead of polling.
+      try {
+        unlisten = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
+          try {
+            const parsed = JSON.parse(payload || "{}");
+            if (parsed.company === company) void checkNotifications();
+          } catch {
+            // Malformed payload — ignore
+          }
+        });
+      } catch {
+        // If LISTEN setup fails, presence polling above still keeps the
+        // client connected; it will reconnect and retry LISTEN shortly after.
+      }
 
       // Tear down on client disconnect
       const cleanup = () => {
         if (closed) return;
         closed = true;
         clearInterval(heartbeatTimer);
-        clearInterval(pollTimer);
+        clearInterval(presenceTimer);
+        void unlisten?.();
         try {
           controller.close();
         } catch {
@@ -207,6 +230,7 @@ export async function GET(request: Request) {
     },
     cancel() {
       closed = true;
+      void unlisten?.();
     },
   });
 

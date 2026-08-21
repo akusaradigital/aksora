@@ -43,7 +43,21 @@ export function useAssignmentNotifications(enabled = true) {
 
     connect();
 
+    // Close the SSE connection while the tab is backgrounded so the serverless
+    // function isn't kept alive polling for a tab nobody is looking at, and
+    // reconnect when the tab becomes visible again.
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        esRef.current?.close();
+        esRef.current = null;
+      } else if (!esRef.current) {
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       esRef.current?.close();
       esRef.current = null;
     };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { checkMemoryRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,13 @@ export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Client sends heartbeats every 30s per open item; guard against a runaway
+  // loop (buggy effect, stuck retry) hammering the DB with writes.
+  const { limited } = checkMemoryRateLimit(`collab-post:${user.id}`, 15, 10_000);
+  if (limited) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {
@@ -78,6 +86,13 @@ export async function GET(request: NextRequest) {
 
   if (!moduleKey) {
     return NextResponse.json({ error: "module is required" }, { status: 400 });
+  }
+
+  // Client polls every 15s per open module/item; guard against a runaway
+  // loop hammering the DB with reads + the stale-row cleanup DELETE below.
+  const { limited } = checkMemoryRateLimit(`collab-get:${user.id}`, 20, 10_000);
+  if (limited) {
+    return NextResponse.json({ editors: [] }, { status: 429 });
   }
 
   try {

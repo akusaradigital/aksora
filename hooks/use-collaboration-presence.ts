@@ -88,6 +88,22 @@ export function useCollaborationPresence(module: string, itemId: string | number
     // Poll for other editors
     pollRef.current = setInterval(fetchEditors, POLL_INTERVAL);
 
+    // Pause heartbeat/polling while the tab is backgrounded; resume on return.
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+        if (pollRef.current) clearInterval(pollRef.current);
+        heartbeatRef.current = null;
+        pollRef.current = null;
+      } else if (mountedRef.current) {
+        sendPresence(actionRef.current);
+        void fetchEditors();
+        heartbeatRef.current = setInterval(() => sendPresence(actionRef.current), HEARTBEAT_INTERVAL);
+        pollRef.current = setInterval(fetchEditors, POLL_INTERVAL);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Leave on page unload
     const handleUnload = () => sendPresence("leave");
     window.addEventListener("beforeunload", handleUnload);
@@ -95,6 +111,7 @@ export function useCollaborationPresence(module: string, itemId: string | number
     return () => {
       mountedRef.current = false;
       window.removeEventListener("beforeunload", handleUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (pollRef.current) clearInterval(pollRef.current);
@@ -137,11 +154,24 @@ export function useModuleCollaboration(module: string) {
     };
 
     fetchAll();
-    const interval = setInterval(fetchAll, POLL_INTERVAL);
+    let interval: ReturnType<typeof setInterval> | null = setInterval(fetchAll, POLL_INTERVAL);
+
+    // Pause polling while the tab is backgrounded; resume on return.
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (interval) clearInterval(interval);
+        interval = null;
+      } else if (mountedRef.current) {
+        void fetchAll();
+        interval = setInterval(fetchAll, POLL_INTERVAL);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       mountedRef.current = false;
-      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (interval) clearInterval(interval);
     };
   }, [module]);
 
