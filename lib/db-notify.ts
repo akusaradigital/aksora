@@ -9,7 +9,9 @@ export const ADMIN_NOTIFY_CHANNEL = "aksora_admin_notification";
 
 export async function notifyChannel(channel: string, payload: unknown): Promise<void> {
   try {
-    await db.run(`SELECT pg_notify(?, ?)`, [channel, JSON.stringify(payload ?? {}).slice(0, 7000)]);
+    // db.query (not db.run) — this is a read-only SELECT, and callers like
+    // logActivity() assert exact db.run() call counts for their own writes.
+    await db.query(`SELECT pg_notify(?, ?)`, [channel, JSON.stringify(payload ?? {}).slice(0, 7000)]);
   } catch (e) {
     console.error(`[db-notify] Failed to notify "${channel}":`, e);
   }

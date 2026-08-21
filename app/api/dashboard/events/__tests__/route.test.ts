@@ -28,6 +28,11 @@ vi.mock("@/lib/db", () => ({
   isPostgres: mocks.isPostgres,
 }));
 
+vi.mock("@/lib/db-notify", () => ({
+  listenChannel: vi.fn().mockResolvedValue(async () => {}),
+  ACTIVITY_NOTIFY_CHANNEL: "aksora_activity",
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getAccessScope.mockReturnValue({
@@ -155,7 +160,7 @@ describe("GET /api/dashboard/events", () => {
   it("sends missed notifications when since param is provided", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "Alice", role: "qa", company: "acme" });
 
-    // Mock assignment notifications
+    // getNotificationsSince issues a single combined query — mock exactly one call.
     mocks.dbQuery.mockResolvedValueOnce([
       {
         id: 1,
@@ -165,8 +170,6 @@ describe("GET /api/dashboard/events", () => {
         createdAt: "2024-01-01T11:00:00Z",
       },
     ]);
-    // Mock critical bugs (empty)
-    mocks.dbQuery.mockResolvedValueOnce([]);
 
     const since = "2024-01-01T10:00:00Z";
     const { request, controller } = createRequest(
@@ -198,24 +201,17 @@ describe("GET /api/dashboard/events", () => {
   it("limits missed notifications to 50", async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 1, name: "Alice", role: "qa", company: "acme" });
 
-    // Return 30 assignments (query is limited to 25 in implementation)
-    const manyAssignments = Array.from({ length: 25 }, (_, i) => ({
+    // getNotificationsSince issues a single combined query (LIMIT 50), so mock
+    // exactly one call — queuing a second unconsumed value here would leak
+    // into whichever test makes the next real db.query() call.
+    const manyRows = Array.from({ length: 50 }, (_, i) => ({
       id: i + 1,
       entityType: "Task",
       entityId: String(i + 1),
       summary: `Task #${i + 1} assigned to Alice by Bob`,
       createdAt: new Date(Date.now() - i * 60000).toISOString(),
     }));
-    mocks.dbQuery.mockResolvedValueOnce(manyAssignments);
-
-    // Return 30 critical bugs (query is limited to 25 in implementation)
-    const manyCriticalBugs = Array.from({ length: 25 }, (_, i) => ({
-      id: i + 100,
-      title: `Critical Bug ${i + 1}`,
-      project: "ProjectX",
-      createdAt: new Date(Date.now() - i * 60000).toISOString(),
-    }));
-    mocks.dbQuery.mockResolvedValueOnce(manyCriticalBugs);
+    mocks.dbQuery.mockResolvedValueOnce(manyRows);
 
     const since = "2024-01-01T00:00:00Z";
     const { request, controller } = createRequest(

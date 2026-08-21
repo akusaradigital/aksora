@@ -119,7 +119,7 @@ export async function GET() {
       // notify only tells us *something* changed, so we re-run the same
       // "did anything get (re)assigned to me since lastCheckedTime" check.
       try {
-        unlisten = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
+        const stop = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
           try {
             const parsed = JSON.parse(payload || "{}");
             if (parsed.entityType === "Task" || parsed.entityType === "Bug") {
@@ -129,6 +129,12 @@ export async function GET() {
             // Malformed payload — ignore
           }
         });
+        if (closed) {
+          // Client disconnected while we were still connecting — release now.
+          void stop();
+        } else {
+          unlisten = stop;
+        }
       } catch {
         // If LISTEN setup fails, the heartbeat below still keeps the client
         // connected and it will reconnect and retry shortly after.

@@ -65,9 +65,15 @@ export async function GET() {
       // React to NOTIFY instead of polling — checkForNew() re-queries by id so
       // we never miss a row even if multiple NOTIFYs land before we catch up.
       try {
-        unlisten = await listenChannel(ADMIN_NOTIFY_CHANNEL, () => {
+        const stop = await listenChannel(ADMIN_NOTIFY_CHANNEL, () => {
           void checkForNew();
         });
+        if (closed) {
+          // Client disconnected while we were still connecting — release now.
+          void stop();
+        } else {
+          unlisten = stop;
+        }
       } catch {
         // If LISTEN setup fails, the heartbeat below still keeps the client
         // connected and it will reconnect and retry shortly after.

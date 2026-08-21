@@ -133,8 +133,31 @@ export async function GET(request: Request) {
   let closed = false;
   let unlisten: (() => Promise<void>) | null = null;
 
+  let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  let presenceTimer: ReturnType<typeof setInterval> | undefined;
+  let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  // Tear down on client disconnect. Declared and wired to the abort signal
+  // BEFORE any `await` below (registering it after a slow client can abort
+  // before the listener attaches, so the abort event is missed and the
+  // interval timers/LISTEN connection leak forever).
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    clearInterval(heartbeatTimer);
+    clearInterval(presenceTimer);
+    void unlisten?.();
+    try {
+      controllerRef?.close();
+    } catch {
+      // already closed
+    }
+  };
+  request.signal.addEventListener("abort", cleanup);
+
   const stream = new ReadableStream({
     async start(controller) {
+      controllerRef = controller;
       const safeEnqueue = (chunk: string) => {
         if (closed) return;
         try {
@@ -165,12 +188,12 @@ export async function GET(request: Request) {
       }
 
       // Heartbeat to keep proxies from closing the connection
-      const heartbeatTimer = setInterval(() => {
+      heartbeatTimer = setInterval(() => {
         safeEnqueue(`: heartbeat ${Date.now()}\n\n`);
       }, HEARTBEAT_MS);
 
       // Presence has no NOTIFY hook, so it stays on a cheap low-frequency poll.
-      const presenceTimer = setInterval(async () => {
+      presenceTimer = setInterval(async () => {
         if (closed) return;
         try {
           const members = await getOnlineMembers(company);
@@ -199,7 +222,7 @@ export async function GET(request: Request) {
 
       // React to ActivityLog NOTIFYs (from logActivity) instead of polling.
       try {
-        unlisten = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
+        const stop = await listenChannel(ACTIVITY_NOTIFY_CHANNEL, (payload) => {
           try {
             const parsed = JSON.parse(payload || "{}");
             if (parsed.company === company) void checkNotifications();
@@ -207,30 +230,19 @@ export async function GET(request: Request) {
             // Malformed payload — ignore
           }
         });
+        if (closed) {
+          // Client disconnected while we were still connecting — release now.
+          void stop();
+        } else {
+          unlisten = stop;
+        }
       } catch {
         // If LISTEN setup fails, presence polling above still keeps the
         // client connected; it will reconnect and retry LISTEN shortly after.
       }
-
-      // Tear down on client disconnect
-      const cleanup = () => {
-        if (closed) return;
-        closed = true;
-        clearInterval(heartbeatTimer);
-        clearInterval(presenceTimer);
-        void unlisten?.();
-        try {
-          controller.close();
-        } catch {
-          // already closed
-        }
-      };
-
-      request.signal.addEventListener("abort", cleanup);
     },
     cancel() {
-      closed = true;
-      void unlisten?.();
+      cleanup();
     },
   });
 
