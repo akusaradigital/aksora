@@ -155,7 +155,7 @@ export function SidebarNavItem({
   const isSuiteExecutionRoute = pathname.startsWith("/test-execution");
   const active =
     pathname === item.href ||
-    (item.href !== "/test-suites" && pathname.startsWith(`${item.href}/`)) ||
+    (item.href !== "/settings" && item.href !== "/test-suites" && pathname.startsWith(`${item.href}/`)) ||
     (item.href === "/test-cases" && pathname.startsWith("/test-cases/")) ||
     (item.href === "/test-plans" && pathname.startsWith("/test-plans/projects/")) ||
     (item.href === "/test-suites" && pathname.startsWith("/test-suites/") && !isSuiteExecutionRoute) ||

@@ -43,8 +43,8 @@ describe("api-keys", () => {
     const created = await createApiKeyForUser(5, "  Main key  ", 30);
     expect(created.id).toBe(11);
     expect(mocks.db.get).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO "ApiKey" ("userId", "workspaceId", "name", "keyHash", "keyPrefix", "allowedModules", "expiresAt")'),
-      [5, null, "Main key", expect.any(String), expect.any(String), "*", 30, 30],
+      expect.stringContaining('INSERT INTO "ApiKey" ("userId", "workspaceId", "name", "keyHash", "keyPrefix", "allowedModules", "scope", "expiresAt")'),
+      [5, null, "Main key", expect.any(String), expect.any(String), "*", "write", 30, 30],
     );
 
     await listApiKeysForUser(5);
@@ -61,6 +61,7 @@ describe("api-keys", () => {
         keyId: 11,
         workspaceId: 3,
         allowedModules: "tasks,bugs",
+        scope: "read",
         id: 5,
         name: "API User",
         email: "api@example.com",
@@ -74,6 +75,7 @@ describe("api-keys", () => {
       company: "acme",
       workspaceId: 3,
       allowedModules: ["tasks", "bugs"],
+      scope: "read",
     });
     expect(mocks.db.run).toHaveBeenCalledWith(
       'UPDATE "ApiKey" SET "lastUsedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
@@ -86,7 +88,7 @@ describe("api-keys", () => {
     await createApiKeyForUser(6, "Default key");
     expect(mocks.db.get).toHaveBeenCalledWith(
       expect.stringContaining('CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP + (? * INTERVAL \'1 day\') END'),
-      [6, null, "Default key", expect.any(String), expect.any(String), "*", null, null],
+      [6, null, "Default key", expect.any(String), expect.any(String), "*", "write", null, null],
     );
   });
 

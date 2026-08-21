@@ -24,6 +24,7 @@ export type ApiKeyItem = {
   keyPrefix: string;
   workspaceId?: number | null;
   allowedModules?: string;
+  scope?: string;
   createdAt: string;
   lastUsedAt?: string | null;
   revokedAt?: string | null;
@@ -62,6 +63,7 @@ export function ApiKeysClient() {
   const [keyName, setKeyName] = useState("");
   const [expiresInDaysOption, setExpiresInDaysOption] = useState<string>("no_expiration");
   const [selectedModules, setSelectedModules] = useState<string[]>(["*"]);
+  const [scope, setScope] = useState<"read" | "write">("write");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -170,6 +172,7 @@ export function ApiKeysClient() {
           expiresInDays,
           workspaceId,
           allowedModules,
+          scope,
         }),
       });
 
@@ -185,6 +188,7 @@ export function ApiKeysClient() {
       setKeyName("");
       setExpiresInDaysOption("no_expiration");
       setSelectedModules(["*"]);
+      setScope("write");
       toast("API key created successfully", "success");
       fetchKeys();
     } catch (err) {
@@ -318,6 +322,7 @@ export function ApiKeysClient() {
                   <th className="px-6 py-3">Key Name</th>
                   <th className="px-6 py-3">Prefix</th>
                   <th className="px-6 py-3">Workspace</th>
+                  <th className="px-6 py-3">Access</th>
                   <th className="px-6 py-3">Permissions</th>
                   <th className="px-6 py-3">Created</th>
                   <th className="px-6 py-3">Expires</th>
@@ -348,6 +353,17 @@ export function ApiKeysClient() {
                         <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-800">
                           {wsLabel}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {key.scope === "read" ? (
+                          <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                            Read-only
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                            Read &amp; Write
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {isAllModules ? (
@@ -535,6 +551,37 @@ export function ApiKeysClient() {
                 </select>
                 <p className="mt-1 text-[11px] text-slate-500">
                   The key will automatically expire after the selected duration.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Access Level
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className={`flex cursor-pointer items-center gap-2 border px-3 py-2 text-xs font-semibold ${scope === "write" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600"}`}>
+                    <input
+                      type="radio"
+                      name="scope"
+                      checked={scope === "write"}
+                      onChange={() => setScope("write")}
+                      className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-500/20"
+                    />
+                    Read &amp; Write
+                  </label>
+                  <label className={`flex cursor-pointer items-center gap-2 border px-3 py-2 text-xs font-semibold ${scope === "read" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600"}`}>
+                    <input
+                      type="radio"
+                      name="scope"
+                      checked={scope === "read"}
+                      onChange={() => setScope("read")}
+                      className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-500/20"
+                    />
+                    Read-only
+                  </label>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Read-only keys can only GET data — POST, PATCH, and DELETE requests are rejected with 403.
                 </p>
               </div>
 

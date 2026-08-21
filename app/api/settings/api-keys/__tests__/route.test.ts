@@ -69,8 +69,30 @@ describe("settings api keys route", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(201);
-    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Main", 90, null, ["*"]);
+    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Main", 90, null, ["*"], "write");
     expect(payload.data).toMatchObject({ id: 1, rawKey: "aksora_test" });
+  });
+
+  it("rejects an invalid scope", async () => {
+    const request = new Request("http://localhost/api/settings/api-keys", {
+      method: "POST",
+      body: JSON.stringify({ name: "Main", scope: "delete-everything" }),
+    });
+
+    const response = await POST(request as never);
+    expect(response.status).toBe(400);
+    expect(mocks.createApiKeyForUser).not.toHaveBeenCalled();
+  });
+
+  it("passes through a read-only scope", async () => {
+    const request = new Request("http://localhost/api/settings/api-keys", {
+      method: "POST",
+      body: JSON.stringify({ name: "Read only", scope: "read" }),
+    });
+
+    const response = await POST(request as never);
+    expect(response.status).toBe(201);
+    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Read only", undefined, null, ["*"], "read");
   });
 
   it("revokes by id", async () => {

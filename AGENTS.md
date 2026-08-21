@@ -88,7 +88,7 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 1. **DO NOT list what was done.**
 2. **DO NOT explain fixes, changes, or reasoning.**
 3. **DO NOT give any recap, status report, or summary.**
-4. **ONLY output 5 ideas for next development.**
+4. **ONLY output 10 ideas for next development.**
 
 <!-- BEGIN:nextjs-agent-rules -->
 

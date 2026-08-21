@@ -9,6 +9,7 @@ export type ApiUser = {
   locale?: string;
   workspaceId?: number | null;
   allowedModules?: string[];
+  scope?: "read" | "write";
 };
 
 export const apiUserContext = new AsyncLocalStorage<ApiUser>();

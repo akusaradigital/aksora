@@ -4,6 +4,7 @@ import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
 import { notifyChannel, ACTIVITY_NOTIFY_CHANNEL } from "@/lib/db-notify";
+import { dispatchWebhooks } from "@/lib/webhooks";
 
 export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 
@@ -177,6 +178,17 @@ export async function logActivity(company: string, type: string, id: string, act
       action,
       summary: summary.slice(0, 300),
       actor: actor || "",
+    });
+
+    // Fire-and-forget: push this mutation to any outbound webhooks the
+    // company has registered for this entity/action.
+    void dispatchWebhooks(company, `${type.toLowerCase()}.${action.toLowerCase()}`, {
+      entityType: type,
+      entityId: id,
+      action,
+      summary,
+      actor: actor || "",
+      workspaceId: wsId,
     });
   } catch (e) {
     console.error("Activity logging failed:", e);

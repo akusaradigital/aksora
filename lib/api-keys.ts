@@ -2,17 +2,24 @@ import { createHash, randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import type { ApiUser } from "@/lib/auth-context";
 
+export type ApiKeyScope = "read" | "write";
+
 type ApiKeyRow = {
   id: number;
   name: string;
   keyPrefix: string;
   workspaceId: number | null;
   allowedModules: string;
+  scope: string;
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
   expiresAt: string | null;
 };
+
+function normalizeScope(scope?: string | null): ApiKeyScope {
+  return scope === "read" ? "read" : "write";
+}
 
 function normalizeName(name: string) {
   return String(name ?? "").trim();
@@ -33,6 +40,7 @@ export async function createApiKeyForUser(
   expiresInDays?: number | null,
   workspaceId?: number | null,
   allowedModules?: string[] | null,
+  scope?: ApiKeyScope | null,
 ) {
   const normalizedName = normalizeName(name);
   if (!normalizedName) {
@@ -44,12 +52,13 @@ export async function createApiKeyForUser(
   const modulesString = !allowedModules || allowedModules.length === 0 || allowedModules.includes("*")
     ? "*"
     : allowedModules.map((m) => m.trim()).filter(Boolean).join(",");
+  const normalizedScope = normalizeScope(scope);
 
   const created = await db.get<{ id: number }>(
-    `INSERT INTO "ApiKey" ("userId", "workspaceId", "name", "keyHash", "keyPrefix", "allowedModules", "expiresAt")
-     VALUES (?, CAST(? AS INTEGER), ?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP + (? * INTERVAL '1 day') END)
+    `INSERT INTO "ApiKey" ("userId", "workspaceId", "name", "keyHash", "keyPrefix", "allowedModules", "scope", "expiresAt")
+     VALUES (?, CAST(? AS INTEGER), ?, ?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP + (? * INTERVAL '1 day') END)
      RETURNING "id"`,
-    [userId, workspaceId ?? null, normalizedName, keyHash, prefix, modulesString, expiresInDays ?? null, expiresInDays ?? null],
+    [userId, workspaceId ?? null, normalizedName, keyHash, prefix, modulesString, normalizedScope, expiresInDays ?? null, expiresInDays ?? null],
   );
 
   if (!created?.id) {
@@ -64,7 +73,7 @@ export async function listApiKeysForUser(userId: number, workspaceId?: number | 
   const params = workspaceId !== undefined && workspaceId !== null ? [userId, workspaceId] : [userId];
 
   return db.query<ApiKeyRow>(
-    `SELECT "id", "name", "keyPrefix", "workspaceId", "allowedModules", "createdAt", "lastUsedAt", "revokedAt", "expiresAt"
+    `SELECT "id", "name", "keyPrefix", "workspaceId", "allowedModules", "scope", "createdAt", "lastUsedAt", "revokedAt", "expiresAt"
      FROM "ApiKey"
      WHERE "userId" = ?${whereWorkspace}
      ORDER BY "createdAt" DESC`,
@@ -91,13 +100,14 @@ export async function resolveApiKey(rawKey: string): Promise<ApiUser | null> {
       keyId: number;
       workspaceId: number | null;
       allowedModules: string | null;
+      scope: string | null;
       id: number;
       name: string | null;
       email: string | null;
       role: string | null;
       company: string | null;
     }>(
-      `SELECT k."id" AS "keyId", k."workspaceId", k."allowedModules", u."id", u."name", u."email", u."role", u."company"
+      `SELECT k."id" AS "keyId", k."workspaceId", k."allowedModules", k."scope", u."id", u."name", u."email", u."role", u."company"
        FROM "ApiKey" k
        INNER JOIN "User" u ON u."id" = k."userId"
        WHERE k."keyHash" = ? AND k."revokedAt" IS NULL AND (k."expiresAt" IS NULL OR k."expiresAt" > CURRENT_TIMESTAMP)
@@ -122,6 +132,7 @@ export async function resolveApiKey(rawKey: string): Promise<ApiUser | null> {
       company: String(row.company ?? ""),
       workspaceId: row.workspaceId ? Number(row.workspaceId) : null,
       allowedModules,
+      scope: normalizeScope(row.scope),
     };
   });
 }

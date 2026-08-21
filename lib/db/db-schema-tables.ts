@@ -271,10 +271,28 @@ export const tables = [
       "keyHash" TEXT NOT NULL,
       "keyPrefix" TEXT NOT NULL,
       "allowedModules" TEXT NOT NULL DEFAULT '*',
+      "scope" TEXT NOT NULL DEFAULT 'write',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "lastUsedAt" DATE_TYPE,
       "revokedAt" DATE_TYPE,
       "expiresAt" DATE_TYPE
+    `
+  },
+  {
+    name: "Webhook",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "workspaceId" INTEGER,
+      "company" TEXT NOT NULL,
+      "url" TEXT NOT NULL,
+      "secret" TEXT NOT NULL,
+      "events" TEXT NOT NULL DEFAULT '*',
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastTriggeredAt" DATE_TYPE,
+      "lastStatus" INTEGER,
+      "failureCount" INTEGER NOT NULL DEFAULT 0
     `
   },
   {

@@ -65,6 +65,13 @@ function checkModuleAccess(allowedModules: string[] | undefined, moduleKey: Modu
   return allowedModules.includes(moduleKey);
 }
 
+function writeDeniedResponse() {
+  return NextResponse.json(
+    { error: "This API key is read-only and cannot perform write operations." },
+    { status: 403 },
+  );
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ module: string }> }) {
   const { module: rawModule } = await params;
   const moduleKey = assertModule(rawModule);
@@ -113,6 +120,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+    if (user.scope === "read") return writeDeniedResponse();
 
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object") {
@@ -158,6 +166,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+    if (user.scope === "read") return writeDeniedResponse();
 
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const id = body?.id;
@@ -207,6 +216,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (moduleKey === "users" && !isManagementAdmin(user.role, user.company)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+    if (user.scope === "read") return writeDeniedResponse();
 
     const id = request.nextUrl.searchParams.get("id");
     if (!id) {

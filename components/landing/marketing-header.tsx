@@ -16,6 +16,7 @@ export async function MarketingHeader() {
           <Link href="/#features" className="text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-950">{t.features}</Link>
           <Link href="/#testimonials" className="text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-950">{t.testimonials}</Link>
           <Link href="/#pricing" className="text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-950">{t.pricing}</Link>
+          <Link href="/docs/api" className="text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-950">API Docs</Link>
           <Link href="/#roi" className="text-[12px] font-medium text-slate-500 transition-colors hover:text-slate-950">{t.estimate}</Link>
         </div>
         <div className="flex items-center gap-3">

@@ -107,6 +107,51 @@ export default function ApiDocsPage() {
           <Code>{`https://your-domain.com/api/public/v1/{module}`}</Code>
         </div>
 
+        {/* OpenAPI spec */}
+        <div className="border border-slate-200 bg-white p-6 shadow-sm space-y-3">
+          <SectionTitle>OpenAPI Specification</SectionTitle>
+          <p className="text-xs leading-relaxed text-slate-600">
+            A machine-readable OpenAPI 3.0 document is generated live from the same module registry this API runs on
+            — every field, required-ness, and enum value stays in sync automatically. Import it into Postman, Insomnia,
+            or any OpenAPI-compatible client.
+          </p>
+          <Link
+            href="/api/openapi.json"
+            target="_blank"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800"
+          >
+            View /api/openapi.json &rarr;
+          </Link>
+        </div>
+
+        {/* SDK */}
+        <div className="border border-slate-200 bg-white p-6 shadow-sm space-y-3">
+          <SectionTitle>TypeScript / JavaScript SDK</SectionTitle>
+          <p className="text-xs leading-relaxed text-slate-600">
+            No package to install — copy <InlineCode>sdk/aksora-client.ts</InlineCode> from the{" "}
+            <a
+              href="https://github.com/akusaradigital/aksora/blob/main/sdk/aksora-client.ts"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-blue-600 hover:text-blue-800"
+            >
+              Aksora repository
+            </a>{" "}
+            into your project. It wraps every request with the <InlineCode>Authorization</InlineCode> header for you.
+          </p>
+          <Code>{`import { AksoraClient } from "./aksora-client";
+
+const aksora = new AksoraClient({
+  baseUrl: "https://your-domain.com",
+  apiKey: process.env.AKSORA_API_KEY!,
+});
+
+const { data: bugs } = await aksora.list("bugs");
+await aksora.create("bugs", { title: "Login button unresponsive", severity: "high" /* ... */ });
+await aksora.update("tasks", 12, { status: "done" });
+await aksora.remove("bugs", 12);`}</Code>
+        </div>
+
         {/* SnapTest Integration */}
         <div className="border border-indigo-200 bg-indigo-50/50 p-6 shadow-sm space-y-3">
           <SectionTitle>SnapTest Integration</SectionTitle>

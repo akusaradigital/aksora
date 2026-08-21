@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon } from"@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -32,6 +32,15 @@ export default async function SettingsPage() {
           icon: Lock,
           color: "text-emerald-600",
           bg: "bg-emerald-50",
+          disabled: false,
+        },
+        {
+          title: "Webhooks",
+          description: "Push real-time notifications to your own HTTP endpoint when data changes.",
+          href: "/settings/webhooks",
+          icon: WebhooksLogo,
+          color: "text-cyan-600",
+          bg: "bg-cyan-50",
           disabled: false,
         },
         {

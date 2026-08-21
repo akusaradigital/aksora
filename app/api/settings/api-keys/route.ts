@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { createApiKeyForUser, listApiKeysForUser, revokeApiKey } from "@/lib/api-keys";
+import { createApiKeyForUser, listApiKeysForUser, revokeApiKey, type ApiKeyScope } from "@/lib/api-keys";
 import { moduleOrder } from "@/lib/modules";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     expiresInDays?: unknown;
     workspaceId?: unknown;
     allowedModules?: unknown;
+    scope?: unknown;
   } | null;
   const name = String(body?.name ?? "").trim();
   if (!name) {
@@ -62,7 +63,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const created = await createApiKeyForUser(user.id, name, expiresInDays, workspaceId, allowedModules);
+  let scope: ApiKeyScope = "write";
+  if (body?.scope !== undefined && body?.scope !== null) {
+    if (body.scope !== "read" && body.scope !== "write") {
+      return NextResponse.json({ error: "scope must be 'read' or 'write'." }, { status: 400 });
+    }
+    scope = body.scope;
+  }
+
+  const created = await createApiKeyForUser(user.id, name, expiresInDays, workspaceId, allowedModules, scope);
   return NextResponse.json({ data: created }, { status: 201 });
 }
 
