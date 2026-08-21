@@ -4,11 +4,7 @@ import {
   Code,
   ShieldCheck,
   Lightning,
-  ArrowsClockwise,
-  CheckCircle,
   FileCode,
-  Copy,
-  Terminal,
 } from "@phosphor-icons/react/dist/ssr";
 import { moduleOrder, moduleConfigs } from "@/lib/modules";
 
@@ -166,7 +162,7 @@ const { data: newCase } = await aksora.create("test-cases", {
                 <div key={mod} id={`module-${mod}`} className="scroll-mt-20 rounded border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 className="text-base font-bold capitalize text-slate-900">
-                      {cfg?.nameSingular || mod} API
+                      {cfg?.shortTitle || mod} API
                     </h3>
                     <span className="font-mono text-xs text-slate-400">/api/public/v1/{mod}</span>
                   </div>
@@ -185,7 +181,7 @@ const { data: newCase } = await aksora.create("test-cases", {
                         <span className="rounded bg-blue-100 px-2 py-0.5 font-bold text-blue-800">POST</span>
                         <span className="text-slate-800">/api/public/v1/{mod}</span>
                       </div>
-                      <p className="mt-1 text-slate-500">Create a new {cfg?.nameSingular?.toLowerCase() || mod}. Requires write scope.</p>
+                      <p className="mt-1 text-slate-500">Create a new {cfg?.shortTitle?.toLowerCase() || mod}. Requires write scope.</p>
                     </div>
 
                     <div>
