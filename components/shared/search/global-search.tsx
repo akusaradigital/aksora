@@ -274,13 +274,13 @@ export function GlobalSearch({
  type="button"
  onClick={() => setOpen(true)}
  className={cn(
-"flex w-full max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2  border border-gray-200 bg-white px-4 py-2 text-sm text-gray-400 shadow-sm transition hover:border-sky-300  sm:w-auto",
+"flex w-full max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-slate-600 sm:w-auto",
  triggerClassName,
  )}
  >
- <MagnifyingGlass size={15} weight="bold" />
+ <MagnifyingGlass size={14} weight="bold" />
  <span className={cn("hidden flex-1 truncate text-left sm:inline", compactTrigger &&"hidden")}>{triggerLabel}</span>
- <kbd className={cn("hidden  border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-bold text-gray-500 sm:inline", compactTrigger &&"hidden")}>
+ <kbd className={cn("hidden rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 sm:inline", compactTrigger &&"hidden")}>
  {triggerShortcut}
  </kbd>
  </button>

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { codeFromId } from "@/lib/utils";
 import { moduleConfigs, type ModuleKey } from "@/lib/modules";
 import { getCurrentUser } from "@/lib/auth";
+import { getAccessScope } from "@/lib/data-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -43,11 +44,13 @@ export async function GET(
   const keywords = title.toLowerCase().split(/\s+/).filter((k) => k.length > 2);
   if (keywords.length === 0) return NextResponse.json({ duplicates: [] });
 
+  const { andWhere, params: qParams } = getAccessScope(user);
+
   // Simple keyword matching - filtered by company and excluding soft-deleted
   const query = `
-    SELECT id, "${titleField}" as title, status FROM "${tableName}"
-    WHERE company = ?
-      AND "deletedAt" IS NULL
+    SELECT "id", "${titleField}" as "title", "status" FROM "${tableName}"
+    WHERE "deletedAt" IS NULL
+      ${andWhere}
       AND (LOWER("${titleField}") LIKE ? OR LOWER("${titleField}") LIKE ?)
     ORDER BY "updatedAt" DESC
     LIMIT 3
@@ -56,7 +59,7 @@ export async function GET(
   try {
     const matches = await db.query<{ id: number; title: string; status: string }>(
       query,
-      [user.company, `%${keywords[0]}%`, `%${keywords[1] || keywords[0]}%`],
+      [...qParams, `%${keywords[0]}%`, `%${keywords[1] || keywords[0]}%`],
     );
 
     const prefixMap: Record<string, string> = {

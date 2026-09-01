@@ -6,7 +6,7 @@ export async function getSessionResults(query: string, companyClause: string, co
   const exactId = extractExactId(query, "SES");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
+      `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, "updatedAt"
        FROM "TestSession"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -40,7 +40,7 @@ export async function getSessionResults(query: string, companyClause: string, co
   const filter = buildFilterClause(filters, { statusColumn: '"result"', assigneeColumn: '"tester"', dateColumn: '"date"' });
   const tokenClause = buildSearchTokenClause("test-sessions", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, updatedAt
+    `SELECT id, date, project, sprint, tester, scope, result, notes, evidence, "updatedAt"
      FROM "TestSession"
      WHERE 1=1${tokenClause.clause}${companyClause}${filter.clause}
      ORDER BY "updatedAt" DESC

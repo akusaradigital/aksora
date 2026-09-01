@@ -6,7 +6,7 @@ export async function getUserResults(query: string, companyClause: string, compa
   const exactId = extractExactId(query, "USR");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, name, email, role, company, updatedAt
+      `SELECT id, name, email, role, company, "updatedAt"
        FROM "User"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -35,7 +35,7 @@ export async function getUserResults(query: string, companyClause: string, compa
   }
   const tokenClause = buildSearchTokenClause("users", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, name, email, role, company, updatedAt
+    `SELECT id, name, email, role, company, "updatedAt"
      FROM "User"
      WHERE 1=1${tokenClause.clause}${companyClause}
      ORDER BY "updatedAt" DESC

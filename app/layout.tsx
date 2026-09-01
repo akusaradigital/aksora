@@ -34,6 +34,17 @@ export const metadata: Metadata = {
     "QA dashboard",
     "software testing platform",
   ],
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-light.png", media: "(prefers-color-scheme: light)", type: "image/png" },
+      { url: "/icon-dark.png", media: "(prefers-color-scheme: dark)", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
+  },
   authors: [{ name: "Akusara Digital" }],
   creator: "Akusara Digital",
   publisher: "Akusara Digital",

@@ -43,7 +43,7 @@ export async function getSuiteResults(query: string, companyClause: string, comp
      FROM "TestSuite" ts
      LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE ts."deletedAt" IS NULL
-       ${tokenClause.clause + companyClause.replace(/"company"/g, 'ts."company"') + filter.clause.replace(/"assignee"/g, 'ts."assignee"')}
+       ${tokenClause.clause + companyClause.replace(/"company"/g, 'ts."company"').replace(/"workspaceId"/g, 'ts."workspaceId"') + filter.clause.replace(/"assignee"/g, 'ts."assignee"')}
      ORDER BY ts."updatedAt" DESC
      LIMIT 8`,
     tokenClause.params.concat(companyParams, filter.params),

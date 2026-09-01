@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { isPlatformSuperAdmin } from "@/lib/auth-core";
+import { getAccessScope } from "@/lib/data-helpers";
 import {
   getActivityResults,
   getAssigneeResults,
@@ -48,10 +49,7 @@ export async function GET(request: NextRequest) {
     from: request.nextUrl.searchParams.get("from")?.trim() || "",
     to: request.nextUrl.searchParams.get("to")?.trim() || "",
   };
-  const company = user.company || "";
-  const isAdmin = isPlatformSuperAdmin(user.role, company);
-  const companyClause = isAdmin ? "" : ` AND "company" = ?`;
-  const companyParams = isAdmin ? [] : [company];
+  const { company, isAdmin, andWhere: companyClause, params: companyParams } = getAccessScope(user);
   const cacheKey = [
     company,
     isAdmin ? "admin" : "user",

@@ -175,7 +175,7 @@ export async function getProjectData(projectName: string) {
   const [plans, bugs, tasks, sessions, meetings] = await Promise.all([
     selectAll(`SELECT id, company, "publicToken", title, project, sprint, status, "updatedAt" FROM "TestPlan" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere}`, [projectName, ...scope.params]),
     selectAll(`SELECT id, company, project, module, title, severity, status, "suggestedDev", "createdAt" FROM "Bug" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere}`, [projectName, ...scope.params]),
-    selectAll(`SELECT id, company, title, project, relatedFeature, status, priority, description, assignee, "updatedAt" FROM "Task" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere}`, [projectName, ...scope.params]),
+    selectAll(`SELECT id, company, title, project, "relatedFeature", status, priority, description, assignee, "updatedAt" FROM "Task" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere}`, [projectName, ...scope.params]),
     selectAll(`SELECT id, company, date, project, sprint, tester, scope, "totalCases", passed, failed, blocked, result, notes, "updatedAt" FROM "TestSession" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere}`, [projectName, ...scope.params]),
     selectAll(`SELECT id, company, "publicToken", date, project, title, attendees, content, "actionItems", "updatedAt" FROM "MeetingNote" WHERE project = ? AND "deletedAt" IS NULL ${scope.andWhere} ORDER BY "date" DESC`, [projectName, ...scope.params]),
   ]);

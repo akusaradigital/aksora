@@ -55,18 +55,20 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
   const showQuickActions = canUseQuickActions(userRole);
 
   return (
-    <div className="flex flex-col border border-slate-200 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
+    <div className="flex flex-col rounded-2xl border border-slate-100/80 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-sm font-black text-slate-900">Attention Needed</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Critical blockers and priorities</p>
+          <p className="mt-1 text-xs text-slate-500">Critical blockers and priorities</p>
         </div>
-        <Warning size={18} className="text-amber-500" weight="bold" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+          <Warning size={18} weight="bold" />
+        </div>
       </div>
       {items.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
-          <CheckCircle size={28} weight="bold" className="text-emerald-400" />
-          <p className="text-xs font-semibold">All clear - no critical items right now.</p>
+          <CheckCircle size={32} weight="bold" className="text-emerald-500" />
+          <p className="text-xs font-semibold text-slate-700">All clear - no critical items right now.</p>
         </div>
       ) : (
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1" data-testid="attention-panel-list">
@@ -86,7 +88,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
 
   return (
     <div
-      className="animate-attention-slide-in relative flex items-center gap-2.5  border border-gray-100 p-3 hover:border-gray-200 hover:bg-gray-50 transition group"
+      className="animate-attention-slide-in relative flex items-center gap-2.5 rounded-xl border border-slate-100 p-3 hover:border-slate-200 hover:bg-slate-50/70 transition group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}

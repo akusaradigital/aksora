@@ -5,7 +5,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
   const exactId = extractExactId(query, "TASK");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt
+      `SELECT id, title, project, "relatedFeature", category, status, priority, description, "updatedAt"
        FROM "Task"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -41,7 +41,7 @@ export async function getTaskResults(query: string, companyClause: string, compa
   const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"assignee"', dateColumn: '"endDate"' });
   const tokenClause = buildSearchTokenClause("tasks", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, title, project, relatedFeature, category, status, priority, description, updatedAt
+    `SELECT id, title, project, "relatedFeature", category, status, priority, description, "updatedAt"
      FROM "Task"
      WHERE 1=1${tokenClause.clause}${companyClause}${filter.clause}
      ORDER BY "updatedAt" DESC

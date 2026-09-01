@@ -6,7 +6,7 @@ export async function getActivityResults(query: string, companyClause: string, c
   const exactId = extractExactId(query, "ACT");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, entityType, entityId, action, summary, createdAt
+      `SELECT id, "entityType", "entityId", action, summary, "createdAt"
        FROM "ActivityLog"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "createdAt" DESC
@@ -37,7 +37,7 @@ export async function getActivityResults(query: string, companyClause: string, c
   const filter = buildFilterClause(filters, { dateColumn: '"createdAt"' });
   const tokenClause = buildSearchTokenClause("activity", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, entityType, entityId, action, summary, createdAt
+    `SELECT id, "entityType", "entityId", action, summary, "createdAt"
      FROM "ActivityLog"
      WHERE 1=1${tokenClause.clause}${companyClause}${filter.clause}
      ORDER BY "createdAt" DESC

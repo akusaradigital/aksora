@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Bug,
   TrendUp,
   TrendDown,
   Minus,
@@ -15,16 +14,24 @@ export function StatCard({ label, value, icon, color, href }: {
   label: string; value: number; icon: React.ReactNode; color: string; href: string;
 }) {
   const animClass = useValueChangeAnimation(value);
+  const isTask = label.toLowerCase().includes("task");
+  const isCase = label.toLowerCase().includes("case");
   return (
     <Link href={href} prefetch={false}
-      className="flex flex-col gap-3 border border-slate-200 bg-white p-6 transition-all hover:border-blue-500 hover:shadow-md group">
+      className={cn(
+        "flex flex-col justify-between rounded-2xl border border-slate-100/80 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
+        isTask ? "border-l-4 border-l-blue-600" : isCase ? "border-l-4 border-l-emerald-500" : ""
+      )}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-blue-600 transition-colors">{label}</p>
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-sm", color)}>
+        <p className={cn(
+          "text-xs font-bold uppercase tracking-wider",
+          isTask ? "text-slate-700" : isCase ? "text-emerald-600" : "text-slate-500"
+        )}>{label}</p>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", color)}>
           {icon}
         </div>
       </div>
-      <p className={cn("text-5xl font-black tracking-tighter text-slate-900", animClass)}>{value}</p>
+      <p className={cn("mt-4 text-5xl font-black tracking-tight text-slate-900", animClass)}>{value}</p>
     </Link>
   );
 }
@@ -35,16 +42,14 @@ export function BugStatCard({ value, bugSeverityCounts }: {
 }) {
   const animClass = useValueChangeAnimation(value);
   return (
-    <div className="flex flex-col border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 transition-all hover:shadow-md group relative">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-rose-600">Open Bugs</p>
-        <Link href="/bugs" prefetch={false} aria-label="View all bugs">
-          <ArrowRight size={16} className="text-slate-300 group-hover:text-rose-500 transition-colors" weight="bold" />
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-100/80 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider text-rose-500">Open Bugs</p>
+        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
+          <ArrowRight size={16} weight="bold" />
         </Link>
       </div>
-      <div className="flex items-center gap-3">
-        <p className={cn("text-5xl font-black tracking-tighter text-slate-900", animClass)}>{value}</p>
-      </div>
+      <p className={cn("mt-4 text-5xl font-black tracking-tight text-slate-900", animClass)}>{value}</p>
       {bugSeverityCounts && (
         <div className="mt-4 grid grid-cols-4 gap-2 border-t border-slate-100 pt-4">
           {(["critical", "high", "medium", "low"] as const).map((severity) => (
@@ -115,7 +120,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
 export function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
+    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
       {icon}{label}
     </Link>
   );

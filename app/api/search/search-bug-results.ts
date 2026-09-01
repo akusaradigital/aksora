@@ -6,7 +6,7 @@ export async function getBugResults(query: string, companyClause: string, compan
   const exactId = extractExactId(query, "BUG");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, title, project, module, severity, priority, status, stepsToReproduce, expectedResult, actualResult, updatedAt
+      `SELECT id, title, project, module, severity, priority, status, "stepsToReproduce", "expectedResult", "actualResult", "updatedAt"
        FROM "Bug"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -47,7 +47,7 @@ export async function getBugResults(query: string, companyClause: string, compan
   const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"suggestedDev"', dateColumn: '"updatedAt"' });
   const tokenClause = buildSearchTokenClause("bugs", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, title, project, module, bugType, severity, priority, status, stepsToReproduce, expectedResult, actualResult, updatedAt
+    `SELECT id, title, project, module, "bugType", severity, priority, status, "stepsToReproduce", "expectedResult", "actualResult", "updatedAt"
      FROM "Bug"
      WHERE 1=1${tokenClause.clause}${companyClause}${filter.clause}
      ORDER BY "updatedAt" DESC

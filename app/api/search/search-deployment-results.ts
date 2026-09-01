@@ -6,7 +6,7 @@ export async function getDeploymentResults(query: string, companyClause: string,
   const exactId = extractExactId(query, "DEP");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, date, version, project, environment, developer, changelog, status, notes, updatedAt
+      `SELECT id, date, version, project, environment, developer, changelog, status, notes, "updatedAt"
        FROM "Deployment"
        WHERE id = CAST(? AS INTEGER)${companyClause}
        ORDER BY "updatedAt" DESC
@@ -40,7 +40,7 @@ export async function getDeploymentResults(query: string, companyClause: string,
   const filter = buildFilterClause(filters, { statusColumn: '"status"', assigneeColumn: '"developer"', dateColumn: '"date"' });
   const tokenClause = buildSearchTokenClause("deployments", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, date, version, project, environment, developer, changelog, status, notes, updatedAt
+    `SELECT id, date, version, project, environment, developer, changelog, status, notes, "updatedAt"
      FROM "Deployment"
      WHERE 1=1${tokenClause.clause + companyClause + filter.clause}
      ORDER BY "updatedAt" DESC

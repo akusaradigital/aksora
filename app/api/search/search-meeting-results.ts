@@ -5,7 +5,7 @@ export async function getMeetingResults(query: string, companyClause: string, co
   const exactId = extractExactId(query, "MTG");
   if (exactId !== null) {
     const exactRow = await queryFirst<Row>(
-      `SELECT id, date, project, title, attendees, content, actionItems, updatedAt
+      `SELECT id, date, project, title, attendees, content, "actionItems", "updatedAt"
        FROM "MeetingNote"
        WHERE "deletedAt" IS NULL AND id = ?${companyClause}
        ORDER BY "updatedAt" DESC
@@ -38,7 +38,7 @@ export async function getMeetingResults(query: string, companyClause: string, co
   const filter = buildFilterClause(filters, { assigneeColumn: '"attendees"', dateColumn: '"date"' });
   const tokenClause = buildSearchTokenClause("meeting-notes", String(companyParams[0] ?? ""), query, "");
   const rows = await queryRows<Row>(
-    `SELECT id, date, project, title, attendees, content, actionItems, updatedAt
+    `SELECT id, date, project, title, attendees, content, "actionItems", "updatedAt"
      FROM "MeetingNote"
      WHERE "deletedAt" IS NULL
        ${tokenClause.clause + companyClause + filter.clause}

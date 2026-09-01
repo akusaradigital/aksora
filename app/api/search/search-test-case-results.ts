@@ -13,7 +13,7 @@ export async function getTestCaseResults(query: string, companyClause: string, c
   LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
   LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
        WHERE tc."deletedAt" IS NULL AND tc.id = ?
-         ${companyClause.replace(/"company"/g, 'tc."company"')}
+         ${companyClause.replace(/"company"/g, 'tc."company"').replace(/"workspaceId"/g, 'tc."workspaceId"')}
        ORDER BY tc."updatedAt" DESC
        LIMIT 1`,
       [exactId, ...companyParams],
@@ -59,7 +59,7 @@ export async function getTestCaseResults(query: string, companyClause: string, c
   LEFT JOIN "TestSuite" ts ON ts.id = CAST(tc."testSuiteId" AS INTEGER) AND ts."deletedAt" IS NULL
   LEFT JOIN "TestPlan" tp ON tp.id = CAST(ts."testPlanId" AS INTEGER) AND tp."deletedAt" IS NULL
      WHERE tc."deletedAt" IS NULL
-       ${tokenClause.clause + companyClause.replace(/"company"/g, 'tc."company"') + filter.clause.replace(/"assignee"/g, 'ts."assignee"')}
+       ${tokenClause.clause + companyClause.replace(/"company"/g, 'tc."company"').replace(/"workspaceId"/g, 'tc."workspaceId"') + filter.clause.replace(/"assignee"/g, 'ts."assignee"')}
      ORDER BY tc."updatedAt" DESC
      LIMIT 8`,
     tokenClause.params.concat(companyParams, filter.params),
