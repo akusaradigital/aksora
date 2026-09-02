@@ -4,6 +4,7 @@ import Image from "next/image";
 import { X, ArrowSquareOut } from "@phosphor-icons/react";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
+import { BugSnapPreviewCard } from "@/components/shared/bugsnap-preview-card";
 
 /** Image file extensions for evidence preview */
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
@@ -72,6 +73,12 @@ export function renderEvidence(
 ) {
   if (!displayValue.startsWith("http")) {
     return <p className="text-xs text-gray-800 font-semibold break-all">{displayValue}</p>;
+  }
+
+  // Detect BugSnap captures
+  const isBugSnap = /bugsnap[^\s]*\/v\/[a-zA-Z0-9_-]+/i.test(displayValue);
+  if (isBugSnap) {
+    return <BugSnapPreviewCard url={displayValue} />;
   }
 
   if (isImageUrl(displayValue)) {

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, Camera, Robot, ArrowSquareOut } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { normalizeRole } from "@/lib/roles";
@@ -133,6 +133,49 @@ export function Sidebar({
 
           {/* Bottom actions */}
           <div className={cn("mt-auto border-t border-slate-200 py-2", collapsed ? "px-1" : "px-0")}>
+            {/* Sister Apps (BugSnap & SnapTest) */}
+            {/* ponytail: external links default to # if env vars are unset */}
+            <div className="space-y-0.5 pb-2 mb-2 border-b border-slate-200">
+              <a
+                href={process.env.NEXT_PUBLIC_BUGSNAP_URL || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onMouseEnter={(e) => showTooltip(e, t.sidebar.bugsnap)}
+                onMouseLeave={hideTooltip}
+                className={cn(
+                  "flex h-8 w-full items-center text-[12px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors group",
+                  collapsed ? "justify-center px-0" : "justify-between px-3"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Camera size={15} weight="bold" className="text-indigo-600 shrink-0" />
+                  <span className={cn("overflow-hidden whitespace-nowrap transition-all duration-150", collapsed ? "opacity-0 w-0" : "opacity-100 w-auto")}>
+                    {t.sidebar.bugsnap}
+                  </span>
+                </span>
+                {!collapsed && <ArrowSquareOut size={12} className="text-slate-400 group-hover:text-slate-700" />}
+              </a>
+              <a
+                href={process.env.NEXT_PUBLIC_SNAPTEST_URL || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onMouseEnter={(e) => showTooltip(e, t.sidebar.snaptest)}
+                onMouseLeave={hideTooltip}
+                className={cn(
+                  "flex h-8 w-full items-center text-[12px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors group",
+                  collapsed ? "justify-center px-0" : "justify-between px-3"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Robot size={15} weight="bold" className="text-emerald-600 shrink-0" />
+                  <span className={cn("overflow-hidden whitespace-nowrap transition-all duration-150", collapsed ? "opacity-0 w-0" : "opacity-100 w-auto")}>
+                    {t.sidebar.snaptest}
+                  </span>
+                </span>
+                {!collapsed && <ArrowSquareOut size={12} className="text-slate-400 group-hover:text-slate-700" />}
+              </a>
+            </div>
+
             {!collapsed && (
               <div className="px-3 pb-2">
                 <LanguageSwitcher />

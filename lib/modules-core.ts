@@ -171,6 +171,9 @@ export const taskSchema = z.object({
   description: requiredText("Description"),
   acceptanceCriteria: requiredText("Acceptance Criteria"),
   evidence: urlField,
+  prUrl: optionalText,
+  branchName: optionalText,
+  commitSha: optionalText,
   assignee: optionalText,
 });
 

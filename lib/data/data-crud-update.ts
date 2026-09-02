@@ -11,6 +11,7 @@ import {
   syncSprintFromTestPlan,
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
+import { evaluateAutomationRules } from "@/lib/automation-engine";
 
 type ModuleData = Record<string, unknown>;
 
@@ -60,6 +61,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Task" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("tasks", company, String(id), updatedRow);
+        await evaluateAutomationRules("tasks", id, company, updatedRow, currentUser?.workspaceId);
       }
       return res;
     }

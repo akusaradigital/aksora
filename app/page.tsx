@@ -15,6 +15,9 @@ import {
   CaretRight,
   Quotes,
   Star,
+  Camera,
+  Robot,
+  ArrowSquareOut,
 } from "@phosphor-icons/react/dist/ssr";
 import { MarketingHeader } from "@/components/landing/marketing-header";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
@@ -390,6 +393,96 @@ export default async function LandingPage() {
 
             <div className="mt-12">
               <RoiCalculator />
+            </div>
+          </div>
+        </section>
+
+        {/* AKUSARA SUITE / ECOSYSTEM SECTION */}
+        <section className="scroll-mt-16 border-b border-slate-200 bg-white py-20 lg:py-28">
+          <div className="mx-auto max-w-6xl px-5">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
+                {t.ecosystemLabel}
+              </span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                {t.ecosystemHeading}
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-slate-600">
+                {t.ecosystemSubtitle}
+              </p>
+            </div>
+
+            <div className="mt-14 grid gap-6 md:grid-cols-3">
+              {/* Aksora (This App) */}
+              <div className="relative flex flex-col justify-between rounded-2xl border-2 border-blue-500 bg-blue-50/30 p-7 shadow-sm">
+                <div>
+                  <div className="inline-flex rounded-lg bg-blue-600 p-2.5 text-white mb-4">
+                    <Stack size={22} weight="bold" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-base font-bold text-slate-950">{t.ecosystemAksoraTitle}</h3>
+                    <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+                      This App
+                    </span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    {t.ecosystemAksoraDesc}
+                  </p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-blue-100 text-xs font-semibold text-blue-600">
+                  Test Management &amp; Sprints
+                </div>
+              </div>
+
+              {/* BugSnap */}
+              <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-slate-200/50">
+                <div>
+                  <div className="inline-flex rounded-lg bg-indigo-50 p-2.5 text-indigo-600 mb-4">
+                    <Camera size={22} weight="bold" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-950 mb-2">{t.ecosystemBugSnapTitle}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    {t.ecosystemBugSnapDesc}
+                  </p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  {/* ponytail: external link defaults to # if env var is unset */}
+                  <a
+                    href={process.env.NEXT_PUBLIC_BUGSNAP_URL || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    <span>{t.ecosystemOpen}</span>
+                    <ArrowSquareOut size={13} weight="bold" />
+                  </a>
+                </div>
+              </div>
+
+              {/* SnapTest */}
+              <div className="relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-slate-200/50">
+                <div>
+                  <div className="inline-flex rounded-lg bg-emerald-50 p-2.5 text-emerald-600 mb-4">
+                    <Robot size={22} weight="bold" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-950 mb-2">{t.ecosystemSnapTestTitle}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    {t.ecosystemSnapTestDesc}
+                  </p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  {/* ponytail: external link defaults to # if env var is unset */}
+                  <a
+                    href={process.env.NEXT_PUBLIC_SNAPTEST_URL || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700"
+                  >
+                    <span>{t.ecosystemOpen}</span>
+                    <ArrowSquareOut size={13} weight="bold" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>

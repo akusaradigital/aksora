@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo } from"@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo, Lightning } from"@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -41,6 +41,15 @@ export default async function SettingsPage() {
           icon: WebhooksLogo,
           color: "text-cyan-600",
           bg: "bg-cyan-50",
+          disabled: false,
+        },
+        {
+          title: "Automation Rules",
+          description: "Auto-assign teammates or send webhooks when task statuses change.",
+          href: "/settings/automation",
+          icon: Lightning,
+          color: "text-amber-600",
+          bg: "bg-amber-50",
           disabled: false,
         },
         {

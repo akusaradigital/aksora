@@ -40,6 +40,9 @@ export const tables = [
       "acceptanceCriteria" TEXT NOT NULL DEFAULT '',
       "notes" TEXT NOT NULL DEFAULT '',
       "evidence" TEXT NOT NULL DEFAULT '',
+      "prUrl" TEXT DEFAULT '',
+      "branchName" TEXT DEFAULT '',
+      "commitSha" TEXT DEFAULT '',
       "relatedItems" TEXT DEFAULT '',
       "assignee" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
@@ -293,6 +296,22 @@ export const tables = [
       "lastTriggeredAt" DATE_TYPE,
       "lastStatus" INTEGER,
       "failureCount" INTEGER NOT NULL DEFAULT 0
+    `
+  },
+  {
+    name: "AutomationRule",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "company" TEXT NOT NULL DEFAULT '',
+      "name" TEXT NOT NULL,
+      "module" TEXT NOT NULL DEFAULT 'tasks',
+      "triggerField" TEXT NOT NULL,
+      "triggerValue" TEXT NOT NULL,
+      "actionType" TEXT NOT NULL,
+      "actionValue" TEXT NOT NULL,
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   },
   {
