@@ -33,6 +33,29 @@ export async function GET(request: NextRequest) {
       deletedCounts[table] = rows.length;
     }
 
+    // Retention pruning: ephemeral presence records older than 1 day
+    const staleHeartbeats = await db.query<{ id: number }>(
+      `DELETE FROM "PresenceHeartbeat" WHERE "lastSeen" < CURRENT_TIMESTAMP - INTERVAL '1 day' RETURNING "id"`
+    );
+    deletedCounts["PresenceHeartbeat"] = staleHeartbeats.length;
+
+    const stalePresence = await db.query<{ id: number }>(
+      `DELETE FROM "CollaborationPresence" WHERE "updatedAt" < CURRENT_TIMESTAMP - INTERVAL '1 day' RETURNING "id"`
+    );
+    deletedCounts["CollaborationPresence"] = stalePresence.length;
+
+    // Retention pruning: activity logs older than 180 days
+    const staleActivity = await db.query<{ id: number }>(
+      `DELETE FROM "ActivityLog" WHERE "createdAt" < CURRENT_TIMESTAMP - INTERVAL '180 days' RETURNING "id"`
+    );
+    deletedCounts["ActivityLog"] = staleActivity.length;
+
+    // Retention pruning: email events older than 90 days
+    const staleEmailEvents = await db.query<{ id: number }>(
+      `DELETE FROM "EmailEvent" WHERE "createdAt" < CURRENT_TIMESTAMP - INTERVAL '90 days' RETURNING "id"`
+    );
+    deletedCounts["EmailEvent"] = staleEmailEvents.length;
+
     return NextResponse.json({
       ok: true,
       cleanedAt: new Date().toISOString(),

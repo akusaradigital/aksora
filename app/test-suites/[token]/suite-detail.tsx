@@ -5,6 +5,7 @@ import Link from"next/link";
 import { cn, formatDate, formatDisplayText } from"@/lib/utils";
 import { Badge } from"@/components/shared/badge";
 import { Breadcrumb } from"@/components/layout/breadcrumb";
+import { TestCaseImportButton } from "@/components/test-management/test-case-import";
 import {
  Play,
  CheckCircle,
@@ -263,6 +264,7 @@ export function SuiteDetail({
  <ArrowSquareOut size={15} weight="bold" />
  Manage Cases
  </Link>
+ <TestCaseImportButton suiteId={String(suite.id)} />
  {plan && (
  <Link
  href={`/test-plans/${plan.publicToken}`}

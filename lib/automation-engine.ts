@@ -49,6 +49,35 @@ export async function evaluateAutomationRules(
               `Rule '${rule.name}' auto-assigned to ${rule.actionValue}`,
               "Automation Engine"
             );
+          } else if (module === "bugs") {
+            await db.run(
+              `UPDATE "Bug" SET "suggestedDev" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
+              [rule.actionValue, entityId]
+            );
+            await logActivity(
+              company,
+              "Bug",
+              String(entityId),
+              "Auto-Assigned",
+              `Rule '${rule.name}' auto-assigned to ${rule.actionValue}`,
+              "Automation Engine"
+            );
+          }
+        } else if (rule.actionType === "status" && rule.actionValue) {
+          const table = module === "tasks" ? "Task" : module === "bugs" ? "Bug" : "";
+          if (table) {
+            await db.run(
+              `UPDATE "${table}" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
+              [rule.actionValue, entityId]
+            );
+            await logActivity(
+              company,
+              table,
+              String(entityId),
+              "Auto-Status",
+              `Rule '${rule.name}' auto-updated status to ${rule.actionValue}`,
+              "Automation Engine"
+            );
           }
         } else if (rule.actionType === "webhook" && rule.actionValue) {
           // Trigger outbound webhook payload

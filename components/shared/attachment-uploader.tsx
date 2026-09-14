@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from"react";
 import { Paperclip, Link, X, Image as ImageIcon, FilePdf, ArrowSquareOut } from"@phosphor-icons/react";
 import { cn } from"@/lib/utils";
 import { compressImage } from"@/lib/image-compress";
+import { MediaLightbox } from "@/components/shared/media-lightbox";
 
 export type Attachment = { type:"file" |"link"; url: string; name: string };
 
@@ -25,6 +26,7 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  const [linkInput, setLinkInput] = useState("");
  const [showLinkInput, setShowLinkInput] = useState(false);
  const [drag, setDrag] = useState(false);
+ const [previewMedia, setPreviewMedia] = useState<{ url: string; name: string } | null>(null);
  const fileInputRef = useRef<HTMLInputElement>(null);
 
  const uploadFile = useCallback(async (file: File) => {
@@ -140,14 +142,24 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  {value.map((att, idx) => (
  <div key={idx} className="flex items-center gap-2  border border-gray-100 bg-gray-50 px-2.5 py-1.5">
  <AttachmentIcon type={att.type} url={att.url} />
- <a
- href={att.url}
- target="_blank"
- rel="noopener noreferrer"
- className="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate hover:text-sky-600 hover:underline"
- >
- {att.name}
- </a>
+ {att.type === "file" ? (
+   <button
+     type="button"
+     onClick={() => setPreviewMedia({ url: att.url, name: att.name })}
+     className="flex-1 min-w-0 text-left text-xs font-medium text-gray-700 truncate hover:text-sky-600 hover:underline"
+   >
+     {att.name}
+   </button>
+ ) : (
+   <a
+     href={att.url}
+     target="_blank"
+     rel="noopener noreferrer"
+     className="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate hover:text-sky-600 hover:underline"
+   >
+     {att.name}
+   </a>
+ )}
  <a href={att.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-300 hover:text-sky-500 transition">
  <ArrowSquareOut size={12} weight="bold" />
  </a>
@@ -159,6 +171,14 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
  </div>
  ))}
  </div>
+ )}
+
+ {previewMedia && (
+   <MediaLightbox
+     url={previewMedia.url}
+     name={previewMedia.name}
+     onClose={() => setPreviewMedia(null)}
+   />
  )}
  </div>
  );

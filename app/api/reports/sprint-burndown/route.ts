@@ -55,6 +55,16 @@ export async function GET(req: Request) {
   const end = sprint.endDate ? new Date(sprint.endDate) : new Date(Date.now() + 1 * 86400000);
 
   const daysDiff = Math.max(1, Math.min(30, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))));
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const elapsedDays = Math.max(1, Math.min(daysDiff, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))));
+  const velocityPerDay = completedTasks > 0 ? completedTasks / elapsedDays : 0;
+  const remainingTasksNow = Math.max(0, totalTasks - completedTasks);
+  const projectedDaysLeft = velocityPerDay > 0 ? Math.ceil(remainingTasksNow / velocityPerDay) : null;
+  const projectedCompletionDate = projectedDaysLeft !== null ? new Date(now.getTime() + projectedDaysLeft * 86400000).toISOString().split("T")[0] : null;
+  const sprintEndDateStr = end.toISOString().split("T")[0];
+  const isOnTrack = projectedCompletionDate ? projectedCompletionDate <= sprintEndDateStr : null;
+
   const burndown = [];
 
   for (let i = 0; i <= daysDiff; i++) {
@@ -72,11 +82,18 @@ export async function GET(req: Request) {
 
     const remaining = Math.max(0, totalTasks - completedByDay);
 
+    let forecast: number | null = null;
+    if (dateStr >= todayStr && velocityPerDay > 0) {
+      const daysFromNow = Math.max(0, Math.ceil((currentDay.getTime() - now.getTime()) / 86400000));
+      forecast = Math.max(0, Math.round(remainingTasksNow - velocityPerDay * daysFromNow));
+    }
+
     burndown.push({
       date: dateStr,
       day: `Day ${i + 1}`,
       ideal,
-      remaining: currentDay <= new Date() ? remaining : null,
+      remaining: currentDay <= now ? remaining : null,
+      forecast,
     });
   }
 
@@ -90,6 +107,9 @@ export async function GET(req: Request) {
       inProgressTasks,
       todoTasks,
       completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      velocityPerDay: Number(velocityPerDay.toFixed(1)),
+      projectedCompletionDate,
+      isOnTrack,
     },
     tasks,
   });

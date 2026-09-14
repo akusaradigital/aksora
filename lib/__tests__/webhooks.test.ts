@@ -22,6 +22,7 @@ import {
   generateWebhookSecret,
   listWebhooksForUser,
   signWebhookPayload,
+  verifyWebhookSignature,
 } from "@/lib/webhooks";
 
 beforeEach(() => {
@@ -41,6 +42,11 @@ describe("webhooks", () => {
     expect(sig1).toBe(sig2);
     expect(sig1).toHaveLength(64);
     expect(signWebhookPayload("other", '{"a":1}')).not.toBe(sig1);
+
+    expect(verifyWebhookSignature("s3cret", '{"a":1}', sig1)).toBe(true);
+    expect(verifyWebhookSignature("s3cret", '{"a":1}', `sha256=${sig1}`)).toBe(true);
+    expect(verifyWebhookSignature("s3cret", '{"a":1}', "invalid-sig")).toBe(false);
+    expect(verifyWebhookSignature("wrong-secret", '{"a":1}', sig1)).toBe(false);
   });
 
   it("rejects a non-http(s) url", async () => {

@@ -1,6 +1,6 @@
 {
   "name": "aksora",
-  "version": "0.11.16",
+  "version": "0.11.17",
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -19,6 +19,7 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "check:api-guards": "node scripts/check-api-guards.mjs",
+    "check:dead-code": "node scripts/check-dead-code.mjs",
     "db:health": "node scripts/db-schema-health.mjs",
     "db:smoke-crud": "node scripts/db-smoke-crud.mjs",
     "db:health:ci": "pnpm db:health",

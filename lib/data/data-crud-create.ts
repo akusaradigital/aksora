@@ -14,6 +14,7 @@ import {
   syncSprintFromTestPlan,
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
+import { broadcastCriticalBug } from "@/lib/chat-broadcast";
 
 type ModuleData = Record<string, unknown> & {
   company?: unknown;
@@ -116,6 +117,15 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
         [company, workspaceId, publicToken, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
       );
       await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`, actor, publicToken, workspaceId);
+      void broadcastCriticalBug({
+        company,
+        workspaceId,
+        title: String(data.title),
+        severity: String(data.severity || ""),
+        project: String(data.project || ""),
+        actor,
+        publicToken,
+      });
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "Bug" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {

@@ -17,7 +17,17 @@ const allowedPublic = new Set([
   "app/api/auth/login/route.ts",
   "app/api/auth/logout/route.ts",
   "app/api/auth/register/route.ts",
+  "app/api/auth/google/route.ts",
+  "app/api/auth/forgot-password/route.ts",
+  "app/api/auth/reset-password/route.ts",
+  "app/api/auth/verify-mfa/route.ts",
+  "app/api/auth/verify-otp/route.ts",
   "app/api/invites/[token]/accept/route.ts",
+  "app/api/health/ai-gateway/route.ts",
+  "app/api/vitals/route.ts",
+  "app/api/webhooks/git/route.ts",
+  "app/api/webhooks/lemonsqueezy/route.ts",
+  "app/api/webhooks/resend/route.ts",
 ]);
 
 const violations = [];
@@ -27,7 +37,7 @@ for (const file of files) {
   const mutating = /export\s+async\s+function\s+(POST|PUT|PATCH|DELETE)/.test(text);
   if (!mutating) continue;
   if (allowedPublic.has(rel)) continue;
-  const hasAuth = /(getCurrentUser\(|validateApiSession\(|requireAuth)/.test(text);
+  const hasAuth = /(getCurrentUser\(|validateApiSession\(|requireAuth|authenticateApiRequest\()/.test(text);
   if (!hasAuth) violations.push(rel);
 }
 

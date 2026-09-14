@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, status, latencyMs });
   }
 
-  // Breach ??? email the ops address if configured.
+  // Breach — email the ops address if configured.
   let emailed = false;
   let emailDeliveryFailed = false;
   let emailFailureReason = "";
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     if (to.length > 0) {
       const res = await sendEmail({
         to,
-        subject: `[Aksora] Health alert: ${status} ??? ${checks.length} issue(s)`,
+        subject: `[Aksora] Health alert: ${status} — ${checks.length} issue(s)`,
         html: `<p>Health monitor detected the following on ${new Date().toISOString()}:</p><ul>${checks.map((c) => `<li>${c}</li>`).join("")}</ul>`,
         text: `Health alert: ${checks.join("; ")}`,
       });

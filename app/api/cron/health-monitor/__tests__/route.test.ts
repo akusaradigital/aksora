@@ -6,12 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   dbGet: vi.fn(),
   dbQuery: vi.fn(),
+  dbRun: vi.fn(),
   healthInfo: vi.fn(),
   sendEmail: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
-  db: { get: mocks.dbGet, query: mocks.dbQuery },
+  db: { get: mocks.dbGet, query: mocks.dbQuery, run: mocks.dbRun },
   getDbHealthInfo: mocks.healthInfo,
 }));
 

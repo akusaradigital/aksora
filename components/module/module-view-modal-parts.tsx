@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { X, ArrowSquareOut } from "@phosphor-icons/react";
+import { ArrowSquareOut } from "@phosphor-icons/react";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { BugSnapPreviewCard } from "@/components/shared/bugsnap-preview-card";
+import { MediaLightbox } from "@/components/shared/media-lightbox";
 
 /** Image file extensions for evidence preview */
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
@@ -18,24 +19,9 @@ export function isImageUrl(url: string): boolean {
   }
 }
 
-/** Lightbox for image preview */
+/** Lightbox for image & media preview */
 export function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70  p-4 animate-in fade-in duration-150"
-      onClick={onClose}
-    >
-      <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={onClose}
-          className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center  bg-white text-gray-600 shadow-lg transition hover:bg-gray-100"
-        >
-          <X size={14} weight="bold" />
-        </button>
-        <Image src={src} alt="Evidence preview" fill unoptimized sizes="90vw" className="object-contain shadow-md" />
-      </div>
-    </div>
-  );
+  return <MediaLightbox url={src} onClose={onClose} />;
 }
 
 export function ActivityTab({ module, itemId }: { module: string; itemId: string | number }) {

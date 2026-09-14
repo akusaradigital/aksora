@@ -37,6 +37,7 @@ interface BurndownPoint {
   day: string;
   ideal: number;
   remaining: number | null;
+  forecast?: number | null;
 }
 
 interface BurndownResponse {
@@ -49,6 +50,9 @@ interface BurndownResponse {
     inProgressTasks: number;
     todoTasks: number;
     completionRate: number;
+    velocityPerDay?: number;
+    projectedCompletionDate?: string | null;
+    isOnTrack?: boolean | null;
   } | null;
   tasks: Array<{
     id: number;
@@ -144,7 +148,7 @@ export default function SprintBurndownPage() {
         ) : (
           <>
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Tasks</span>
                 <p className="mt-1 text-2xl font-bold text-slate-900">{data.metrics?.totalTasks || 0}</p>
@@ -160,6 +164,15 @@ export default function SprintBurndownPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Completion Rate</span>
                 <p className="mt-1 text-2xl font-bold text-slate-900">{data.metrics?.completionRate || 0}%</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 md:col-span-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Est. Completion</span>
+                <p className="mt-1 text-sm font-bold text-slate-800">
+                  {data.metrics?.projectedCompletionDate || "N/A"}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {data.metrics?.velocityPerDay ? `${data.metrics.velocityPerDay} tasks/day` : "Calculating..."}
+                </p>
               </div>
             </div>
 
@@ -198,6 +211,16 @@ export default function SprintBurndownPage() {
                       stroke="#6366f1"
                       strokeWidth={2.5}
                       dot={{ r: 3, fill: "#6366f1" }}
+                      connectNulls={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="forecast"
+                      name="Velocity Forecast"
+                      stroke="#8b5cf6"
+                      strokeDasharray="3 3"
+                      strokeWidth={2}
+                      dot={{ r: 2, fill: "#8b5cf6" }}
                       connectNulls={false}
                     />
                   </LineChart>

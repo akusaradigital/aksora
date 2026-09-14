@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 
 type WebhookRow = {
@@ -25,6 +25,20 @@ export function generateWebhookSecret() {
 
 export function signWebhookPayload(secret: string, payload: string) {
   return createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+export function verifyWebhookSignature(secret: string, body: string, signatureHeader: string | null | undefined): boolean {
+  if (!secret || !signatureHeader) return false;
+  try {
+    const expected = signWebhookPayload(secret, body);
+    const expectedBuf = Buffer.from(expected, "hex");
+    const rawSig = signatureHeader.startsWith("sha256=") ? signatureHeader.slice(7) : signatureHeader;
+    const receivedBuf = Buffer.from(rawSig, "hex");
+    if (expectedBuf.length !== receivedBuf.length) return false;
+    return timingSafeEqual(expectedBuf, receivedBuf);
+  } catch {
+    return false;
+  }
 }
 
 function normalizeEvents(events?: string[] | null): string {
@@ -122,6 +136,7 @@ async function deliverWebhook(webhook: WebhookRow, body: string) {
         headers: {
           "Content-Type": "application/json",
           "X-Aksora-Signature": signature,
+          "X-Aksora-Signature-256": `sha256=${signature}`,
         },
         body,
         signal: controller.signal,

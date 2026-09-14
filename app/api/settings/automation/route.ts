@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   await db.run(
     `INSERT INTO "AutomationRule" ("workspaceId", "company", "name", "module", "triggerField", "triggerValue", "actionType", "actionValue", "active")
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [user.workspaceId ?? null, scope.company, name, module, triggerField, triggerValue, actionType, actionValue]
+    [scope.workspaceId ?? user.activeWorkspaceId ?? null, scope.company, name, module, triggerField, triggerValue, actionType, actionValue]
   );
 
   return NextResponse.json({ ok: true });

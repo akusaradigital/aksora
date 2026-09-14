@@ -7,14 +7,22 @@ export const dynamic = "force-dynamic";
 // Svix signature: HMAC-SHA256(base64secret, `${id}.${timestamp}.${body}`), compared against
 // the "v1,<sig>" entries in svix-signature (space-separated, may list multiple keys).
 function verifySignature(secret: string, id: string, timestamp: string, body: string, signatureHeader: string) {
-  const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
-  const expected = crypto.createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64");
-  return signatureHeader
-    .split(" ")
-    .some((part) => {
-      const [, sig] = part.split(",");
-      return sig && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-    });
+  try {
+    const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+    const expected = crypto.createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64");
+    const expectedBuf = Buffer.from(expected);
+    return signatureHeader
+      .split(" ")
+      .some((part) => {
+        const [, sig] = part.split(",");
+        if (!sig) return false;
+        const sigBuf = Buffer.from(sig);
+        if (sigBuf.length !== expectedBuf.length) return false;
+        return crypto.timingSafeEqual(sigBuf, expectedBuf);
+      });
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -29,7 +37,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
-  const payload = JSON.parse(body) as { type?: string; data?: { to?: string[]; subject?: string } };
+  let payload: { type?: string; data?: { to?: string[]; subject?: string } };
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const type = payload.type ?? "";
   const emails = payload.data?.to ?? [];
   for (const email of emails) {

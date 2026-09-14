@@ -26,6 +26,15 @@ export type WebhookItem = {
   failureCount?: number;
 };
 
+const AVAILABLE_EVENTS = [
+  { id: "task.created", label: "Task created" },
+  { id: "task.updated", label: "Task updated" },
+  { id: "bug.created", label: "Bug reported" },
+  { id: "bug.updated", label: "Bug updated" },
+  { id: "sprint.created", label: "Sprint created" },
+  { id: "testcase.created", label: "Test case created" },
+];
+
 export function WebhooksClient() {
   const [webhooks, setWebhooks] = useState<WebhookItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +42,8 @@ export function WebhooksClient() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [url, setUrl] = useState("");
+  const [subscribeAll, setSubscribeAll] = useState(true);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -69,10 +80,11 @@ export function WebhooksClient() {
     setCreateLoading(true);
     setCreateError(null);
     try {
+      const eventsToSend = subscribeAll || selectedEvents.length === 0 ? ["*"] : selectedEvents;
       const res = await fetch("/api/settings/webhooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl, events: ["*"] }),
+        body: JSON.stringify({ url: trimmedUrl, events: eventsToSend }),
       });
 
       if (!res.ok) {
@@ -84,6 +96,8 @@ export function WebhooksClient() {
       setCreatedSecret(data?.data?.secret || null);
       setIsCreateOpen(false);
       setUrl("");
+      setSubscribeAll(true);
+      setSelectedEvents([]);
       toast("Webhook created successfully", "success");
       fetchWebhooks();
     } catch (err) {
@@ -282,6 +296,48 @@ if (expected !== req.headers["x-aksora-signature"]) throw new Error("Invalid sig
                 <p className="mt-1 text-[11px] text-slate-500">
                   Must be a public HTTPS endpoint able to receive a POST request with a JSON body.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                  Event Subscriptions
+                </label>
+                <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-900 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={subscribeAll}
+                      onChange={(e) => {
+                        setSubscribeAll(e.target.checked);
+                        if (e.target.checked) setSelectedEvents([]);
+                      }}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>All events (wildcard)</span>
+                  </label>
+
+                  {!subscribeAll && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                      {AVAILABLE_EVENTS.map((ev) => (
+                        <label key={ev.id} className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedEvents.includes(ev.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedEvents((prev) => [...prev, ev.id]);
+                              } else {
+                                setSelectedEvents((prev) => prev.filter((x) => x !== ev.id));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span>{ev.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

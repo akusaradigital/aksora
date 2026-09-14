@@ -34,7 +34,27 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
   const [projects, setProjects] = useState<string[]>(initialProjects);
   const [selectedProject, setSelectedProject] = useState("");
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const hasHydrated = useRef(false);
+
+  // Close project dropdown on outside click or Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
 
   // Send presence heartbeats while dashboard is open
   usePresenceHeartbeat();
@@ -94,8 +114,8 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
     <div className="relative space-y-6">
       <DashboardRealtime />
 
-      <section className="relative overflow-hidden rounded-2xl border border-slate-100/80 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <section className="relative border-l-4 border-l-blue-600 border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-6">
           <div className="max-w-xl">
             <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Workspace scope</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Dashboard</h2>
@@ -103,53 +123,20 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
               Review the workspace or narrow it to one project without changing the underlying data flow.
             </p>
           </div>
-
-          {/* Decorative 3D illustration cards on the right */}
-          <div className="hidden shrink-0 items-center justify-end pr-2 md:flex">
-            <div className="relative flex items-center">
-              <div className="relative -mr-6 h-28 w-36 rotate-[-6deg] transform rounded-xl border border-slate-100 bg-gradient-to-br from-white to-slate-50/80 p-3 shadow-md transition-all hover:rotate-0">
-                <div className="h-1.5 w-10 rounded bg-slate-200" />
-                <div className="mt-3 space-y-1.5">
-                  <div className="h-1.5 w-full rounded bg-slate-100" />
-                  <div className="h-1.5 w-4/5 rounded bg-slate-100" />
-                </div>
-                <div className="mt-4 flex items-end gap-1">
-                  <div className="h-6 w-2 rounded-t bg-blue-200" />
-                  <div className="h-10 w-2 rounded-t bg-blue-500" />
-                  <div className="h-8 w-2 rounded-t bg-blue-300" />
-                  <div className="h-12 w-2 rounded-t bg-blue-600" />
-                </div>
-              </div>
-
-              <div className="relative z-10 h-32 w-44 rotate-[4deg] transform rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xl transition-all hover:rotate-0">
-                <div className="flex items-center justify-between">
-                  <div className="h-2 w-12 rounded bg-slate-300" />
-                  <div className="h-5 w-5 rounded-full bg-blue-500" />
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="h-12 w-12 rounded-full border-4 border-blue-500 border-t-transparent" />
-                  <div className="space-y-1.5">
-                    <div className="h-2 w-14 rounded bg-slate-200" />
-                    <div className="h-2 w-10 rounded bg-slate-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {projects.length > 1 && (
           <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setOpen((v) => !v)}
-                className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
+                className="flex h-9 items-center gap-2 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
               >
                 <Funnel size={13} weight="bold" />
                 {selectedProject || "All Projects"}
               </button>
               {open && (
-                <div className="absolute left-0 top-full z-50 mt-2 max-h-64 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 top-full z-50 mt-2 max-h-64 w-56 overflow-y-auto border border-slate-200 bg-white shadow-lg">
                   <button
                     onClick={() => { setSelectedProject(""); setOpen(false); }}
                     className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50"
@@ -171,7 +158,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
             {selectedProject && (
               <button
                 onClick={() => setSelectedProject("")}
-                className="flex h-9 items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+                className="flex h-9 items-center gap-1.5 border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
               >
                 <X size={11} weight="bold" />
                 Clear filter

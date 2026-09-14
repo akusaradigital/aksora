@@ -19,7 +19,7 @@ export function StatCard({ label, value, icon, color, href }: {
   return (
     <Link href={href} prefetch={false}
       className={cn(
-        "flex flex-col justify-between rounded-2xl border border-slate-100/80 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
+        "flex flex-col justify-between border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
         isTask ? "border-l-4 border-l-blue-600" : isCase ? "border-l-4 border-l-emerald-500" : ""
       )}>
       <div className="flex items-center justify-between">
@@ -27,7 +27,7 @@ export function StatCard({ label, value, icon, color, href }: {
           "text-xs font-bold uppercase tracking-wider",
           isTask ? "text-slate-700" : isCase ? "text-emerald-600" : "text-slate-500"
         )}>{label}</p>
-        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", color)}>
+        <div className={cn("flex h-9 w-9 items-center justify-center", color)}>
           {icon}
         </div>
       </div>
@@ -42,10 +42,10 @@ export function BugStatCard({ value, bugSeverityCounts }: {
 }) {
   const animClass = useValueChangeAnimation(value);
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-slate-100/80 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
+    <div className="flex flex-col justify-between border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider text-rose-500">Open Bugs</p>
-        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
+        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
           <ArrowRight size={16} weight="bold" />
         </Link>
       </div>
@@ -120,7 +120,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
 export function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
+    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
       {icon}{label}
     </Link>
   );

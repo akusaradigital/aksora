@@ -69,12 +69,13 @@ export function PlayModeView({
 
   useEffect(() => {
     const handleKeys = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'p') updateStatus('Passed');
-      if (e.key === 'f') updateStatus('Failed');
-      if (e.key === 'b') updateStatus('Blocked');
-      if (e.key === 'ArrowRight' || e.key === 'j') setIndex(i => Math.min(items.length - 1, i + 1));
-      if (e.key === 'ArrowLeft' || e.key === 'k') setIndex(i => Math.max(0, i - 1));
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      const key = e.key.toLowerCase();
+      if (key === 'p') updateStatus('Passed');
+      if (key === 'f') updateStatus('Failed');
+      if (key === 'b') updateStatus('Blocked');
+      if (e.key === 'ArrowRight' || key === 'j') setIndex(i => Math.min(items.length - 1, i + 1));
+      if (e.key === 'ArrowLeft' || key === 'k') setIndex(i => Math.max(0, i - 1));
       if (e.key === 'Escape') onClose(items);
     };
     window.addEventListener('keydown', handleKeys);

@@ -141,15 +141,25 @@ export function CommandPalette() {
       { id: "nav-support", label: "Support", description: "Help & support tickets", icon: <Headset size={16} weight="bold" />, category: "navigation", keywords: ["support", "help", "ticket", "contact"], href: "/settings/support", action: () => navigate("/settings/support") },
     ];
 
+    const openCreateForm = (path: string) => {
+      setOpen(false);
+      if (typeof window !== "undefined" && window.location.pathname === path) {
+        window.dispatchEvent(new Event("qa:open-form"));
+      } else {
+        router.push(`${path}?action=new`);
+      }
+    };
+
     const create: CommandItem[] = [
-      { id: "create-bug", label: "New Bug", description: "Report a new defect", icon: <Bug size={16} weight="bold" />, category: "create", keywords: ["create", "new", "bug", "defect", "report"], href: "/bugs", action: () => { navigate("/bugs"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-task", label: "New Task", description: "Create a work item", icon: <Kanban size={16} weight="bold" />, category: "create", keywords: ["create", "new", "task", "work", "item"], href: "/tasks", action: () => { navigate("/tasks"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-test-case", label: "New Test Case", description: "Add a test scenario", icon: <Checks size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "case", "scenario"], href: "/test-cases", action: () => { navigate("/test-cases"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-test-plan", label: "New Test Plan", description: "Start a testing plan", icon: <ClipboardText size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "plan"], href: "/test-plans", action: () => { navigate("/test-plans"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-test-suite", label: "New Test Suite", description: "Group test cases", icon: <Table size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "suite", "group"], href: "/test-suites", action: () => { navigate("/test-suites"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-sprint", label: "New Sprint", description: "Plan a new iteration", icon: <CalendarBlank size={16} weight="bold" />, category: "create", keywords: ["create", "new", "sprint", "iteration"], href: "/sprints", action: () => { navigate("/sprints"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-meeting", label: "New Meeting Note", description: "Document a meeting", icon: <Note size={16} weight="bold" />, category: "create", keywords: ["create", "new", "meeting", "note", "minutes"], href: "/meeting-notes", action: () => { navigate("/meeting-notes"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
-      { id: "create-deployment", label: "New Deployment", description: "Log a release", icon: <RocketLaunch size={16} weight="bold" />, category: "create", keywords: ["create", "new", "deployment", "release"], href: "/deployments", action: () => { navigate("/deployments"); setTimeout(() => window.dispatchEvent(new Event("qa:open-form")), 300); } },
+      { id: "create-bug", label: "New Bug", description: "Report a new defect", icon: <Bug size={16} weight="bold" />, category: "create", keywords: ["create", "new", "bug", "defect", "report"], href: "/bugs?action=new", action: () => openCreateForm("/bugs") },
+      { id: "create-task", label: "New Task", description: "Create a work item", icon: <Kanban size={16} weight="bold" />, category: "create", keywords: ["create", "new", "task", "work", "item"], href: "/tasks?action=new", action: () => openCreateForm("/tasks") },
+      { id: "create-test-case", label: "New Test Case", description: "Add a test scenario", icon: <Checks size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "case", "scenario"], href: "/test-cases?action=new", action: () => openCreateForm("/test-cases") },
+      { id: "create-test-plan", label: "New Test Plan", description: "Start a testing plan", icon: <ClipboardText size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "plan"], href: "/test-plans?action=new", action: () => openCreateForm("/test-plans") },
+      { id: "create-test-suite", label: "New Test Suite", description: "Group test cases", icon: <Table size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "suite", "group"], href: "/test-suites?action=new", action: () => openCreateForm("/test-suites") },
+      { id: "create-sprint", label: "New Sprint", description: "Plan a new iteration", icon: <CalendarBlank size={16} weight="bold" />, category: "create", keywords: ["create", "new", "sprint", "iteration"], href: "/sprints?action=new", action: () => openCreateForm("/sprints") },
+      { id: "create-meeting", label: "New Meeting Note", description: "Document a meeting", icon: <Note size={16} weight="bold" />, category: "create", keywords: ["create", "new", "meeting", "note", "minutes"], href: "/meeting-notes?action=new", action: () => openCreateForm("/meeting-notes") },
+      { id: "create-deployment", label: "New Deployment", description: "Log a release", icon: <RocketLaunch size={16} weight="bold" />, category: "create", keywords: ["create", "new", "deployment", "release"], href: "/deployments?action=new", action: () => openCreateForm("/deployments") },
+      { id: "create-test-run", label: "New Test Execution", description: "Start a test run session", icon: <PlayCircle size={16} weight="bold" />, category: "create", keywords: ["create", "new", "test", "run", "execute", "session"], href: "/test-execution", action: () => navigate("/test-execution") },
     ];
 
     const actions: CommandItem[] = [

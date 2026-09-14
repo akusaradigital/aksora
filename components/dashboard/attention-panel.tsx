@@ -55,13 +55,13 @@ export function AttentionPanel({ items, userRole }: AttentionPanelProps) {
   const showQuickActions = canUseQuickActions(userRole);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-slate-100/80 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
+    <div className="flex flex-col border border-slate-200 border-t-4 border-t-amber-400 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-sm font-black text-slate-900">Attention Needed</h3>
           <p className="mt-1 text-xs text-slate-500">Critical blockers and priorities</p>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+        <div className="flex h-9 w-9 items-center justify-center bg-amber-50 text-amber-500">
           <Warning size={18} weight="bold" />
         </div>
       </div>
@@ -88,7 +88,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
 
   return (
     <div
-      className="animate-attention-slide-in relative flex items-center gap-2.5 rounded-xl border border-slate-100 p-3 hover:border-slate-200 hover:bg-slate-50/70 transition group"
+      className="animate-attention-slide-in relative flex items-center gap-2.5 border border-slate-200 p-3 hover:border-slate-200 hover:bg-slate-50/70 transition group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}

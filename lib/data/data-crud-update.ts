@@ -12,6 +12,7 @@ import {
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 import { evaluateAutomationRules } from "@/lib/automation-engine";
+import { broadcastCriticalBug } from "@/lib/chat-broadcast";
 
 type ModuleData = Record<string, unknown>;
 
@@ -61,7 +62,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Task" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("tasks", company, String(id), updatedRow);
-        await evaluateAutomationRules("tasks", id, company, updatedRow, currentUser?.workspaceId);
+        await evaluateAutomationRules("tasks", id, company, updatedRow, scope.workspaceId ?? currentUser?.activeWorkspaceId);
       }
       return res;
     }
@@ -73,10 +74,21 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.suggestedDev ?? "", data.relatedItems ?? "", data.evidence, id, ...companyParam]
       );
       await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`, actor);
+      if (data.severity) {
+        void broadcastCriticalBug({
+          company,
+          workspaceId: scope.workspaceId,
+          title: String(data.title || ""),
+          severity: String(data.severity || ""),
+          project: String(data.project || ""),
+          actor,
+        });
+      }
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Bug" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("bugs", company, String(id), updatedRow);
+        await evaluateAutomationRules("bugs", id, company, updatedRow, scope.workspaceId ?? currentUser?.activeWorkspaceId);
       }
       return res;
     }
