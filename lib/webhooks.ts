@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
+import { validateOutboundUrl, validateOutboundUrlAsync } from "@/lib/ssrf-guard";
 
 type WebhookRow = {
   id: number;
@@ -54,8 +55,9 @@ export async function createWebhookForUser(
   events?: string[] | null,
 ) {
   const trimmedUrl = String(url ?? "").trim();
-  if (!/^https?:\/\//i.test(trimmedUrl)) {
-    throw new Error("A valid http(s) webhook URL is required.");
+  const urlError = validateOutboundUrl(trimmedUrl);
+  if (urlError) {
+    throw new Error(urlError);
   }
 
   const secret = generateWebhookSecret();
@@ -125,6 +127,16 @@ export async function dispatchWebhooks(company: string, eventType: string, paylo
 }
 
 async function deliverWebhook(webhook: WebhookRow, body: string) {
+  // Re-check at delivery time (not just at creation time) so a webhook URL
+  // that used to resolve publicly but now points at a private/internal IP
+  // (DNS rebinding, or infra that changed after the webhook was saved) can't
+  // be used to reach internal services.
+  const urlError = await validateOutboundUrlAsync(webhook.url);
+  if (urlError) {
+    console.error(`[webhooks] refusing to deliver to ${webhook.url}: ${urlError}`);
+    return;
+  }
+
   const signature = signWebhookPayload(webhook.secret, body);
   let status = 0;
   try {

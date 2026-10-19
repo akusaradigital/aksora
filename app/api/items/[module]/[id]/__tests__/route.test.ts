@@ -60,6 +60,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("Task");
       mocks.dbGet.mockResolvedValueOnce({
@@ -102,6 +103,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: "",
         andWhere: "",
         params: [],
+        getScopedAndClause: () => "",
       });
       mocks.getTableName.mockReturnValueOnce("Bug");
       mocks.dbGet.mockResolvedValueOnce({
@@ -140,6 +142,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("Task");
       // First query: item not found for this company
@@ -169,6 +172,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("Task");
       // Query includes AND "deletedAt" IS NULL, so soft-deleted items won't be found
@@ -200,6 +204,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("Bug");
       // First query: item not found for user's company
@@ -242,6 +247,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("");
 
@@ -284,6 +290,7 @@ describe("GET /api/items/[module]/[id]", () => {
         where: ' WHERE "company" = ?',
         andWhere: ' AND "company" = ?',
         params: ["acme"],
+        getScopedAndClause: () => ' AND "company" = ?',
       });
       mocks.getTableName.mockReturnValueOnce("Task");
       mocks.dbGet.mockResolvedValueOnce({

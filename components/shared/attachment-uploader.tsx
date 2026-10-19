@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from"react";
 import { Paperclip, Link, X, Image as ImageIcon, FilePdf, ArrowSquareOut } from"@phosphor-icons/react";
-import { cn } from"@/lib/utils";
+import { cn, isSafeHref } from"@/lib/utils";
 import { compressImage } from"@/lib/image-compress";
 import { MediaLightbox } from "@/components/shared/media-lightbox";
 
@@ -150,7 +150,7 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
    >
      {att.name}
    </button>
- ) : (
+ ) : isSafeHref(att.url) ? (
    <a
      href={att.url}
      target="_blank"
@@ -159,10 +159,16 @@ export function AttachmentUploader({ value, onChange, disabled }: AttachmentUplo
    >
      {att.name}
    </a>
+ ) : (
+   <span className="flex-1 min-w-0 text-xs font-medium text-gray-400 truncate" title="Unsafe link blocked">
+     {att.name}
+   </span>
  )}
- <a href={att.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-300 hover:text-sky-500 transition">
- <ArrowSquareOut size={12} weight="bold" />
- </a>
+ {isSafeHref(att.url) && (
+   <a href={att.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-gray-300 hover:text-sky-500 transition">
+   <ArrowSquareOut size={12} weight="bold" />
+   </a>
+ )}
  {!disabled && (
  <button type="button" onClick={() => remove(idx)} className="shrink-0 text-gray-300 hover:text-red-500 transition">
  <X size={12} weight="bold" />

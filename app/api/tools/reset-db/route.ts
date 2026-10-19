@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, verifySharedSecret } from "@/lib/auth";
 import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { db, tables } from "@/lib/db";
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  if (body.secret !== secret) {
+  if (!verifySharedSecret(body.secret, secret)) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
   }
 

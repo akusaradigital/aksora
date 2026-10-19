@@ -77,6 +77,19 @@ export async function verifyPassword(password: string, storedHash: string | null
   return timingSafeEqual(actual, expected);
 }
 
+// Constant-time string comparison for HMAC signatures. A plain `!==` leaks
+// timing information proportional to how many leading bytes match, which
+// (combined with enough requests) can let an attacker forge a valid
+// signature byte-by-byte. Mismatched lengths are rejected before reaching
+// timingSafeEqual (which throws on unequal-length buffers) — this itself
+// leaks only the length, which carries no information about the secret.
+function constantTimeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 async function sign(value: string, secret: string) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -100,6 +113,16 @@ async function sign(value: string, secret: string) {
 export function authEnabled() {
   const { secret } = getAuthConfig();
   return Boolean(secret);
+}
+
+// Shared constant-time check for cron/webhook/admin-tool routes gated by a
+// single shared-secret env var compared against an incoming header or body
+// field (CRON_SECRET, RESET_SECRET, etc.) — a plain `!==` here leaks timing
+// information that lets an attacker recover the secret byte-by-byte.
+export function verifySharedSecret(provided: unknown, expected: string | null | undefined): boolean {
+  const expectedTrimmed = (expected ?? "").trim();
+  if (!expectedTrimmed || typeof provided !== "string" || !provided) return false;
+  return constantTimeEqual(provided, expectedTrimmed);
 }
 
 export async function validateCredentials(email: string, password: string) {
@@ -185,7 +208,7 @@ export async function verifyTempMfaToken(token: string | undefined | null) {
   if (!token || !secret) return null;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return null;
-  if ((await sign(payload, secret)) !== signature) return null;
+  if (!constantTimeEqual(await sign(payload, secret), signature)) return null;
 
   try {
     const data = JSON.parse(fromBase64UrlBytes(payload)) as { userId?: number; purpose?: string; expiresAt?: number };
@@ -238,7 +261,7 @@ export async function verifySessionToken(token: string | undefined | null) {
   if (!token || !secret) return false;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return false;
-  if ((await sign(payload, secret)) !== signature) return false;
+  if (!constantTimeEqual(await sign(payload, secret), signature)) return false;
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as { email?: string; ts?: number; ttl?: number };
     const maxAge = decoded.ttl || SESSION_DURATION;
@@ -279,7 +302,7 @@ export async function getCurrentUser() {
   if (!payload || !signature) return null;
 
   // Verify HMAC before trusting payload
-  if ((await sign(payload, secret)) !== signature) return null;
+  if (!constantTimeEqual(await sign(payload, secret), signature)) return null;
 
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {

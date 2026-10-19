@@ -59,7 +59,13 @@ function loadGsiScript(): Promise<void> {
   return gsiScriptPromise;
 }
 
-export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
+export function GoogleSignInButton({
+  inviteToken,
+  onMfaRequired,
+}: {
+  inviteToken?: string;
+  onMfaRequired?: (tempToken: string) => void;
+}) {
   const router = useRouter();
   const buttonHostRef = useRef<HTMLDivElement | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -93,10 +99,17 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
               ok?: boolean;
               role?: string;
               company?: string;
+              requiresMfa?: boolean;
+              tempToken?: string;
             };
             if (!res.ok) {
               setError(data.error || "Google sign-in failed.");
               setPending(false);
+              return;
+            }
+            if (data.requiresMfa && data.tempToken) {
+              setPending(false);
+              onMfaRequired?.(data.tempToken);
               return;
             }
             const isPlatformSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
@@ -131,7 +144,7 @@ export function GoogleSignInButton({ inviteToken }: { inviteToken?: string }) {
     return () => {
       mounted = false;
     };
-  }, [router, inviteToken]);
+  }, [router, inviteToken, onMfaRequired]);
 
   if (!GOOGLE_CLIENT_ID) {
     return (

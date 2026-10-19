@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import {
   Bug, ClipboardText, PlayCircle, Checks,  Note,
   User, ChartBar, CalendarBlank, Kanban,
@@ -32,7 +33,7 @@ const DashboardStandupModal = dynamic(
 
 const QualityHealthScore = dynamic(
   () => import("@/components/dashboard/quality-health-score").then((module) => module.QualityHealthScore),
-  { ssr: false, loading: () => <div className="h-24  border border-gray-200 bg-gray-50" /> },
+  { ssr: false, loading: () => <div className="h-24 rounded-xl border border-gray-200 bg-gray-50" /> },
 );
 
 const AttentionPanel = dynamic(
@@ -51,7 +52,7 @@ const BugByModuleChart = dynamic(
 );
 
 function SectionSkeleton({ className }: { className: string }) {
-  return <div className={` border border-gray-200 bg-gray-50 ${className}`} />;
+  return <div className={`rounded-xl border border-gray-200 bg-gray-50 ${className}`} />;
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -114,16 +115,6 @@ type ResourceDetails = {
   suites?: { title: string; status: string }[];
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function computeWeekPulse(
-  metrics: { label: string; value: number }[],
-) {
-  const totalBugs = metrics.find(m => m.label === "Bug Entries")?.value ?? 0;
-  const totalTasks = metrics.find(m => m.label === "Open Tasks")?.value ?? 0;
-  return { created: totalBugs + totalTasks, resolved: 0, prevCreated: 0, prevResolved: 0 };
-}
-
 // ── Main Dashboard ─────────────────────────────────────────────────────────
 
 export function Dashboard({
@@ -165,7 +156,7 @@ export function Dashboard({
     return text;
   };
 
-  const pulse = weekPulse || computeWeekPulse(metrics);
+  const pulse = weekPulse ?? null;
   const openBugs = metrics.find(m => m.label === "Bug Entries")?.value ?? 0;
   const openTasks = metrics.find(m => m.label === "Open Tasks")?.value ?? 0;
   const testCases = metrics.find(m => m.label === "Test Cases")?.value ?? 0;
@@ -185,7 +176,6 @@ export function Dashboard({
       id="dashboard-density-container"
       data-dashboard-root=""
       className="space-y-6 pb-14"
-      style={{ "--dash-padding": "16px", "--dash-font": "14px", "--dash-gap": "16px" } as React.CSSProperties}
     >
       {drawer && (
         <DashboardDrawer
@@ -203,10 +193,10 @@ export function Dashboard({
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
 
       <section className="grid gap-4 xl:grid-cols-[1fr_320px]">
-        <header className="border-l-4 border-l-blue-600 border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <header className="rounded-xl border-l-4 border-l-blue-600 border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center bg-blue-600 text-white">
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
                 <ChartBar size={18} weight="bold" />
               </div>
               <div>
@@ -221,7 +211,7 @@ export function Dashboard({
               <DensityToggle />
               <button
                 onClick={() => setShowStandup(true)}
-                className="inline-flex h-9 items-center gap-1.5 bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
               >
                 <Note size={15} weight="bold" /> Standup
               </button>
@@ -239,7 +229,7 @@ export function Dashboard({
 
       {/* Sprint bar */}
       {sprintInfo && (
-        <div className="border border-slate-200 bg-white p-6 shadow-sm border-l-4 border-l-emerald-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm border-l-4 border-l-emerald-500">
           <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <CalendarBlank size={16} weight="bold" className="text-emerald-600" />
@@ -251,8 +241,8 @@ export function Dashboard({
               <span className="text-slate-400 font-medium">{formatDate(sprintInfo.startDate)} → {formatDate(sprintInfo.endDate)}</span>
             </div>
           </div>
-          <div className="h-3 w-full overflow-hidden bg-slate-100">
-            <div style={{ width: `${sprintInfo.progress}%` }} className="h-full bg-emerald-500 transition-all duration-700" />
+          <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+            <div style={{ width: `${sprintInfo.progress}%` }} className="h-full rounded-full bg-emerald-500 transition-all duration-700" />
           </div>
         </div>
       )}
@@ -266,7 +256,7 @@ export function Dashboard({
 
       {/* This Week Pulse & Distribution */}
       <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
-        <div className="border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-[300px]">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-[300px]">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-black text-slate-900">Bug Distribution</h3>
@@ -282,11 +272,17 @@ export function Dashboard({
         </div>
 
         <div className="flex flex-col gap-4 [&>*]:flex-1">
-          <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-white shadow-sm" />
-          <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-white shadow-sm" />
+          {pulse ? (
+            <>
+              <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-white shadow-sm" />
+              <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-white shadow-sm" />
+            </>
+          ) : (
+            <InlineAlert variant="info" message="Weekly pulse is temporarily unavailable." />
+          )}
           <ResolutionRateMetric resolutionRate={resolutionRate} />
           {qualityHealthScore && (
-            <div className="flex items-center justify-center bg-white border border-slate-100 shadow-sm p-4">
+            <div className="flex items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm p-4">
               <QualityHealthScore qualityHealthScore={qualityHealthScore} />
             </div>
           )}
@@ -296,26 +292,27 @@ export function Dashboard({
       {/* Attention + Team Pulse */}
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <AttentionPanel items={attentionItems} userRole={userRole} />
-        <div className="flex flex-col border border-slate-200 border-t-4 border-t-blue-500 bg-white p-6 shadow-sm">
+        <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-black text-slate-900">Team Workload</h3>
               <p className="mt-1 text-[11px] text-slate-500">Active tasks per assignee</p>
             </div>
-            <User size={18} className="text-blue-500" weight="bold" />
+            <User size={18} className="text-slate-300" weight="bold" />
           </div>
           {heatmap.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-slate-400">
-              <User size={28} weight="bold" />
-              <p className="text-xs font-semibold">No assignee data yet.</p>
-              <p className="text-xs text-gray-400">Assign tasks and bugs to see workload.</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                <User size={20} weight="bold" />
+              </div>
+              <p className="mt-1 text-xs font-bold text-slate-700">No assignee data yet</p>
+              <p className="text-xs text-slate-400">Assign tasks and bugs to see workload.</p>
             </div>
           ) : (
             <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
               {heatmap.slice(0, 8).map((member: HeatmapMember) => {
                 const score = member.total;
                 const heat = score >= 8 ? "bg-rose-500" : score >= 4 ? "bg-amber-400" : "bg-emerald-500";
-                const pct = Math.min(100, Math.round((score / 12) * 100));
                 return (
                   <button key={member.name}
                     onClick={async () => {
@@ -330,23 +327,18 @@ export function Dashboard({
                       ];
                       setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items });
                     }}
-                    className="group w-full text-left"
+                    className="group flex w-full items-center justify-between gap-2 text-left"
                   >
-                    <div className="mb-1 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center bg-slate-100 text-[11px] font-bold text-slate-500">
-                          {member.name[0]?.toUpperCase() ?? "?"}
-                        </div>
-                        <span className="text-xs font-semibold text-slate-700 transition group-hover:text-sky-600">{member.name}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                        {member.name[0]?.toUpperCase() ?? "?"}
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
-                        <span>{member.taskCount ?? 0}T</span>
-                        <span>{member.bugCount ?? 0}B</span>
-                        <span className={cn("h-2 w-2", heat)} />
-                      </div>
+                      <span className="truncate text-xs font-semibold text-slate-700 transition group-hover:text-sky-600">{member.name}</span>
                     </div>
-                    <div className="h-1 w-full overflow-hidden bg-slate-100">
-                      <div style={{ width: `${pct}%` }} className={cn("h-full transition-all", heat)} />
+                    <div className="flex shrink-0 items-center gap-2 text-[11px] font-bold text-slate-400">
+                      <span>{member.taskCount ?? 0}T</span>
+                      <span>{member.bugCount ?? 0}B</span>
+                      <span className={cn("h-2 w-2 rounded-full", heat)} />
                     </div>
                   </button>
                 );

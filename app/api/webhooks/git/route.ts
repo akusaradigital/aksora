@@ -5,11 +5,13 @@ import crypto from "crypto";
 export const runtime = "nodejs";
 
 function verifySignature(payload: string, signature: string | null, secret: string): boolean {
-  if (!signature || !secret) return true; // ponytail: permissive if secret not set, upgrade to strict in prod
+  if (!signature || !secret) return false; // fail closed: no secret configured or no signature header means reject, not trust
   const hmac = crypto.createHmac("sha256", secret);
   const digest = `sha256=${hmac.update(payload).digest("hex")}`;
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+    const sigBuf = Buffer.from(signature);
+    const digestBuf = Buffer.from(digest);
+    return sigBuf.length === digestBuf.length && crypto.timingSafeEqual(sigBuf, digestBuf);
   } catch {
     return false;
   }
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
     const event = req.headers.get("x-github-event") || req.headers.get("x-gitlab-event") || "push";
     const secret = process.env.GIT_WEBHOOK_SECRET || "";
 
-    if (secret && !verifySignature(rawBody, sig, secret)) {
+    if (!verifySignature(rawBody, sig, secret)) {
       return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
     }
 

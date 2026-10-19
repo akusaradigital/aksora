@@ -460,7 +460,14 @@ export function LoginContent() {
               <>
             {mode !== "forgot" && (
               <div>
-                <GoogleSignInButton inviteToken={inviteToken} />
+                <GoogleSignInButton
+                  inviteToken={inviteToken}
+                  onMfaRequired={(tempToken) => {
+                    setMfaTempToken(tempToken);
+                    setError("");
+                    setMode("verify-mfa");
+                  }}
+                />
                 <div className="my-5 flex items-center gap-3">
                   <span className="h-px flex-1 bg-slate-100" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">{t.login.orUseEmail}</span>

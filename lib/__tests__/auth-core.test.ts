@@ -26,6 +26,7 @@ import {
   validateCredentials,
   verifyPassword,
   verifySessionToken,
+  verifySharedSecret,
 } from "@/lib/auth-core";
 import { apiUserContext } from "@/lib/auth-context";
 import { getCompanyLabel } from "@/lib/roles";
@@ -104,6 +105,17 @@ describe("auth-core", () => {
     vi.restoreAllMocks();
   });
 
+  it("rejects a session token with a tampered signature", async () => {
+    vi.stubEnv("AUTH_SECRET", "topsecret");
+
+    const token = await createSessionToken("user@example.com");
+    const [payload, signature] = token.split(".");
+    const tampered = `${payload}.${signature.slice(0, -1)}${signature.endsWith("A") ? "B" : "A"}`;
+
+    expect(await verifySessionToken(tampered)).toBe(false);
+    expect(await verifySessionToken(`${payload}.short`)).toBe(false);
+  });
+
   it("returns the api-local user when set", async () => {
     await apiUserContext.run(
       { id: 7, name: "API User", email: "api@example.com", role: "superadmin", company: "acme" },
@@ -164,6 +176,18 @@ describe("auth-core", () => {
   });
   it("exposes the cookie name", () => {
     expect(sessionCookieName()).toBe("aksora_token");
+  });
+
+  it("verifySharedSecret: matches only an exact, non-empty, correctly-typed secret", () => {
+    expect(verifySharedSecret("topsecret", "topsecret")).toBe(true);
+    expect(verifySharedSecret("topsecret", " topsecret ")).toBe(true); // expected side is trimmed
+    expect(verifySharedSecret("wrong", "topsecret")).toBe(false);
+    expect(verifySharedSecret("", "topsecret")).toBe(false);
+    expect(verifySharedSecret(null, "topsecret")).toBe(false);
+    expect(verifySharedSecret(undefined, "topsecret")).toBe(false);
+    expect(verifySharedSecret(123, "topsecret")).toBe(false); // wrong type, e.g. unvalidated JSON body field
+    expect(verifySharedSecret("anything", "")).toBe(false); // no secret configured -> fail closed
+    expect(verifySharedSecret("anything", undefined)).toBe(false);
   });
 });
 

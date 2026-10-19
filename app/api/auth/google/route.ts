@@ -3,13 +3,14 @@ import { db } from "@/lib/db";
 import {
   authEnabled,
   createSessionToken,
+  createTempMfaToken,
   registerUser,
   sessionCookieName,
 } from "@/lib/auth";
 import { getInviteByToken, markInviteAccepted } from "@/lib/invites";
 import { isInviteRole, normalizeRole } from "@/lib/roles";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
-import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit } from "@/lib/rate-limit";
+import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit, getClientIp } from "@/lib/rate-limit";
 import { ensureWorkspaceForUser, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
 
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -25,14 +26,6 @@ type GoogleTokenInfo = {
 };
 
 type UserRow = { id: number; name: string; email: string; role: string; company: string; avatar: string; activeWorkspaceId?: number | null; mfaEnabled: number };
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 // Verify the Google ID token via Google's tokeninfo endpoint.
 // Returns decoded claims, or null when invalid/expired/not-for-us.
@@ -101,9 +94,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google credential is required." }, { status: 400 });
     }
 
-    // Rate limit by IP using a stable key derived from the credential tail.
+    // Key by IP alone: the credential is a fresh Google-issued JWT on every
+    // attempt (legitimate or forged), so including any slice of it in the
+    // key would put each attempt in its own fresh bucket and make the rate
+    // limit a no-op.
     const ip = getClientIp(request);
-    const key = rateLimitKey(ip, credential.slice(-16));
+    const key = rateLimitKey(ip, "google-signin");
     const { limited, retryAfterSeconds } = await isRateLimited(key);
     if (limited) {
       return NextResponse.json(
@@ -170,6 +166,15 @@ export async function POST(request: NextRequest) {
           }
           await markInviteAccepted(inviteToken, email);
         }
+      }
+
+      // An account with MFA enabled must still complete TOTP verification —
+      // Google sign-in proves the Google account, not possession of the
+      // user's second factor. Hand back a tempToken for /api/auth/verify-mfa
+      // instead of issuing a full session, same as the password login flow.
+      if (existing.mfaEnabled) {
+        const tempToken = await createTempMfaToken(existing.id);
+        return NextResponse.json({ requiresMfa: true, tempToken });
       }
 
       const token = await createSessionToken(email, {

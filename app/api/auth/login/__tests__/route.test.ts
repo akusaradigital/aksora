@@ -19,6 +19,7 @@ vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: () => ({ limited: false }),
   recordFailedAttempt: () => {},
   clearRateLimit: () => {},
+  getClientIp: () => "1.2.3.4",
 }));
 
 import { POST } from "@/app/api/auth/login/route";

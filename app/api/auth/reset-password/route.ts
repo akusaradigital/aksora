@@ -2,15 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth-core";
 import { sendPasswordResetSuccessEmail } from "@/lib/email";
-import { rateLimitKey, isRateLimited, recordFailedAttempt } from "@/lib/rate-limit";
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
+import { rateLimitKey, isRateLimited, recordFailedAttempt, getClientIp } from "@/lib/rate-limit";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -41,8 +33,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Passwords do not match." }, { status: 400 });
     }
 
+    // Key by IP alone, not by any part of the guessed token: we don't know
+    // the target user until the token is looked up below, and including
+    // the token (even a prefix) in the key means every brute-force guess
+    // lands in its own fresh bucket — making the rate limit a no-op against
+    // the exact attack it exists to stop (guessing the reset token).
     const ip = getClientIp(request);
-    const key = rateLimitKey(ip, `reset-${token.slice(0, 8)}`);
+    const key = rateLimitKey(ip, "reset-password");
     const { limited, retryAfterSeconds } = await isRateLimited(key);
     if (limited) {
       return NextResponse.json(

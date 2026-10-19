@@ -57,11 +57,12 @@ type SprintRow = { id: SqlValue; name: SqlValue; startDate: SqlValue; endDate: S
 
 export async function getDashboardData(filterProject?: string): Promise<DashboardData> {
   const user = await getCurrentUser();
-  const { company, isAdmin, where: scopeWhere, andWhere: scopeAndWhere, params: scopeParams } = getAccessScope(user);
+  const scope = getAccessScope(user);
+  const { company, isAdmin, workspaceId, where: scopeWhere, andWhere: scopeAndWhere, params: scopeParams } = scope;
   const userRole = user?.role || "user";
   const rolePersona = userRole;
   const normalizedProject = String(filterProject ?? "").trim();
-  const cacheKey = dashboardCacheKey(company, isAdmin, userRole, filterProject || "");
+  const cacheKey = dashboardCacheKey(company, isAdmin, userRole, filterProject || "", workspaceId);
   const cached = dashboardCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return structuredClone(cached.data as DashboardData);
@@ -102,9 +103,9 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
     recentSessions,
     weekPulseData,
   ] = await Promise.all([
-    safeQuery(selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
-    safeQuery(selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
-    safeQuery(selectAll(`SELECT "id", "caseName", "priority", "status" FROM "TestCase" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, companyParams), []),
+    safeQuery(selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
+    safeQuery(selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
+    safeQuery(selectAll(`SELECT "id", "caseName", "priority", "status" FROM "TestCase" ${companyWhere}${companyWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, companyParams), []),
     safeQuery(db.get<SummaryCountsRow>(
       `SELECT
          (SELECT COUNT(*) FROM "Task" WHERE "deletedAt" IS NULL${projectAndWhere}) AS taskCount,
@@ -113,8 +114,8 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
        `,
       [...projectParams, ...projectParams, ...companyParams],
     ), null),
-    safeQuery(selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${projectWhere} GROUP BY status`, projectParams), []),
-    safeQuery(selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY severity`, projectParams), []),
+    safeQuery(selectAll(`SELECT status, COUNT(*) as count FROM "Task" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL GROUP BY status`, projectParams), []),
+    safeQuery(selectAll(`SELECT severity, COUNT(*) as count FROM "Bug" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL GROUP BY severity`, projectParams), []),
     safeQuery(db.get<SprintRow>(`SELECT "id", "name", "startDate", "endDate", "status" FROM "Sprint" WHERE status = 'active' ${companyAndWhere} LIMIT 1`, companyParams), null),
     safeQuery(db.get<CompletionCountsRow>(
       `SELECT
@@ -123,33 +124,33 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
        `,
       [...projectParams, ...projectParams],
     ), null),
-    safeQuery(selectAll(`SELECT date("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere} GROUP BY date("createdAt") ORDER BY date ASC`, projectParams), []),
-    safeQuery(selectAll(`SELECT id, name, "startDate", "endDate", status FROM "Sprint" ${companyWhere} ORDER BY "startDate" DESC LIMIT 20`, companyParams), []),
+    safeQuery(selectAll(`SELECT date("createdAt") as date, COUNT(*) as count FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere} GROUP BY date("createdAt") ORDER BY date ASC`, projectParams), []),
+    safeQuery(selectAll(`SELECT id, name, "startDate", "endDate", status FROM "Sprint" ${companyWhere}${companyWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY "startDate" DESC LIMIT 20`, companyParams), []),
     safeQuery(selectAll(`SELECT "id", "entityType", "entityId", "action", "summary", "createdAt" FROM "ActivityLog" ${companyWhere} ORDER BY "createdAt" DESC LIMIT 10`, companyParams), []),
-    safeQuery(selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${projectWhere} GROUP BY module LIMIT 10`, projectParams), []),
-    safeQuery(selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE date("updatedAt") = CURRENT_DATE ${projectAndWhere}`, projectParams), []),
-    safeQuery(selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE date("updatedAt") = CURRENT_DATE ${projectAndWhere}`, projectParams), []),
-    safeQuery(selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE date("createdAt") = CURRENT_DATE ${projectAndWhere}`, projectParams), []),
-    safeQuery(selectAll(`SELECT "id", "title", "severity", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
-    safeQuery(selectAll(`SELECT "id", "title", "priority", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
+    safeQuery(selectAll(`SELECT module, COUNT(*) as count FROM "Bug" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL GROUP BY module LIMIT 10`, projectParams), []),
+    safeQuery(selectAll(`SELECT 'Task' as type, title as label, status FROM "Task" WHERE date("updatedAt") = CURRENT_DATE AND "deletedAt" IS NULL ${projectAndWhere}`, projectParams), []),
+    safeQuery(selectAll(`SELECT 'Bug' as type, title as label, status FROM "Bug" WHERE date("updatedAt") = CURRENT_DATE AND "deletedAt" IS NULL ${projectAndWhere}`, projectParams), []),
+    safeQuery(selectAll(`SELECT 'Session' as type, scope as label, result FROM "TestSession" WHERE date("createdAt") = CURRENT_DATE AND "deletedAt" IS NULL ${projectAndWhere}`, projectParams), []),
+    safeQuery(selectAll(`SELECT "id", "title", "severity", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Bug" WHERE "severity" IN ('critical', 'high', 'P0', 'P1') AND "status" != 'closed' AND "deletedAt" IS NULL ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
+    safeQuery(selectAll(`SELECT "id", "title", "priority", "updatedAt", (CURRENT_DATE - "updatedAt"::date) AS "ageDays" FROM "Task" WHERE "priority" IN ('High', 'Urgent', 'P0', 'P1') AND "status" != 'done' AND "deletedAt" IS NULL ${projectAndWhere} ORDER BY "createdAt" DESC`, projectParams), []),
     safeQuery(db.get<SprintCountsRow>(
       `SELECT
-         (SELECT COUNT(*) FROM "TestSuite" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS suiteCount,
-         (SELECT COUNT(*) FROM "TestSession" ${companyWhere}${isAdmin ? "" : ' AND "deletedAt" IS NULL'}) AS sessionCount
+         (SELECT COUNT(*) FROM "TestSuite" WHERE "deletedAt" IS NULL${companyAndWhere}) AS suiteCount,
+         (SELECT COUNT(*) FROM "TestSession" WHERE "deletedAt" IS NULL${companyAndWhere}) AS sessionCount
        `,
       [...companyParams, ...companyParams],
     ), null),
-    safeQuery(selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere} ORDER BY date DESC LIMIT 10`, projectParams), []),
+    safeQuery(selectAll(`SELECT id, date, tester, scope, "totalCases", passed, failed, blocked, result FROM "TestSession" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY date DESC LIMIT 10`, projectParams), []),
     safeQuery(db.get<WeekPulseRow>(
       `SELECT
-         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS bugCreatedThisWeek,
-         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskCreatedThisWeek,
-         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS bugResolvedThisWeek,
-         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskResolvedThisWeek,
-         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '14 days' AND "createdAt" < CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS bugCreatedLastWeek,
-         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '14 days' AND "createdAt" < CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskCreatedLastWeek,
-         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '14 days' AND "updatedAt" < CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS bugResolvedLastWeek,
-         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '14 days' AND "updatedAt" < CURRENT_DATE - INTERVAL '7 days' ${projectAndWhere}) AS taskResolvedLastWeek
+         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS bugCreatedThisWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS taskCreatedThisWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS bugResolvedThisWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS taskResolvedThisWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '14 days' AND "createdAt" < CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS bugCreatedLastWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "createdAt" >= CURRENT_DATE - INTERVAL '14 days' AND "createdAt" < CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS taskCreatedLastWeek,
+         (SELECT COUNT(*) FROM "Bug" WHERE "status" IN ('fixed', 'closed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '14 days' AND "updatedAt" < CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS bugResolvedLastWeek,
+         (SELECT COUNT(*) FROM "Task" WHERE "status" IN ('done', 'completed') AND "updatedAt" >= CURRENT_DATE - INTERVAL '14 days' AND "updatedAt" < CURRENT_DATE - INTERVAL '7 days' AND "deletedAt" IS NULL ${projectAndWhere}) AS taskResolvedLastWeek
        `,
       [...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams],
     ), null),
@@ -157,10 +158,10 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
 
   // Heatmap: merge 4 lightweight queries instead of 1 heavy CTE
   const [heatTaskCounts, heatBugCounts, heatSuiteCounts, heatPlanCounts] = await Promise.all([
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "Task" WHERE status != 'done' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
-    safeQuery(selectAll(`SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug" WHERE status != 'closed' AND "suggestedDev" != '' ${projectAndWhere} GROUP BY "suggestedDev"`, projectParams), [] as HeatCountRow[]),
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite" WHERE status != 'archived' AND assignee != '' ${companyAndWhere} GROUP BY assignee`, companyParams), [] as HeatCountRow[]),
-    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan" WHERE status != 'closed' AND assignee != '' ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "Task" WHERE status != 'done' AND assignee != '' AND "deletedAt" IS NULL ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT "suggestedDev" as name, COUNT(*) as cnt FROM "Bug" WHERE status != 'closed' AND "suggestedDev" != '' AND "deletedAt" IS NULL ${projectAndWhere} GROUP BY "suggestedDev"`, projectParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestSuite" WHERE status != 'archived' AND assignee != '' AND "deletedAt" IS NULL ${companyAndWhere} GROUP BY assignee`, companyParams), [] as HeatCountRow[]),
+    safeQuery(selectAll(`SELECT assignee as name, COUNT(*) as cnt FROM "TestPlan" WHERE status != 'closed' AND assignee != '' AND "deletedAt" IS NULL ${projectAndWhere} GROUP BY assignee`, projectParams), [] as HeatCountRow[]),
   ]);
 
   const heatmap = new Map<string, { taskCount: number; bugCount: number; suiteCount: number; planCount: number }>();
@@ -234,11 +235,11 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
   const sprintBurndown: { date: string; done: number; ideal: number }[] = [];
   if (sprint) {
     const [tTotal, tDone, burndownRows] = await Promise.all([
-      db.get<CompletionCountsRow>('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ?' + companyAndWhere, [sprint.id, ...companyParams]),
-      db.get<CompletionCountsRow>("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done'" + companyAndWhere, [sprint.id, ...companyParams]),
+      db.get<CompletionCountsRow>('SELECT COUNT(*) as count FROM "Task" WHERE "sprintId" = ? AND "deletedAt" IS NULL' + companyAndWhere, [sprint.id, ...companyParams]),
+      db.get<CompletionCountsRow>("SELECT COUNT(*) as count FROM \"Task\" WHERE \"sprintId\" = ? AND status = 'done' AND \"deletedAt\" IS NULL" + companyAndWhere, [sprint.id, ...companyParams]),
       selectAll(
         `SELECT date("updatedAt") as date, COUNT(*) as count FROM "Task"
-         WHERE "sprintId" = ? AND status = 'done'
+         WHERE "sprintId" = ? AND status = 'done' AND "deletedAt" IS NULL
          AND date("updatedAt") BETWEEN ? AND ?
          ${companyAndWhere} GROUP BY date("updatedAt") ORDER BY date ASC`,
         [sprint.id, sprint.startDate, sprint.endDate, ...companyParams]
@@ -280,18 +281,13 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
   }
 
   // Pass rate per sprint (last 5 sprints)
-  const sprintJoinClause = normalizedProject
-    ? (isAdmin
-      ? ' AND ts."project" = ?'
-      : ' AND ts."company" = ? AND ts."project" = ?')
-    : (isAdmin ? "" : ' AND ts."company" = ?');
-  const sprintJoinParams = normalizedProject
-    ? (isAdmin ? [normalizedProject] : [company, normalizedProject])
-    : (isAdmin ? [] : [company]);
-  const sprintWhereClause = isAdmin
-    ? 'WHERE sp."deletedAt" IS NULL'
-    : 'WHERE sp."company" = ? AND sp."deletedAt" IS NULL';
-  const sprintWhereParams = isAdmin ? [] : [company];
+  const sprintJoinClause = `${scope.getScopedAndClause("ts")}${normalizedProject ? ' AND ts."project" = ?' : ""} AND ts."deletedAt" IS NULL`;
+  const sprintJoinParams = [...scope.params, ...(normalizedProject ? [normalizedProject] : [])];
+  const sprintWhereScoped = scope.getScopedWhereClause("sp");
+  const sprintWhereClause = sprintWhereScoped
+    ? `${sprintWhereScoped} AND sp."deletedAt" IS NULL`
+    : 'WHERE sp."deletedAt" IS NULL';
+  const sprintWhereParams = scope.params;
   const sprintPassRateRows = (await selectAll(
     `SELECT sp.id, sp.name, sp."startDate", sp."endDate",
             COALESCE(SUM(COALESCE(ts.passed, 0)), 0) AS passed,
@@ -321,7 +317,7 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
   const successRate = (bugCount + taskCount) > 0 ? Math.round(((Number(bugFixed.count) + Number(taskCompleted.count)) / (bugCount + taskCount)) * 100) : 0;
   
   // Dynamic spotlight project
-  const mostActiveProject = await db.get<MostActiveProjectRow>(`SELECT project as name FROM "TestPlan" ${companyWhere} GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1`, companyParams);
+  const mostActiveProject = await db.get<MostActiveProjectRow>(`SELECT project as name FROM "TestPlan" ${companyWhere}${companyWhere ? " AND" : " WHERE"} "deletedAt" IS NULL GROUP BY project ORDER BY COUNT(*) DESC LIMIT 1`, companyParams);
   const spotlightName = mostActiveProject?.name || (taskCount > 0 || bugCount > 0 ? "Active Project" : "No active project");
 
   const data = {
@@ -376,7 +372,6 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
     },
     spotlight: {
        projectName: spotlightName,
-       projectDescription: "Track and monitor QA progress across modules.",
        totalScenarios: caseCount,
        totalBugs: bugCount,
        completionRate: successRate,
@@ -473,8 +468,8 @@ export async function getReportsData() {
 
 
 export async function getResourceDetails(name: string) {
-  const { company, isAdmin } = getAccessScope(await getCurrentUser());
-  const resourceCacheKey = `${company}|${isAdmin ? "admin" : "user"}|${name.toLowerCase()}`;
+  const { company, isAdmin, workspaceId } = getAccessScope(await getCurrentUser());
+  const resourceCacheKey = `${company}|${isAdmin ? "admin" : "user"}|${workspaceId ?? "__none__"}|${name.toLowerCase()}`;
   const resourceCache = (globalThis as typeof globalThis & {
     __qaResourceDetailsCache?: Map<string, { expiresAt: number; data: unknown }>;
   }).__qaResourceDetailsCache ?? ((globalThis as typeof globalThis & {

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createApiKeyForUser: vi.fn(),
   listApiKeysForUser: vi.fn(),
   revokeApiKey: vi.fn(),
+  getWorkspaceMembershipsForUser: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -18,6 +19,10 @@ vi.mock("@/lib/api-keys", () => ({
   revokeApiKey: mocks.revokeApiKey,
 }));
 
+vi.mock("@/lib/workspace-memberships", () => ({
+  getWorkspaceMembershipsForUser: mocks.getWorkspaceMembershipsForUser,
+}));
+
 import { DELETE, GET, POST } from "../route";
 
 beforeEach(() => {
@@ -26,6 +31,7 @@ beforeEach(() => {
   mocks.listApiKeysForUser.mockResolvedValue([]);
   mocks.createApiKeyForUser.mockResolvedValue({ id: 1, rawKey: "aksora_test", prefix: "aksora_test" });
   mocks.revokeApiKey.mockResolvedValue(true);
+  mocks.getWorkspaceMembershipsForUser.mockResolvedValue([{ workspaceId: 5 }]);
 });
 
 describe("settings api keys route", () => {
@@ -93,6 +99,28 @@ describe("settings api keys route", () => {
     const response = await POST(request as never);
     expect(response.status).toBe(201);
     expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Read only", undefined, null, ["*"], "read");
+  });
+
+  it("allows a workspaceId the caller is a member of", async () => {
+    const request = new Request("http://localhost/api/settings/api-keys", {
+      method: "POST",
+      body: JSON.stringify({ name: "Main", workspaceId: 5 }),
+    });
+
+    const response = await POST(request as never);
+    expect(response.status).toBe(201);
+    expect(mocks.createApiKeyForUser).toHaveBeenCalledWith(7, "Main", undefined, 5, ["*"], "write");
+  });
+
+  it("rejects a workspaceId the caller is not a member of", async () => {
+    const request = new Request("http://localhost/api/settings/api-keys", {
+      method: "POST",
+      body: JSON.stringify({ name: "Main", workspaceId: 999 }),
+    });
+
+    const response = await POST(request as never);
+    expect(response.status).toBe(403);
+    expect(mocks.createApiKeyForUser).not.toHaveBeenCalled();
   });
 
   it("revokes by id", async () => {

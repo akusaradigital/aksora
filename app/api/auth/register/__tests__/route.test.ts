@@ -29,6 +29,11 @@ vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: () => ({ limited: false }),
   recordFailedAttempt: () => {},
   clearRateLimit: () => {},
+  // Loopback, not a real public IP: the route calls the real (unmocked)
+  // isVpnOrHostingIp(), whose own early-return short-circuits for loopback
+  // without a network call. A real public IP would hit ip-api.com from a
+  // unit test.
+  getClientIp: () => "127.0.0.1",
 }));
 
 vi.mock("@/lib/email", () => ({

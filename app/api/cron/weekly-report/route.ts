@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { createAdminNotification } from "@/lib/admin-notifications";
 import { emailEnabled, sendEmail } from "@/lib/email";
 import { getWeeklyDigestForCompany, getMonday, renderDigestHtml, toDateStr } from "@/lib/weekly-report-data";
+import { verifySharedSecret } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -12,7 +13,7 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
   const auth = request.headers.get("authorization");
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!verifySharedSecret(auth, secret ? `Bearer ${secret}` : null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (!emailEnabled()) {

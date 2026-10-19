@@ -10,6 +10,17 @@ function isValidModule(value: string): value is ModuleKey {
   return moduleOrder.includes(value as ModuleKey);
 }
 
+// Sensitive columns that must never leave this endpoint for the "users" module,
+// regardless of caller role — password hash, TOTP secret, and live OTP code.
+const USER_SENSITIVE_FIELDS = ["password", "mfaSecret", "otpCode", "otpExpiresAt", "otpAttempts"];
+
+function stripSensitiveFields(module: string, item: Record<string, unknown>) {
+  if (module !== "users") return item;
+  const safe = { ...item };
+  for (const field of USER_SENSITIVE_FIELDS) delete safe[field];
+  return safe;
+}
+
 /**
  * Determines if the id param is a numeric ID or a publicToken.
  * Numeric IDs are positive integers; tokens are base64url strings.
@@ -55,7 +66,8 @@ export async function GET(
       );
     }
 
-    const { company, isAdmin } = getAccessScope(user);
+    const scope = getAccessScope(user);
+    const { isAdmin } = scope;
     const table = getTableName(rawModule);
 
     if (!table) {
@@ -65,20 +77,22 @@ export async function GET(
       );
     }
 
-    // Fetch item by ID or publicToken with company filter
-    const companyFilter = isAdmin ? "" : ' AND "company" = ?';
+    // Fetch item by ID or publicToken, scoped workspace-first (falls back to
+    // company only when the caller has no workspaceId) — same precedence as
+    // every other scoped query in the app.
+    const scopedFilter = scope.getScopedAndClause();
     let item: Record<string, unknown> | undefined;
 
     if (parsed.type === "id") {
-      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, company];
+      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, ...scope.params];
       item = await db.get<Record<string, unknown>>(
-        `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${companyFilter}`,
+        `SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${scopedFilter}`,
         queryParams,
       );
     } else {
-      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, company];
+      const queryParams: unknown[] = isAdmin ? [parsed.value] : [parsed.value, ...scope.params];
       item = await db.get<Record<string, unknown>>(
-        `SELECT * FROM "${table}" WHERE "publicToken" = ? AND "deletedAt" IS NULL${companyFilter}`,
+        `SELECT * FROM "${table}" WHERE "publicToken" = ? AND "deletedAt" IS NULL${scopedFilter}`,
         queryParams,
       );
     }
@@ -112,7 +126,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ item });
+    return NextResponse.json({ item: stripSensitiveFields(rawModule, item) });
   } catch (error) {
     console.error("GET /api/items/[module]/[id] error:", error);
     return NextResponse.json(

@@ -4,6 +4,26 @@
  */
 
 import { db } from "@/lib/db";
+import type { NextRequest } from "next/server";
+
+// This app deploys on Vercel (see vercel.json). Vercel's edge sets
+// `x-real-ip` to the actual connecting client and APPENDS the real IP as
+// the LAST entry of `x-forwarded-for` — every entry before that is
+// client-supplied and spoofable by anyone who sets their own
+// X-Forwarded-For header. Taking the FIRST entry (as a naive proxy-chain
+// read would) lets an attacker put a fresh fake IP on every request and
+// bypass IP-keyed rate limiting entirely. Prefer x-real-ip; fall back to
+// the LAST x-forwarded-for entry only if x-real-ip is absent.
+export function getClientIp(request: NextRequest): string {
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const parts = forwardedFor.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return "unknown";
+}
 
 type RateLimitRow = {
   attempts: number | string | null;

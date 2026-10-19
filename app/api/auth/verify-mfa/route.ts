@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { authEnabled, createSessionToken, sessionCookieName, verifyTempMfaToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { verifyTotpCode } from "@/lib/totp";
+import { isRateLimited, recordFailedAttempt, clearRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+// A TOTP code is only 6 digits (1,000,000 possibilities), so this endpoint
+// needs a much tighter lockout than the generic 5-attempts-per-15-minutes
+// used by login/register — otherwise it's brute-forceable within the
+// tempToken's 5-minute validity window.
+const MFA_RATE_LIMIT = { maxAttempts: 5, windowMs: 5 * 60 * 1000, lockoutMs: 15 * 60 * 1000 };
 
 export async function POST(request: NextRequest) {
   if (!authEnabled()) {
@@ -17,6 +24,18 @@ export async function POST(request: NextRequest) {
 
     if (!tempToken || !code) {
       return NextResponse.json({ error: "Temporary token and verification code are required." }, { status: 400 });
+    }
+
+    // Keyed by the tempToken itself: it's single-use-scoped to one pending
+    // login, stable across attempts (unlike a fresh credential per call),
+    // and unguessable, so it's a safe and effective rate-limit key here.
+    const rateLimitKey = `mfa-verify|${tempToken}`;
+    const { limited, retryAfterSeconds } = await isRateLimited(rateLimitKey, MFA_RATE_LIMIT);
+    if (limited) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${retryAfterSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } },
+      );
     }
 
     const userId = await verifyTempMfaToken(tempToken);
@@ -43,8 +62,11 @@ export async function POST(request: NextRequest) {
 
     const isValid = verifyTotpCode(user.mfaSecret, code);
     if (!isValid) {
+      await recordFailedAttempt(rateLimitKey, MFA_RATE_LIMIT);
       return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
     }
+
+    await clearRateLimit(rateLimitKey);
 
     const token = await createSessionToken(user.email, user);
     const response = NextResponse.json({ ok: true, role: user.role, company: user.company });

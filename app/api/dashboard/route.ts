@@ -55,7 +55,6 @@ function emptyDashboardData() {
     },
     spotlight: {
        projectName: "No active project",
-       projectDescription: "Track and monitor QA progress across modules.",
        totalScenarios: 0,
        totalBugs: 0,
        completionRate: 0,

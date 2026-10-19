@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { Bell } from "@phosphor-icons/react";
 
@@ -40,12 +39,10 @@ function getBackoffDelay(attempt: number): number {
  * - Connection status indicator (green/yellow/red dot)
  * - Missed notification fetch on reconnection via `since` param
  * - Collapse to summary badge when >20 unread toasts
- * - Dashboard section refresh on data-update events via router.refresh()
  *
  * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8
  */
 export function DashboardRealtime() {
-  const router = useRouter();
   const [, setConnectionState] = useState<ConnectionState>("disconnected");
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBadge, setShowBadge] = useState(false);
@@ -86,10 +83,13 @@ export function DashboardRealtime() {
   }, []);
 
   const handleDataUpdate = useCallback(() => {
-    if (!mountedRef.current) return;
-    // Refresh dashboard sections without full page reload
-    router.refresh();
-  }, [router]);
+    // shortcut: numbers are not live-refreshed here — DashboardHome seeds its
+    // client state via useState(initialData), which doesn't re-sync when a new
+    // server-rendered initialData prop arrives. A real fix needs state-ownership
+    // work (risk of flicker against the project-filter fetch) that's out of
+    // scope for this notification-only pass. Toggle the project filter or
+    // reload the page to see fresh numbers.
+  }, []);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -243,7 +243,7 @@ export function DashboardRealtime() {
       {showBadge && (
         <button
           onClick={dismissBadge}
-          className="flex items-center gap-1.5  bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-rose-600 transition"
+          className="flex items-center gap-1.5 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-rose-600 transition"
           title={`${unreadCount} unread notifications - click to dismiss`}
         >
           <Bell size={14} weight="bold" />

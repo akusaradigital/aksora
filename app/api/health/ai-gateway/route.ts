@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { probeGatewayEndpoint, type AIProviderConfig } from "@/lib/ai-gateway";
+import { getCurrentUser } from "@/lib/auth";
+import { isManagementAdmin } from "@/lib/roles";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user || !isManagementAdmin(user.role, user.company)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     const body = (await req.json()) as { providers?: AIProviderConfig[]; timeoutMs?: number };
     const providers = body.providers || [];

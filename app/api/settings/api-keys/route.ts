@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createApiKeyForUser, listApiKeysForUser, revokeApiKey, type ApiKeyScope } from "@/lib/api-keys";
 import { moduleOrder } from "@/lib/modules";
+import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
     const parsedWsId = Number(body.workspaceId);
     if (!Number.isInteger(parsedWsId) || parsedWsId <= 0) {
       return NextResponse.json({ error: "workspaceId must be a valid positive integer." }, { status: 400 });
+    }
+    // An API key must only be scoped to a workspace the caller actually belongs
+    // to — otherwise a user could mint a key granting access to another
+    // workspace's data just by guessing/incrementing its integer id.
+    const memberships = await getWorkspaceMembershipsForUser(user.id);
+    const isMember = memberships.some((m) => Number(m.workspaceId) === parsedWsId);
+    if (!isMember) {
+      return NextResponse.json({ error: "You are not a member of the specified workspace." }, { status: 403 });
     }
     workspaceId = parsedWsId;
   } else if (user.activeWorkspaceId) {

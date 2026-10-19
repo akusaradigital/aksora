@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isPlatformSuperAdmin } from "@/lib/roles";
 import { renderEmailTemplate, sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +8,8 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const body = (await request.json().catch(() => null)) as {

@@ -1,6 +1,11 @@
+---
+name: antislop-human
+description: "Human and accessibility skill for antislop. Contrast, keyboard, focus, and states for real people. Includes the contrast checker."
+allowed-tools: Bash(python *) Bash(python3 *) Read Write Edit Glob Grep
+---
 # antislop-human
 
-> Anti AI Slop: Design & Copy Rules. Human skill
+> Anti Slop: Rules for AI Coding Agents. Human skill
 
 > Part of the antislop system. Read together with `antislop.md` (the core). This skill deep-dives the human concern: the UI must stay usable by people with different eyes, hands, and setups. Contrast, keyboard, focus, states, and the mobile details that exclude people.
 
@@ -42,15 +47,15 @@
 
 The home of the contrast checker. Three layers, from most to least convenient:
 
-**The script.** When a script runtime is available and the file is present, run it instead of computing by hand:
+**The script.** When a script runtime is available and the file is present, run it instead of computing by hand. The script ships in this skill's folder (`contrast-check.py`, next to this `SKILL.md`). Run it with `python3` on macOS and Linux, `python` on Windows:
 
 ```bash
-python scripts/contrast-check.py "#FFFFFF" "#777777"
+python3 "${CLAUDE_SKILL_DIR}/contrast-check.py" "#FFFFFF" "#777777"
 # normal text: FAIL (4.48 < 4.5)
 # large text:  PASS (4.48 >= 3.0)
 ```
 
-The script exists so agents stop hallucinating AA. It takes two hex colors and prints the ratio and the verdict for both text sizes. It ships with the skill; if it is missing from an older setup, the formula and table below are complete on their own. Never block on the script.
+If the `${CLAUDE_SKILL_DIR}` variable is not available in this agent, point the script path at this skill's folder directly. The script exists so agents stop hallucinating AA. It takes two hex colors and prints the ratio and the verdict for both text sizes. If the file is missing, the formula and table below are complete on their own. Never block on the script.
 
 **The formula (WCAG 2.x).**
 
@@ -116,7 +121,7 @@ Read the table as a sanity check, not as a substitute. Any pairing not listed, o
 
 ## Zoom & Mobile Use
 
-The layout mechanics behind mobile (breakpoints, grids, overflow, tap targets) are the concern of `antislop-layoutmobile` (planned for v2.5.0); until it ships, treat them as part of R-03 (Mobile Responsiveness). This section keeps only the mobile details that exclude people: zooming, and the on-screen keyboard.
+The layout mechanics behind mobile (breakpoints, scale, grids, overflow, tap targets) are the concern of `antislop-layoutmobile`. This section keeps only the mobile details that exclude people: zooming, and the on-screen keyboard.
 
 ### Text That Cannot Zoom
 
@@ -132,7 +137,7 @@ The layout mechanics behind mobile (breakpoints, grids, overflow, tap targets) a
 
 ## Human Skill Checklist
 
-Run these alongside the core Delivery Gate when the task involves UI. Any **yes** on a must-be-no item, or **no** on a must-be-yes item, is a FAIL:
+Run these alongside the core Delivery Gate when the task involves UI. All answers must be **yes**:
 
 - [ ] Is every text and background pairing verified against the contrast checker (formula, table, or script), including text over images and gradients? (R-25)
 - [ ] Does every interactive component boundary and status indicator meet 3:1 against its background? (non-text contrast)

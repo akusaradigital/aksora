@@ -70,8 +70,8 @@ type DashboardCacheEntry = { expiresAt: number; data: unknown };
 export const dashboardCache = new Map<string, DashboardCacheEntry>();
 export const dashboardProjectsCache = new Map<string, DashboardCacheEntry>();
 
-export function dashboardCacheKey(company: string, isAdmin: boolean, role: string, projectFilter: string) {
-  return [company, isAdmin ? "admin" : "user", role, projectFilter || "__all__"].join("|");
+export function dashboardCacheKey(company: string, isAdmin: boolean, role: string, projectFilter: string, workspaceId?: number | null) {
+  return [company, isAdmin ? "admin" : "user", role, projectFilter || "__all__", workspaceId ?? "__none__"].join("|");
 }
 
 export function invalidateDashboardCache(company?: string) {

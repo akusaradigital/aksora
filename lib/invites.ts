@@ -41,8 +41,14 @@ export async function getInviteByToken(token: string) {
   return db.get<InviteRow>('SELECT * FROM "Invite" WHERE "token" = ?', [token]);
 }
 
-export async function listInvites() {
-  return db.query<InviteRow>('SELECT * FROM "Invite" WHERE "status" = ? ORDER BY "createdAt" DESC', ["pending"]);
+export async function listInvites(company: string, isSuperAdmin = false) {
+  if (isSuperAdmin) {
+    return db.query<InviteRow>('SELECT * FROM "Invite" WHERE "status" = ? ORDER BY "createdAt" DESC', ["pending"]);
+  }
+  return db.query<InviteRow>(
+    'SELECT * FROM "Invite" WHERE "status" = ? AND "company" = ? ORDER BY "createdAt" DESC',
+    ["pending", company],
+  );
 }
 
 export async function createInvite(input: InviteInput) {

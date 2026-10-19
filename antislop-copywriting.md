@@ -1,6 +1,11 @@
+---
+name: antislop-copywriting
+description: "Copy and text skill for antislop. Use when writing or editing prose: headlines, tone, CTAs, and anti-AI-writing patterns. Load with the core."
+allowed-tools: Read Write Edit Glob Grep
+---
 # antislop-copywriting
 
-> Anti AI Slop: Design & Copy Rules. Copy & Text skill
+> Anti Slop: Rules for AI Coding Agents. Copy & Text skill
 
 > Part of the antislop system. Read together with `antislop.md` (the core). This skill deep-dives the copy and text concern: headlines, CTAs, tone, value propositions, and the patterns that make AI-written prose easy to spot. It references core rules by number and never duplicates or renumbers them. Load it when the task writes or edits marketing copy, product copy, landing-page text, or any prose meant for people to read.
 
@@ -94,6 +99,39 @@
 - **After:**
   > Next.js caches data at multiple layers, including request memoization, the data cache, and the router cache.
 - **Rule:** R-36.
+
+### All-Caps Emphasis
+
+- **The pattern:** a whole sentence, clause, or phrase in ALL CAPS inside a paragraph to shout emphasis: "The launch is ready and WE NEED TO MOVE NOW before the window closes."
+- **Why it reads as AI:** caps-as-emphasis is a blunt instrument the model reaches for to manufacture urgency instead of writing emphasis into the sentence. In long text it reads as shouting, and it flattens the real peaks by making everything loud.
+- **Before:**
+  > This is our last chance to win this customer, and WE MUST ACT IMMEDIATELY before they choose a competitor.
+- **After:**
+  > This is our last chance to win this customer. If we do not respond today, they will choose a competitor.
+- **Rule:** R-36. (R-06 covers uppercase labels with wide tracking as a design choice; this pattern is the prose case: caps inside a paragraph doing the emphasis work.)
+- **Not a ban:** a genuine headline, a deliberately shouted line in a voice that shouts, or a single all-caps word used once as an accent can keep its caps. The tell is caps used sentence after sentence to do the emphasis the words should do. Minimize, do not strip every cap.
+
+### Actorless Passive
+
+- **The pattern:** the passive voice with the actor deleted: "the decision was made to sunset the free tier", "the pricing page has been updated", "mistakes were made".
+- **Why it reads as AI:** the model does not know who acted, so it writes around it. The team that shipped the thing does know, and says so. Deleting the actor also quietly removes accountability from the sentence, which is why the shape survives in corporate copy and nowhere else.
+- **Before:**
+  > The pricing page was updated to reflect the new tiers.
+- **After:**
+  > We rewrote the pricing page to show the new tiers.
+- **Rule:** R-02 (text must feel natural and human).
+- **Not a ban:** passive is the right choice when the actor is unknown, irrelevant, or deliberately withheld ("the server was restarted at 03:00"), and when the object is the real subject of the paragraph. The tell is passive chosen by default, page after page, with an actor that was available the whole time.
+
+### Inanimate Subject, Human Verb
+
+- **The pattern:** an abstraction given agency: "the data tells us", "the design decides", "the complaint becomes a fix", "the roadmap wants to focus on retention".
+- **Why it reads as AI:** it sounds active while naming nobody, so it passes a passive-voice check and still hides the actor. It also flatters the product, since a dashboard that "understands" is doing something no dashboard does.
+- **Before:**
+  > The dashboard understands what your team needs and surfaces the right numbers.
+- **After:**
+  > The dashboard opens on the three metrics your team checks every morning.
+- **Rule:** R-02, R-16 (specific language over claims).
+- **Not a ban:** ordinary product verbs are fine, and so are established idioms. "The report shows", "the form submits", "the filter narrows the list" describe what the thing does. The tell is a verb that needs a mind behind it: understands, knows, decides, wants, believes, cares.
 
 ## Rhythm & Structure
 
@@ -205,7 +243,7 @@
 - **After:**
   > You don't say "Netherlands, Europe" as an address, yet this mislabeling continues.
 - **False positive:** many editors and journalists use em dashes deliberately. On its own an em dash is not proof of AI. It counts when it sits in a cluster with other tells (R-02 still bans it in output, but do not rewrite the user's deliberate style without saying so).
-- **Voice override:** if the user provides a writing sample that uses em dashes at a certain frequency, match the sample's frequency instead of cutting them all (see Voice calibration).
+- **Voice sample:** if the user provides a writing sample that uses em dashes, that sample is a direction rather than agent copy. Surface it the way R-37 says (name the character, name the rule, ask), then match the sample's frequency only if the owner keeps it. Never keep or cut them silently.
 
 ### Boldface Overuse
 
@@ -217,6 +255,17 @@
   > It blends OKRs, KPIs, and visual strategy tools for planning.
 - **Rule:** R-36.
 - **Carve-out:** the structural labels inside the antislop rules themselves (the `**FORBIDDEN**` / `**REQUIRED**` markers in `antislop.md`) are documentation conventions, not the mechanical bold-every-key-term pattern above, and are exempt.
+
+### Excessive Quotation Marks
+
+- **The pattern:** long text studded with quotation marks: quoting words that do not need quoting, scare quotes around ordinary terms, and quotes used as a default for emphasis or hedging. The page reads quoted rather than written.
+- **Why it reads as AI:** models reach for quotation marks as a default way to add distance, irony, or emphasis without writing it into the sentence. Dense quoting is a reliable machine tell in longer text.
+- **Before:**
+  > The "solution" "streamlines" your "workflow" so you can "focus" on "what matters."
+- **After:**
+  > The solution streamlines your workflow so you can focus on what matters.
+- **Rule:** R-36.
+- **Not a ban:** dialogue, short stories, quoted real sources, and titles of works keep their quotes. The tell is quotes doing the work the sentence should do. One scare quote used once for a real reason is fine; a cluster of them is not. Minimize, do not strip quotes that carry meaning.
 
 ### Inline-Header Lists
 
@@ -295,7 +344,7 @@ If the user provides a sample of their own writing, match it before rewriting:
 
 1. Read the sample first. Note its sentence lengths, vocabulary, paragraph openings, punctuation, and recurring phrases.
 2. Match those habits instead of merely deleting AI patterns. Do not upgrade casual words or regularize deliberate quirks.
-3. The sample outranks this skill's style rules. If the sample uses em dashes, keep them at roughly the sample's frequency (R-02 still applies to any copy the user did not authorize; when the user's own voice uses them, the voice wins).
+3. The sample outranks this skill's style rules, except where R-02 applies. R-02 governs copy the agent authors; a sample that uses em dashes is a direction, so it goes through R-37's conflict protocol, and you match its frequency only if the owner keeps it. R-02 applies in full to any copy the user did not authorize.
 
 Without a sample, use the defaults above. Matching the author beats scrubbing the tell.
 
@@ -309,11 +358,14 @@ Run this loop before delivering copy:
 
 ## Copywriting Skill Checklist
 
-Run these alongside the core Delivery Gate when the task is copy work. Any **yes** on a must-be-no item, or **no** on a must-be-yes item, is a FAIL:
+Run these alongside the core Delivery Gate when the task is copy work. Every line below must be true:
 
 - [ ] No fabricated numbers, testimonials, names, dates, or claims; everything real or a labeled placeholder (R-17, R-18, R-36, R-38)
 - [ ] Buzzwords from R-16 and the Empty AI Vocabulary list replaced with specific, evidenced language
-- [ ] No em dashes in the output (R-02), unless the user's own sample voice uses them
+- [ ] No em dashes in the output (R-02); if the user's own sample voice uses them, they were surfaced under R-37 and the owner kept them
+- [ ] No excessive quotation marks: quotes only where they carry meaning (dialogue, real citations, titles), not as default emphasis (R-36)
+- [ ] No all-caps emphasis clauses: emphasis written into the sentence, not shouted with caps (R-36)
+- [ ] Every sentence names its actor: no actorless passive, no abstraction given a human verb, where a real subject was available (R-02, R-16)
 - [ ] CTAs specific to the action, not generic templates (R-15)
 - [ ] No AI-rhythm tells: no forced rule of three, no negative parallelism, no staccato drama, no aphorism formulas, no false ranges (R-36)
 - [ ] Voice present: the copy has a real voice (the user's sample or a clearly chosen tone), not a sterile default (R-37)

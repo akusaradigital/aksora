@@ -14,20 +14,14 @@ export function StatCard({ label, value, icon, color, href }: {
   label: string; value: number; icon: React.ReactNode; color: string; href: string;
 }) {
   const animClass = useValueChangeAnimation(value);
-  const isTask = label.toLowerCase().includes("task");
-  const isCase = label.toLowerCase().includes("case");
   return (
     <Link href={href} prefetch={false}
       className={cn(
-        "flex flex-col justify-between border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
-        isTask ? "border-l-4 border-l-blue-600" : isCase ? "border-l-4 border-l-emerald-500" : ""
+        "flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
       )}>
       <div className="flex items-center justify-between">
-        <p className={cn(
-          "text-xs font-bold uppercase tracking-wider",
-          isTask ? "text-slate-700" : isCase ? "text-emerald-600" : "text-slate-500"
-        )}>{label}</p>
-        <div className={cn("flex h-9 w-9 items-center justify-center", color)}>
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", color)}>
           {icon}
         </div>
       </div>
@@ -42,10 +36,10 @@ export function BugStatCard({ value, bugSeverityCounts }: {
 }) {
   const animClass = useValueChangeAnimation(value);
   return (
-    <div className="flex flex-col justify-between border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
+    <div className="flex flex-col justify-between rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider text-rose-500">Open Bugs</p>
-        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
+        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
           <ArrowRight size={16} weight="bold" />
         </Link>
       </div>
@@ -76,7 +70,7 @@ export function PulseMetric({ label, value, prev, color, bgColor }: {
   const TrendIcon = delta > 0 ? TrendUp : delta < 0 ? TrendDown : Minus;
 
   return (
-    <div className={cn("p-4 border border-slate-100", bgColor)}>
+    <div className={cn("rounded-xl p-4 border border-slate-100", bgColor)}>
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">{label}</span>
         {prev > 0 && (
@@ -102,7 +96,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
   const rateBgColor = isNA ? "bg-slate-50" : current < 70 ? "bg-amber-50/60" : "bg-emerald-50/60";
 
   return (
-    <div className={cn("p-4 border border-slate-100", rateBgColor)} data-testid="resolution-rate-metric">
+    <div className={cn("rounded-xl p-4 border border-slate-100", rateBgColor)} data-testid="resolution-rate-metric">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Resolution Rate</span>
         {delta !== null && (
@@ -120,7 +114,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
 export function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
+    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
       {icon}{label}
     </Link>
   );

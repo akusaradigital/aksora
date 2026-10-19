@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { isInviteRole, isManagementAdmin, normalizeRole } from "@/lib/roles";
+import { isInviteRole, isManagementAdmin, isPlatformSuperAdmin, normalizeRole } from "@/lib/roles";
 import { createInvite, listInvites } from "@/lib/invites";
 
 type CreateInviteResult = Awaited<ReturnType<typeof createInvite>>;
@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const invites = await listInvites();
+  const invites = await listInvites(user.company, isPlatformSuperAdmin(user.role, user.company));
   return NextResponse.json({ invites });
 }
 

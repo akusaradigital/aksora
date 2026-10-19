@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: mocks.getCurrentUser,
+  verifySharedSecret: (provided: unknown, expected: string | null | undefined) =>
+    typeof provided === "string" && !!provided && provided === (expected ?? "").trim(),
 }));
 
 vi.mock("@/lib/auth-core", () => ({
@@ -57,6 +59,21 @@ describe("reset-db route", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
+  });
+
+  it("rejects an incorrect secret", async () => {
+    vi.stubEnv("ENABLE_RESET_DB_ROUTE", "true");
+
+    const response = await POST(
+      new Request("http://localhost/api/tools/reset-db", {
+        method: "POST",
+        body: JSON.stringify({ secret: "wrong-secret" }),
+      }) as NextRequest,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid secret" });
+    expect(mocks.db.exec).not.toHaveBeenCalled();
   });
 
   it("truncates tables when explicitly enabled and authorized", async () => {

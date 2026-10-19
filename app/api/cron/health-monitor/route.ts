@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, getDbHealthInfo } from "@/lib/db";
 import { createAdminNotification } from "@/lib/admin-notifications";
 import { emailEnabled, sendEmail } from "@/lib/email";
+import { verifySharedSecret } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,7 +16,7 @@ const LATENCY_THRESHOLD_MS = 1000;
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
   const auth = request.headers.get("authorization");
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!verifySharedSecret(auth, secret ? `Bearer ${secret}` : null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

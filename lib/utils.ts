@@ -4,6 +4,20 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
+/**
+ * Returns true only for http:// and https:// URLs. Use before rendering any
+ * user-supplied URL (attachment link, vault entry URL, etc.) in an href —
+ * otherwise a "javascript:" or "data:" scheme can execute script on click.
+ */
+export function isSafeHref(url: string): boolean {
+  try {
+    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function normalizeDate(value: string | Date): Date {
   // SQLite stores "YYYY-MM-DD HH:MM:SS" (space). Browsers need ISO "T" separator.
   const normalized = typeof value === "string" ? value.replace(" ", "T") : value;

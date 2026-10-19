@@ -303,7 +303,7 @@ describe("QualityHealthScore", () => {
         />,
       );
       expect(html).toContain("Bug Distribution");
-      expect(html).toContain('h-24  border border-gray-200 bg-gray-50');
+      expect(html).toContain('h-24 rounded-xl border border-gray-200 bg-gray-50');
     });
 
     it("does not render qualityHealthScore container when prop is undefined", () => {

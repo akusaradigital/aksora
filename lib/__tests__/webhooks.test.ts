@@ -6,10 +6,17 @@ const mocks = vi.hoisted(() => ({
     query: vi.fn(),
     run: vi.fn(),
   },
+  dnsLookup: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
   db: mocks.db,
+}));
+
+// Webhook delivery now resolves DNS before fetching (SSRF guard); stub it to
+// resolve test hostnames to a public-looking IP so delivery isn't blocked.
+vi.mock("dns/promises", () => ({
+  lookup: mocks.dnsLookup,
 }));
 
 const fetchMock = vi.fn();
@@ -30,6 +37,7 @@ beforeEach(() => {
   mocks.db.get.mockResolvedValue(undefined);
   mocks.db.query.mockResolvedValue([]);
   mocks.db.run.mockResolvedValue(undefined);
+  mocks.dnsLookup.mockResolvedValue({ address: "93.184.216.34", family: 4 });
 });
 
 describe("webhooks", () => {
@@ -50,7 +58,13 @@ describe("webhooks", () => {
   });
 
   it("rejects a non-http(s) url", async () => {
-    await expect(createWebhookForUser(1, "acme", "ftp://bad")).rejects.toThrow(/valid http/i);
+    await expect(createWebhookForUser(1, "acme", "ftp://bad")).rejects.toThrow(/http:\/\/ and https:\/\//i);
+    expect(mocks.db.get).not.toHaveBeenCalled();
+  });
+
+  it("rejects a private/loopback IP url", async () => {
+    await expect(createWebhookForUser(1, "acme", "http://127.0.0.1:8080")).rejects.toThrow(/private|loopback/i);
+    await expect(createWebhookForUser(1, "acme", "http://169.254.169.254/latest/meta-data/")).rejects.toThrow(/private|loopback/i);
     expect(mocks.db.get).not.toHaveBeenCalled();
   });
 

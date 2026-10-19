@@ -100,10 +100,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-<!-- antislop: auto-managed block, do not edit -->
+<!-- antislop:start -->
 ## antislop
-For UI, copy, or people work, read `antislop.md` (core) and then the skill for the task:
+For UI, copy, people, mobile layout, or code comments work, read `antislop.md` (core) and then the skill for the task:
 - UI / visual: `antislop-ui.md`
 - Copy & text: `antislop-copywriting.md`
 - People: `antislop-human.md`
-Before starting, ask the user when antislop applies: during the work, or after it is done.
+<!-- antislop:end -->

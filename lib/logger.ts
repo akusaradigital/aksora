@@ -82,15 +82,33 @@ export const logger = {
 
 // --- Legacy exports (used by existing API routes) ---
 
+// Substrings that only ever show up in raw driver/database error text, never
+// in an app-authored `throw new Error("...")` validation message. If any of
+// these appear, treat the message as an internal leak and use the fallback
+// instead of exposing schema/constraint details to the client.
+const DB_INTERNAL_MARKERS = [
+  "syntax",
+  "constraint",
+  "column",
+  "relation",
+  "duplicate key",
+  "violates",
+  "econnrefused",
+  "password authentication",
+  "sqlite_",
+];
+
 /**
  * Extract a user-friendly error message from an unknown error.
- * Returns the fallback if the error is not informative.
+ * Returns the fallback if the error looks like it leaked raw database/driver
+ * internals rather than an app-authored validation message.
  */
 export function friendlyErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     const msg = error.message;
-    // Expose Zod/validation messages
-    if (msg && !msg.includes("syntax") && msg.length < 200) {
+    const lower = msg.toLowerCase();
+    const looksInternal = DB_INTERNAL_MARKERS.some((marker) => lower.includes(marker));
+    if (msg && !looksInternal && msg.length < 200) {
       return msg;
     }
   }

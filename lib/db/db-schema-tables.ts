@@ -299,6 +299,34 @@ export const tables = [
     `
   },
   {
+    name: "Note",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "title" TEXT NOT NULL DEFAULT '',
+      "content" TEXT NOT NULL DEFAULT '',
+      "color" TEXT NOT NULL DEFAULT 'default',
+      "pinned" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "VaultEntry",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "title" TEXT NOT NULL DEFAULT '',
+      "username" TEXT NOT NULL DEFAULT '',
+      "url" TEXT NOT NULL DEFAULT '',
+      "category" TEXT NOT NULL DEFAULT 'general',
+      "passwordEncrypted" TEXT NOT NULL,
+      "notes" TEXT NOT NULL DEFAULT '',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
     name: "AutomationRule",
     schema: `
       "id" SERIAL_OR_PK,

@@ -1,5 +1,7 @@
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isPlatformSuperAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +25,7 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (user.role !== "superadmin") {
+  if (!isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -31,16 +33,17 @@ export async function POST() {
     const results: Record<string, number> = {};
 
     for (const table of TABLES_WITH_PUBLIC_TOKEN) {
-      const rows = await db.query<{ count: number }>(
-        `WITH updated AS (
-          UPDATE "${table}"
-          SET "publicToken" = md5(random()::text || id::text)
-          WHERE COALESCE("publicToken", '') = ''
-          RETURNING 1
-        )
-        SELECT COUNT(*)::int AS "count" FROM updated`
+      // Backfill rows one at a time so each gets its own CSPRNG token
+      // (crypto.randomBytes), not a SQL-side md5(random()) which is both
+      // low-entropy and guessable from the row id it's seeded with.
+      const emptyRows = await db.query<{ id: number }>(
+        `SELECT "id" FROM "${table}" WHERE COALESCE("publicToken", '') = ''`,
       );
-      results[table] = rows[0]?.count ?? 0;
+      for (const row of emptyRows) {
+        const token = randomBytes(16).toString("base64url");
+        await db.run(`UPDATE "${table}" SET "publicToken" = ? WHERE "id" = CAST(? AS INTEGER)`, [token, row.id]);
+      }
+      results[table] = emptyRows.length;
     }
 
     return NextResponse.json({

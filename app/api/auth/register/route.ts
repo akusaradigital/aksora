@@ -6,17 +6,9 @@ import { isInviteRole, normalizeRole } from "@/lib/roles";
 import { checkCompanyUserLimit } from "@/lib/plan-limits";
 import { ensureWorkspaceForUser, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
 import { sendWelcomeEmail, sendInviteAcceptedEmail, sendOtpEmail, emailEnabled } from "@/lib/email";
-import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit } from "@/lib/rate-limit";
+import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit, getClientIp } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { isVpnOrHostingIp } from "@/lib/ip-reputation";
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 

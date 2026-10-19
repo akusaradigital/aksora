@@ -2,24 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomInt } from "crypto";
 import { db } from "@/lib/db";
 import { sendOtpEmail, sendWelcomeEmail, emailEnabled } from "@/lib/email";
-import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit, checkMemoryRateLimit } from "@/lib/rate-limit";
+import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit, checkMemoryRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 type OtpUser = { id: number; company: string; emailVerified: number; otpCode: string | null; otpExpiresAt: string | null; otpAttempts: number };
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as { email?: string; code?: string; resend?: boolean } | null;
   const email = body?.email?.trim().toLowerCase() || "";
+  const isResend = Boolean(body?.resend);
   if (!email) {
     return NextResponse.json({ error: "Email is required." }, { status: 400 });
   }
@@ -38,15 +31,20 @@ export async function POST(request: NextRequest) {
     'SELECT "id", "company", "emailVerified", "otpCode", "otpExpiresAt", "otpAttempts" FROM "User" WHERE "email" = ?',
     [email],
   );
-  // Avoid leaking whether the address is registered.
-  if (!user) {
-    return NextResponse.json({ error: "Invalid or expired code." }, { status: 400 });
-  }
-  if (user.emailVerified) {
-    return NextResponse.json({ ok: true });
+
+  // An unregistered email and an already-verified email must respond
+  // identically (both to a code submission and to a resend request) to a
+  // genuine pending account, or probing with just an email address — no
+  // credential required — becomes a user-enumeration oracle.
+  if (!user || user.emailVerified) {
+    if (isResend) {
+      return NextResponse.json({ ok: true, sent: true });
+    }
+    await recordFailedAttempt(key);
+    return NextResponse.json({ error: "Invalid or expired code. Request a new one." }, { status: 400 });
   }
 
-  if (body?.resend) {
+  if (isResend) {
     if (checkMemoryRateLimit(`otp:resend:${email}`, 3, 15 * 60 * 1000).limited) {
       return NextResponse.json(
         { error: "Please wait a bit before requesting another code." },

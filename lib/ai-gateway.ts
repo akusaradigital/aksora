@@ -1,3 +1,5 @@
+import { validateOutboundUrlAsync } from "@/lib/ssrf-guard";
+
 export type AIProviderConfig = {
   name: string;
   baseUrl: string;
@@ -50,11 +52,24 @@ export async function probeGatewayEndpoint(
   timeoutMs = 5000
 ): Promise<GatewayHealthResult> {
   const start = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const cleanUrl = provider.baseUrl.replace(/\/+$/, "");
   const targetUrl = `${cleanUrl}/v1/models`;
+
+  const urlError = await validateOutboundUrlAsync(targetUrl);
+  if (urlError) {
+    return {
+      url: provider.baseUrl,
+      name: provider.name,
+      healthy: false,
+      status: null,
+      latencyMs: 0,
+      error: urlError,
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(targetUrl, {
@@ -116,12 +131,20 @@ export async function executeCompletionWithFailover(
 
   for (const provider of sorted) {
     const start = Date.now();
+    const cleanUrl = provider.baseUrl.replace(/\/+$/, "");
+    const completionsUrl = `${cleanUrl}/v1/chat/completions`;
+
+    const urlError = await validateOutboundUrlAsync(completionsUrl);
+    if (urlError) {
+      errors.push({ provider: provider.name, error: urlError });
+      continue;
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutPerProviderMs);
 
     try {
-      const cleanUrl = provider.baseUrl.replace(/\/+$/, "");
-      const res = await fetch(`${cleanUrl}/v1/chat/completions`, {
+      const res = await fetch(completionsUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

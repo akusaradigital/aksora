@@ -2,7 +2,7 @@ import { cn } from"@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
  return (
- <div className={cn("animate-shimmer bg-slate-100 motion-reduce:animate-none", className)} />
+ <div className={cn("rounded-xl animate-shimmer bg-slate-100 motion-reduce:animate-none", className)} />
  );
 }
 
