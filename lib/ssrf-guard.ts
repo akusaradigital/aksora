@@ -27,9 +27,17 @@ function isPrivateIPv6(ip: string): boolean {
   if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // fc00::/7 unique local
   if (lower.startsWith("fe80:")) return true; // fe80::/10 link-local
   if (lower === "::" || lower.startsWith("::ffff:")) {
-    // IPv4-mapped IPv6 — check the embedded IPv4 address too.
+    // IPv4-mapped IPv6 — check both dot-decimal and hex notation
     const mapped = lower.replace("::ffff:", "");
     if (isIP(mapped) === 4) return isPrivateIPv4(mapped);
+    const parts = mapped.split(":");
+    if (parts.length === 2) {
+      const h = parseInt(parts[0], 16);
+      const l = parseInt(parts[1], 16);
+      if (!Number.isNaN(h) && !Number.isNaN(l)) {
+        return isPrivateIPv4(`${(h >> 8) & 0xff}.${h & 0xff}.${(l >> 8) & 0xff}.${l & 0xff}`);
+      }
+    }
   }
   return false;
 }
@@ -91,7 +99,10 @@ export async function validateOutboundUrlAsync(rawUrl: string): Promise<string |
   if (!hostname || isIP(hostname)) return null; // literal IP already checked above
 
   try {
-    const { address, family } = await lookup(hostname);
+    const dnsTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("DNS resolution timeout")), 3000)
+    );
+    const { address, family } = await Promise.race([lookup(hostname), dnsTimeout]);
     if (family === 4 && isPrivateIPv4(address)) {
       return "This host resolves to a private or loopback IP address.";
     }

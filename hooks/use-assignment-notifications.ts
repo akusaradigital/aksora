@@ -17,11 +17,21 @@ type AssignmentEvent = {
 // ponytail: reconnects once on close; no exponential backoff — add if flakiness is observed in prod.
 export function useAssignmentNotifications(enabled = true) {
   const esRef = useRef<EventSource | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
 
     function connect() {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+
       const es = new EventSource("/api/notifications/stream");
       esRef.current = es;
 
@@ -36,8 +46,9 @@ export function useAssignmentNotifications(enabled = true) {
 
       es.addEventListener("error", () => {
         es.close();
+        esRef.current = null;
         // Reconnect once after 15s if connection drops
-        setTimeout(connect, 15000);
+        reconnectTimerRef.current = setTimeout(connect, 15000);
       });
     }
 
@@ -48,6 +59,10 @@ export function useAssignmentNotifications(enabled = true) {
     // reconnect when the tab becomes visible again.
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
         esRef.current?.close();
         esRef.current = null;
       } else if (!esRef.current) {
@@ -58,6 +73,10 @@ export function useAssignmentNotifications(enabled = true) {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       esRef.current?.close();
       esRef.current = null;
     };

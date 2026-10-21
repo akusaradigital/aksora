@@ -15,53 +15,60 @@ const txStorage = new AsyncLocalStorage<PostgresClient>();
 
 const globalForDb = globalThis as unknown as {
   pgPool?: unknown;
+  poolInitPromise?: Promise<unknown>;
   schemaInitPromise?: Promise<void>;
   schemaReady?: boolean;
 };
 
 async function getPostgresPool() {
-  if (!globalForDb.pgPool) {
-    const isNeon = databaseUrl.includes("neon.tech") || databaseUrl.includes("neon-");
-    let connectionString = databaseUrl;
-
-    // ponytail: auto-detect and switch to neon pooler host if neon.tech is used without -pooler
-    if (isNeon && !connectionString.includes("-pooler")) {
-      try {
-        const urlObj = new URL(connectionString);
-        if (urlObj.hostname.endsWith(".neon.tech") && !urlObj.hostname.includes("-pooler")) {
-          const parts = urlObj.hostname.split(".");
-          parts[0] = `${parts[0]}-pooler`;
-          urlObj.hostname = parts.join(".");
-          connectionString = urlObj.toString();
-        }
-      } catch {
-        // Fallback to original connection string if parsing fails
-      }
-    }
-
-    const poolConfig = {
-      connectionString,
-      max: isNeon ? 5 : 10,
-      min: 0,
-      idleTimeoutMillis: isNeon ? 5000 : 15000,
-      connectionTimeoutMillis: 3000,
-      allowExitOnIdle: true,
-      statement_timeout: 5000,
-    };
-    let pool;
-    if (isNeon) {
-      const { Pool } = await import("@neondatabase/serverless");
-      pool = new Pool(poolConfig);
-    } else {
-      const { Pool } = await import("pg");
-      pool = new Pool(poolConfig);
-    }
-    pool.on("error", (err: Error) => {
-      console.error("[DB Pool] Unexpected error on idle client:", err.message);
-    });
-    globalForDb.pgPool = pool;
+  if (globalForDb.pgPool) {
+    return globalForDb.pgPool as PostgresPool;
   }
-  return globalForDb.pgPool as PostgresPool;
+  if (!globalForDb.poolInitPromise) {
+    globalForDb.poolInitPromise = (async () => {
+      const isNeon = databaseUrl.includes("neon.tech") || databaseUrl.includes("neon-");
+      let connectionString = databaseUrl;
+
+      // ponytail: auto-detect and switch to neon pooler host if neon.tech is used without -pooler
+      if (isNeon && !connectionString.includes("-pooler")) {
+        try {
+          const urlObj = new URL(connectionString);
+          if (urlObj.hostname.endsWith(".neon.tech") && !urlObj.hostname.includes("-pooler")) {
+            const parts = urlObj.hostname.split(".");
+            parts[0] = `${parts[0]}-pooler`;
+            urlObj.hostname = parts.join(".");
+            connectionString = urlObj.toString();
+          }
+        } catch {
+          // Fallback to original connection string if parsing fails
+        }
+      }
+
+      const poolConfig = {
+        connectionString,
+        max: isNeon ? 5 : 10,
+        min: 0,
+        idleTimeoutMillis: isNeon ? 5000 : 15000,
+        connectionTimeoutMillis: 3000,
+        allowExitOnIdle: true,
+        statement_timeout: 5000,
+      };
+      let pool;
+      if (isNeon) {
+        const { Pool } = await import("@neondatabase/serverless");
+        pool = new Pool(poolConfig);
+      } else {
+        const { Pool } = await import("pg");
+        pool = new Pool(poolConfig);
+      }
+      pool.on("error", (err: Error) => {
+        console.error("[DB Pool] Unexpected error on idle client:", err.message);
+      });
+      globalForDb.pgPool = pool;
+      return pool;
+    })();
+  }
+  return (await globalForDb.poolInitPromise) as PostgresPool;
 }
 
 async function ensureSchema() {
@@ -152,11 +159,16 @@ async function runRaw(queryStr: string, params: unknown[] = []): Promise<void> {
 }
 
 async function execRaw(queryStr: string): Promise<void> {
-  const pool = await getPostgresPool();
+  const tx = txStorage.getStore();
   const statements = queryStr.split(";").filter((s) => s.trim());
   for (const s of statements) {
     try {
-      await pool.query(toPostgresQuery(s));
+      if (tx) {
+        await tx.query(toPostgresQuery(s));
+      } else {
+        const pool = await getPostgresPool();
+        await pool.query(toPostgresQuery(s));
+      }
     } catch (err: unknown) {
       if (
         typeof err === "object" &&
@@ -203,21 +215,34 @@ export async function acquireListenClient(): Promise<ListenClient> {
   }
 
   const { Client } = isNeon ? await import("@neondatabase/serverless") : await import("pg");
-  const client = new Client({ connectionString }) as unknown as {
+  const client = new Client({
+    connectionString,
+    connectionTimeoutMillis: 5000,
+    keepAlive: true,
+  }) as unknown as {
     connect: () => Promise<void>;
     query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
-    on: ListenClient["on"];
-    removeListener: ListenClient["removeListener"];
+    on: (event: string, listener: (...args: unknown[]) => void) => void;
+    removeListener: (event: string, listener: (...args: unknown[]) => void) => void;
     end: () => Promise<void>;
   };
+
+  // Prevent uncaughtException crashes if the socket terminates or gets disconnected unexpectedly
+  client.on("error", (err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[ListenClient] Connection error:", msg);
+  });
+
   await client.connect();
 
   return {
     query: (text, params) => client.query(text, params),
-    on: (event, listener) => client.on(event, listener),
-    removeListener: (event, listener) => client.removeListener(event, listener),
+    on: (event, listener) => client.on(event, listener as (...args: unknown[]) => void),
+    removeListener: (event, listener) => client.removeListener(event, listener as (...args: unknown[]) => void),
     release: () => {
-      void client.end();
+      client.end().catch((err: Error) => {
+        console.warn("[ListenClient] Error during client.end():", err.message);
+      });
     },
   };
 }
@@ -249,6 +274,7 @@ export const db = {
     await ensureSchema();
     const pool = await getPostgresPool();
     const client = await pool.connect();
+    let hasError = false;
     try {
       await client.query("BEGIN");
       // Run fn with the client as the async-local tx context so any db.query/get/run
@@ -257,10 +283,16 @@ export const db = {
       await client.query("COMMIT");
       return result;
     } catch (err) {
-      await client.query("ROLLBACK");
+      hasError = true;
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        console.error("[db.transaction] Rollback failed:", rollbackErr);
+      }
       throw err;
     } finally {
-      client.release();
+      // Pass hasError so pg client is destroyed rather than returned to pool if damaged
+      client.release(hasError ? true : undefined);
     }
   },
 };

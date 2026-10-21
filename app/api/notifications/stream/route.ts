@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // SSE endpoint for real-time user assignment notifications
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,12 +28,45 @@ export async function GET() {
   let closed = false;
   let unlisten: (() => Promise<void>) | null = null;
   let lastCheckedTime = new Date().toISOString();
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let autoCloseTimer: ReturnType<typeof setTimeout> | undefined;
+  let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    if (heartbeat) clearInterval(heartbeat);
+    if (autoCloseTimer) clearTimeout(autoCloseTimer);
+    void unlisten?.();
+    try {
+      controllerRef?.close();
+    } catch {
+      // already closed
+    }
+  };
+
+  if (request.signal.aborted) {
+    cleanup();
+  } else {
+    request.signal.addEventListener("abort", cleanup);
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
+      controllerRef = controller;
+
+      const safeEnqueue = (chunk: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          cleanup();
+        }
+      };
+
       // Send initial connection event
-      controller.enqueue(
-        encoder.encode(`event: connected\ndata: ${JSON.stringify({ connected: true })}\n\n`),
+      safeEnqueue(
+        `event: connected\ndata: ${JSON.stringify({ connected: true })}\n\n`,
       );
 
       const checkForAssignments = async () => {
@@ -106,8 +139,8 @@ export async function GET() {
           ];
 
           for (const event of events) {
-            controller.enqueue(
-              encoder.encode(`event: assignment\ndata: ${JSON.stringify(event)}\n\n`),
+            safeEnqueue(
+              `event: assignment\ndata: ${JSON.stringify(event)}\n\n`,
             );
           }
         } catch {
@@ -136,35 +169,21 @@ export async function GET() {
           unlisten = stop;
         }
       } catch {
-        // If LISTEN setup fails, the heartbeat below still keeps the client
-        // connected and it will reconnect and retry shortly after.
+        // If LISTEN setup fails, client will reconnect and retry shortly after
       }
 
       // Heartbeat so proxies/load balancers don't kill an idle-looking connection.
-      const heartbeat = setInterval(() => {
-        if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(`: heartbeat\n\n`));
-        } catch {
-          // ignore
-        }
+      heartbeat = setInterval(() => {
+        safeEnqueue(`: heartbeat\n\n`);
       }, 30000);
 
       // Clean up after 5 minutes to avoid hanging lambdas indefinitely
-      setTimeout(() => {
-        closed = true;
-        clearInterval(heartbeat);
-        void unlisten?.();
-        try {
-          controller.close();
-        } catch {
-          // Controller might already be closed
-        }
+      autoCloseTimer = setTimeout(() => {
+        cleanup();
       }, 5 * 60 * 1000);
     },
     cancel() {
-      closed = true;
-      void unlisten?.();
+      cleanup();
     },
   });
 

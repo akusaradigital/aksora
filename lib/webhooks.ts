@@ -118,7 +118,7 @@ export async function dispatchWebhooks(company: string, eventType: string, paylo
 
     const body = JSON.stringify({ event: eventType, data: payload, timestamp: new Date().toISOString() });
 
-    await Promise.all(
+    await Promise.allSettled(
       matching.map((webhook) => deliverWebhook(webhook, body)),
     );
   } catch (e) {
@@ -127,58 +127,70 @@ export async function dispatchWebhooks(company: string, eventType: string, paylo
 }
 
 async function deliverWebhook(webhook: WebhookRow, body: string) {
-  // Re-check at delivery time (not just at creation time) so a webhook URL
-  // that used to resolve publicly but now points at a private/internal IP
-  // (DNS rebinding, or infra that changed after the webhook was saved) can't
-  // be used to reach internal services.
-  const urlError = await validateOutboundUrlAsync(webhook.url);
-  if (urlError) {
-    console.error(`[webhooks] refusing to deliver to ${webhook.url}: ${urlError}`);
-    return;
-  }
-
-  const signature = signWebhookPayload(webhook.secret, body);
-  let status = 0;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
+    // Re-check at delivery time (not just at creation time) so a webhook URL
+    // that used to resolve publicly but now points at a private/internal IP
+    // (DNS rebinding, or infra that changed after the webhook was saved) can't
+    // be used to reach internal services.
+    const urlError = await validateOutboundUrlAsync(webhook.url);
+    if (urlError) {
+      console.error(`[webhooks] refusing to deliver to ${webhook.url}: ${urlError}`);
+      return;
+    }
+
+    const signature = signWebhookPayload(webhook.secret, body);
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    let status = 0;
     try {
-      const res = await fetch(webhook.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Aksora-Signature": signature,
-          "X-Aksora-Signature-256": `sha256=${signature}`,
-        },
-        body,
-        signal: controller.signal,
-      });
-      status = res.status;
-    } finally {
-      clearTimeout(timeout);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
+      try {
+        const res = await fetch(webhook.url, {
+          method: "POST",
+          redirect: "error", // Prevent SSRF via open redirect to internal IPs
+          headers: {
+            "Content-Type": "application/json",
+            "X-Aksora-Signature": signature,
+            "X-Aksora-Signature-256": `sha256=${signature}`,
+            "X-Aksora-Timestamp": timestamp,
+          },
+          body,
+          signal: controller.signal,
+        });
+        status = res.status;
+        try {
+          await res.body?.cancel();
+        } catch {
+          // Ignore cancel errors
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      status = 0;
     }
-  } catch {
-    status = 0;
-  }
 
-  const succeeded = status >= 200 && status < 300;
-  try {
-    if (succeeded) {
-      await db.run(
-        `UPDATE "Webhook" SET "lastTriggeredAt" = CURRENT_TIMESTAMP, "lastStatus" = ?, "failureCount" = 0 WHERE "id" = CAST(? AS INTEGER)`,
-        [status, webhook.id],
-      );
-    } else {
-      const nextFailureCount = Number(webhook.failureCount ?? 0) + 1;
-      const shouldDisable = nextFailureCount >= MAX_CONSECUTIVE_FAILURES;
-      await db.run(
-        `UPDATE "Webhook"
-         SET "lastTriggeredAt" = CURRENT_TIMESTAMP, "lastStatus" = ?, "failureCount" = ?, "active" = ?
-         WHERE "id" = CAST(? AS INTEGER)`,
-        [status, nextFailureCount, shouldDisable ? 0 : 1, webhook.id],
-      );
+    const succeeded = status >= 200 && status < 300;
+    try {
+      if (succeeded) {
+        await db.run(
+          `UPDATE "Webhook" SET "lastTriggeredAt" = CURRENT_TIMESTAMP, "lastStatus" = ?, "failureCount" = 0 WHERE "id" = CAST(? AS INTEGER)`,
+          [status, webhook.id],
+        );
+      } else {
+        const nextFailureCount = Number(webhook.failureCount ?? 0) + 1;
+        const shouldDisable = nextFailureCount >= MAX_CONSECUTIVE_FAILURES;
+        await db.run(
+          `UPDATE "Webhook"
+           SET "lastTriggeredAt" = CURRENT_TIMESTAMP, "lastStatus" = ?, "failureCount" = ?, "active" = ?
+           WHERE "id" = CAST(? AS INTEGER)`,
+          [status, nextFailureCount, shouldDisable ? 0 : 1, webhook.id],
+        );
+      }
+    } catch (e) {
+      console.error("[webhooks] failed to record delivery result:", e);
     }
-  } catch (e) {
-    console.error("[webhooks] failed to record delivery result:", e);
+  } catch (err) {
+    console.error(`[webhooks] deliverWebhook unexpected error for ${webhook.id}:`, err);
   }
 }

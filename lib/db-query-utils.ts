@@ -1,6 +1,6 @@
 export type PostgresClient = {
   query: (queryText: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
-  release: () => void;
+  release: (err?: Error | boolean) => void;
 };
 
 export type PostgresPool = {

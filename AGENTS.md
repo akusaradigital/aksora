@@ -41,6 +41,10 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 | Page sub-component | co-locate in `app/[page]/` |
 | **NEVER** put files flat in `components/` root | |
 
+## Knowledge Graph / Graphify (MANDATORY)
+- **MANDATORY**: Before fixing bugs, refactoring, or building new features, always consult `graphify-out/graph.json` or use `graphify query "<target>"` / `graphify-out/GRAPH_REPORT.md` first.
+- Pinpoint the exact files, caller hierarchies, and dependencies to touch. Do NOT waste context tokens scanning random files — go straight to the point using the knowledge graph.
+
 ## Agent File Lookup
 
 | Task | Check |

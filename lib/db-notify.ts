@@ -32,8 +32,14 @@ export async function listenChannel(
     if (msg.channel === channel) onNotify(msg.payload ?? "");
   };
 
-  client.on("notification", listener);
-  await client.query(`LISTEN "${channel}"`);
+  try {
+    client.on("notification", listener);
+    await client.query(`LISTEN "${channel}"`);
+  } catch (err) {
+    client.removeListener("notification", listener);
+    client.release();
+    throw err;
+  }
 
   let released = false;
   return async () => {

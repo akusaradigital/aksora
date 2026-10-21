@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // SSE endpoint for real-time admin notifications
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user || !isPlatformSuperAdmin(user.role, user.company)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -25,11 +25,44 @@ export async function GET() {
   lastCheckedId = Number(latest?.id || 0);
 
   let unlisten: (() => Promise<void>) | null = null;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let autoCloseTimer: ReturnType<typeof setTimeout> | undefined;
+  let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    if (heartbeat) clearInterval(heartbeat);
+    if (autoCloseTimer) clearTimeout(autoCloseTimer);
+    void unlisten?.();
+    try {
+      controllerRef?.close();
+    } catch {
+      // already closed
+    }
+  };
+
+  if (request.signal.aborted) {
+    cleanup();
+  } else {
+    request.signal.addEventListener("abort", cleanup);
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
+      controllerRef = controller;
+
+      const safeEnqueue = (chunk: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          cleanup();
+        }
+      };
+
       // Send initial connection event
-      controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ lastId: lastCheckedId })}\n\n`));
+      safeEnqueue(`event: connected\ndata: ${JSON.stringify({ lastId: lastCheckedId })}\n\n`);
 
       const checkForNew = async () => {
         if (closed) return;
@@ -52,9 +85,7 @@ export async function GET() {
           );
 
           for (const notif of newNotifications) {
-            controller.enqueue(
-              encoder.encode(`event: notification\ndata: ${JSON.stringify(notif)}\n\n`)
-            );
+            safeEnqueue(`event: notification\ndata: ${JSON.stringify(notif)}\n\n`);
             lastCheckedId = notif.id;
           }
         } catch {
@@ -75,37 +106,21 @@ export async function GET() {
           unlisten = stop;
         }
       } catch {
-        // If LISTEN setup fails, the heartbeat below still keeps the client
-        // connected and it will reconnect and retry shortly after.
+        // If LISTEN setup fails, client reconnects and retries shortly after
       }
 
       // Heartbeat so proxies/load balancers don't kill an idle-looking connection.
-      const heartbeat = setInterval(() => {
-        if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(`:heartbeat\n\n`));
-        } catch {
-          // ignore
-        }
+      heartbeat = setInterval(() => {
+        safeEnqueue(`:heartbeat\n\n`);
       }, 20000);
 
-      // Cleanup on close
-      const cleanup = () => {
-        if (closed) return;
-        closed = true;
-        clearInterval(heartbeat);
-        void unlisten?.();
-      };
-
       // Auto-close after 5 minutes (client will reconnect)
-      setTimeout(() => {
+      autoCloseTimer = setTimeout(() => {
         cleanup();
-        try { controller.close(); } catch {}
       }, 5 * 60 * 1000);
     },
     cancel() {
-      closed = true;
-      void unlisten?.();
+      cleanup();
     },
   });
 

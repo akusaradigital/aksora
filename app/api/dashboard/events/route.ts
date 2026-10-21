@@ -153,7 +153,12 @@ export async function GET(request: Request) {
       // already closed
     }
   };
-  request.signal.addEventListener("abort", cleanup);
+
+  if (request.signal.aborted) {
+    cleanup();
+  } else {
+    request.signal.addEventListener("abort", cleanup);
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -163,7 +168,7 @@ export async function GET(request: Request) {
         try {
           controller.enqueue(encoder.encode(chunk));
         } catch {
-          closed = true;
+          cleanup();
         }
       };
 

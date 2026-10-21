@@ -146,17 +146,26 @@ export function deriveSprintStatus(startDate?: string, endDate?: string): string
   return "active";
 }
 
+function sanitizeActivitySummary(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/(password|secret|apiKey|authorization)["':=\s]+[^\s,;"']+/gi, "$1: [REDACTED]")
+    .replace(/bearer\s+[a-zA-Z0-9_\-\.]+/gi, "Bearer [REDACTED]")
+    .replace(/whsec_[a-zA-Z0-9_\-]+/gi, "whsec_[REDACTED]");
+}
+
 export async function logActivity(company: string, type: string, id: string, action: string, summary: string, actor?: string, publicToken?: string, workspaceId?: number | null) {
   try {
     const wsId = workspaceId ?? null;
+    const sanitizedSummary = sanitizeActivitySummary(summary);
     await db.run(
       `INSERT INTO "ActivityLog" ("company", "workspaceId", "entityType", "entityId", "action", "summary", "actor", "publicToken")
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company, wsId, type, id, action, summary, actor || "", publicToken || ""],
+      [company, wsId, type, id, action, sanitizedSummary, actor || "", publicToken || ""],
     );
     const created = await db.query<{ id?: number | string }>(
       `SELECT "id" FROM "ActivityLog" WHERE "company" = ? AND "entityType" = ? AND "entityId" = ? AND "action" = ? AND "summary" = ? ORDER BY "id" DESC LIMIT 1`,
-      [company, type, id, action, summary],
+      [company, type, id, action, sanitizedSummary],
     );
     const createdId = created[0]?.id === undefined ? undefined : Number(created[0].id);
     if (createdId !== undefined) {
@@ -164,7 +173,7 @@ export async function logActivity(company: string, type: string, id: string, act
         entityType: type,
         entityId: id,
         action,
-        summary,
+        summary: sanitizedSummary,
       }, wsId);
     }
 
@@ -176,7 +185,7 @@ export async function logActivity(company: string, type: string, id: string, act
       entityType: type,
       entityId: id,
       action,
-      summary: summary.slice(0, 300),
+      summary: sanitizedSummary.slice(0, 300),
       actor: actor || "",
     });
 
@@ -186,7 +195,7 @@ export async function logActivity(company: string, type: string, id: string, act
       entityType: type,
       entityId: id,
       action,
-      summary,
+      summary: sanitizedSummary,
       actor: actor || "",
       workspaceId: wsId,
     });

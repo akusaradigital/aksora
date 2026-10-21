@@ -10,7 +10,7 @@ export type SchemaHealthTable = {
 export async function getSchemaHealth() {
   const tableNames = [...new Set(tables.map((table) => table.name))];
   const rows = await db.query<{ table_name: string; column_name: string }>(
-    `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ANY(?)`,
+    `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ANY(?::text[])`,
     [tableNames],
   );
 

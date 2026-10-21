@@ -24,7 +24,8 @@ const MAX_ATTEMPTS = 10;
 const UNREAD_COLLAPSE_THRESHOLD = 20;
 
 function getBackoffDelay(attempt: number): number {
-  return Math.min(BACKOFF_BASE * Math.pow(2, attempt), BACKOFF_MAX);
+  const base = Math.min(BACKOFF_BASE * Math.pow(2, attempt), BACKOFF_MAX);
+  return Math.floor(base * (0.8 + Math.random() * 0.4));
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -94,6 +95,12 @@ export function DashboardRealtime() {
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
 
+    // Clear any pending reconnect timer so we don't open duplicate connections
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
     // Close existing connection if any
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -110,6 +117,12 @@ export function DashboardRealtime() {
 
     const es = new EventSource(url);
     eventSourceRef.current = es;
+
+    es.onopen = () => {
+      if (!mountedRef.current) return;
+      attemptRef.current = 0;
+      setConnectionState("connected");
+    };
 
     es.addEventListener("connected", (event) => {
       if (!mountedRef.current) return;
