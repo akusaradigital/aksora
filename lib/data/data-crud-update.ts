@@ -53,9 +53,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "tasks": {
       const res = await db.run(
         `UPDATE "Task"
-         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "startDate" = ?, "endDate" = ?, "description" = ?, "acceptanceCriteria" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "title" = ?, "project" = ?, "relatedFeature" = ?, "category" = ?, "status" = ?, "priority" = ?, "durationMinutes" = ?, "startDate" = ?, "endDate" = ?, "description" = ?, "acceptanceCriteria" = ?, "notes" = ?, "evidence" = ?, "relatedItems" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria ?? "", data.notes ?? "", data.evidence ?? "", data.relatedItems ?? "", data.assignee ?? "", id, ...companyParam]
+        [data.title, data.project, data.relatedFeature ?? "", data.category, data.status, data.priority, data.durationMinutes !== undefined ? (Number(data.durationMinutes) || 0) : 0, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria ?? "", data.notes ?? "", data.evidence ?? "", data.relatedItems ?? "", data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);
@@ -71,7 +71,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "Bug"
          SET "project" = ?, "module" = ?, "bugType" = ?, "title" = ?, "preconditions" = ?, "stepsToReproduce" = ?, "expectedResult" = ?, "actualResult" = ?, "severity" = ?, "priority" = ?, "status" = ?, "suggestedDev" = ?, "relatedItems" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.suggestedDev ?? "", data.relatedItems ?? "", data.evidence, id, ...companyParam]
+        [data.project, data.module ?? "", data.bugType, data.title, data.preconditions ?? "", data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.suggestedDev ?? "", data.relatedItems ?? "", data.evidence ?? "", id, ...companyParam]
       );
       await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`, actor);
       if (data.severity) {
@@ -108,7 +108,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "TestPlan"
          SET "title" = ?, "project" = ?, "sprint" = ?, "scope" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.title, data.project, data.sprint, data.scope, data.startDate, data.endDate, data.status, notes, data.assignee ?? "", id, ...companyParam]
+        [data.title, data.project, data.sprint ?? "", data.scope ?? "", data.startDate ?? "", data.endDate ?? "", data.status, notes, data.assignee ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
       invalidateDashboardCache(company);
@@ -135,7 +135,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "TestSession"
          SET "date" = ?, "project" = ?, "sprint" = ?, "tester" = ?, "scope" = ?, "totalCases" = ?, "passed" = ?, "failed" = ?, "blocked" = ?, "result" = ?, "notes" = ?, "evidence" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence, id, ...companyParam]
+        [data.date, data.project, data.sprint ?? "", data.tester, data.scope ?? "", data.totalCases ?? "", data.passed ?? "", data.failed ?? "", data.blocked ?? "", data.result, data.notes ?? "", data.evidence ?? "", id, ...companyParam]
       );
       await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`, actor);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSession" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
@@ -149,7 +149,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "TestCase"
          SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition ?? "", data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
       await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`, actor);
       invalidateDashboardCache(company);
@@ -239,7 +239,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "Sprint"
          SET "name" = ?, "startDate" = ?, "endDate" = ?, "status" = ?, "goal" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.name, data.startDate, data.endDate, data.status, data.goal ?? "", id, ...companyParam]
+        [data.name, data.startDate ?? "", data.endDate ?? "", data.status, data.goal ?? "", id, ...companyParam]
       );
       await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`, actor);
       invalidateDashboardCache(company);
@@ -254,7 +254,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "MeetingNote"
          SET "date" = ?, "project" = ?, "title" = ?, "attendees" = ?, "content" = ?, "summary" = ?, "actionItems" = ?, "relatedItems" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? "", id, ...companyParam]
+        [data.date, data.project ?? "", data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? "", id, ...companyParam]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`, actor);
       invalidateDashboardCache(company);
@@ -288,7 +288,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         `UPDATE "WorkLog"
          SET "date" = ?, "startTime" = ?, "endTime" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
+        [data.date, data.startTime ?? "", data.endTime ?? "", data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
       );
       await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor);
       invalidateDashboardCache(company);

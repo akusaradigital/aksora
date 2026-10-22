@@ -46,6 +46,7 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "assignee" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "durationMinutes" INTEGER DEFAULT 0,
       "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,

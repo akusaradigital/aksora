@@ -70,7 +70,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "TestPlan" ("company", "workspaceId", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.title, data.project, data.sprint, data.scope, data.status, data.startDate, data.endDate, notes, data.assignee ?? ""]
+        [company, workspaceId, publicToken, data.title, data.project, data.sprint ?? "", data.scope ?? "", data.status, data.startDate ?? "", data.endDate ?? "", notes, data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -97,7 +97,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "TestCase" ("company", "workspaceId", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "assignee", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition, data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
+        [company, workspaceId, publicToken, data.testSuiteId, data.tcId, data.typeCase, data.preCondition ?? "", data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium"]
       );
       await logActivity(company, "TestCase", String(data.tcId), "Created", `Added test case: ${data.tcId} - ${data.caseName}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -114,7 +114,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "Bug" ("company", "workspaceId", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.project, data.module, data.bugType, data.title, data.preconditions, data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence, data.relatedItems, suggestedDev],
+        [company, workspaceId, publicToken, data.project, data.module ?? "", data.bugType, data.title, data.preconditions ?? "", data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.evidence ?? "", data.relatedItems ?? "", suggestedDev],
       );
       await logActivity(company, "Bug", String(data.title), "Created", `New bug recorded: ${data.title}`, actor, publicToken, workspaceId);
       void broadcastCriticalBug({
@@ -136,9 +136,9 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
     case "tasks": {
       const publicToken = makePublicToken();
       const res = await runInsert(
-        `INSERT INTO "Task" ("company", "workspaceId", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "notes", "evidence", "relatedItems", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.title, data.project, data.relatedFeature, data.category, data.status, data.priority, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria, data.notes, data.evidence, data.relatedItems, data.assignee ?? ""],
+        `INSERT INTO "Task" ("company", "workspaceId", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "durationMinutes", "startDate", "endDate", "description", "acceptanceCriteria", "notes", "evidence", "relatedItems", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.title, data.project, data.relatedFeature ?? "", data.category, data.status, data.priority, data.durationMinutes ? Number(data.durationMinutes) || 0 : 0, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria ?? "", data.notes ?? "", data.evidence ?? "", data.relatedItems ?? "", data.assignee ?? ""],
       );
       await logActivity(company, "Task", String(data.title), "Created", `New task assigned: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -153,7 +153,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "TestSession" ("company", "workspaceId", "publicToken", "date", "project", "sprint", "tester", "scope", "totalCases", "passed", "failed", "blocked", "result", "notes", "evidence")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.date, data.project, data.sprint, data.tester, data.scope, data.totalCases, data.passed, data.failed, data.blocked, data.result, data.notes, data.evidence]
+        [company, workspaceId, publicToken, data.date, data.project, data.sprint ?? "", data.tester, data.scope ?? "", data.totalCases ?? "", data.passed ?? "", data.failed ?? "", data.blocked ?? "", data.result, data.notes ?? "", data.evidence ?? ""]
       );
       await logActivity(company, "Session", text(data.date), "Executed", `Test execution session by ${data.tester} (${data.result})`, actor, publicToken, workspaceId);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "TestSession" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
@@ -167,7 +167,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "TestSuite" ("company", "workspaceId", "publicToken", "testPlanId", "title", "assignee", "status", "notes")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.testPlanId, data.title, data.assignee ?? "", data.status, data.notes ?? ""]
+        [company, workspaceId, publicToken, data.testPlanId ?? "", data.title, data.assignee ?? "", data.status, data.notes ?? ""]
       );
       await logActivity(company, "TestSuite", String(data.title), "Created", `Suite created: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -224,7 +224,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "Sprint" ("company", "workspaceId", "publicToken", "name", "startDate", "endDate", "status", "goal")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.name, data.startDate, data.endDate, data.status, data.goal ?? ""]
+        [company, workspaceId, publicToken, data.name, data.startDate ?? "", data.endDate ?? "", data.status, data.goal ?? ""]
       );
       await logActivity(company, "Sprint", String(data.name), "Created", `Sprint ${data.name} started`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -239,7 +239,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "MeetingNote" ("company", "workspaceId", "publicToken", "date", "project", "title", "attendees", "content", "summary", "actionItems", "relatedItems")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.date || new Date().toISOString(), data.project, data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
+        [company, workspaceId, publicToken, data.date || new Date().toISOString(), data.project ?? "", data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? ""]
       );
       await logActivity(company, "MeetingNote", String(data.title), "Created", `Notes recorded for: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
@@ -273,7 +273,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "WorkLog" ("company", "workspaceId", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.date, data.startTime, data.endTime, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
+        [company, workspaceId, publicToken, data.date, data.startTime ?? "", data.endTime ?? "", data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
       );
       await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${data.startTime}-${data.endTime} ${data.category} (${data.project})`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);

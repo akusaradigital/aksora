@@ -322,7 +322,7 @@ export function VaultClient() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>

@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cn, formatDisplayText } from "@/lib/utils";
+import { cn, formatDisplayText, formatDuration } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { Badge } from "@/components/shared/badge";
-import { Note, PencilSimple, X } from "@phosphor-icons/react";
+import { Note, PencilSimple, X, PaperPlaneTilt } from "@phosphor-icons/react";
 import { CopyLinkButton } from "@/components/shared/copy-link-button";
 import { CollaborationIndicator } from "@/components/shared/collaboration-indicator";
 import { useCollaborationPresence } from "@/hooks/use-collaboration-presence";
 import { ImageLightbox, ActivityTab, renderNotes, renderEvidence } from "@/components/module/module-view-modal-parts";
+import { SicmundusSyncModal } from "@/components/tasks/sicmundus-sync-modal";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 type FieldConfig = {
@@ -27,7 +28,7 @@ const DEFAULT_TAB = "details";
 const BADGE_FIELDS = ["status", "priority", "severity", "bugType", "typeCase", "environment", "result"];
 
 /** Fields considered "metadata" (short, shown in compact grid) */
-const METADATA_FIELDS = ["project", "projectName", "sprint", "date", "startDate", "endDate", "assignee", "tester", "developer", "version", "tcId", "code", "caseName", "email", "role", "skills", "category", "module", "moduleName", "feature", "relatedFeature", "suggestedDev", "createdBy", "relatedItems", "traceability", "testPlanId", "testPlanTitle", "testSuiteId", "attendees", "whatTested"];
+const METADATA_FIELDS = ["project", "projectName", "sprint", "date", "startDate", "endDate", "durationMinutes", "assignee", "tester", "developer", "version", "tcId", "code", "caseName", "email", "role", "skills", "category", "module", "moduleName", "feature", "relatedFeature", "suggestedDev", "createdBy", "relatedItems", "traceability", "testPlanId", "testPlanTitle", "testSuiteId", "attendees", "whatTested"];
 
 function isValidTab(tab: string | null | undefined): tab is string {
   if (!tab) return false;
@@ -56,6 +57,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
     return isValidTab(initialTab) ? initialTab : DEFAULT_TAB;
   });
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [showSicmundusModal, setShowSicmundusModal] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   // Real-time collaboration presence
@@ -142,6 +144,16 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
     // Role field
     if (field.name === "role") {
       return <HighlightText text={getRoleLabel(String(row[field.name] ?? ""))} query="" />;
+    }
+
+    // Duration field
+    if (field.name === "durationMinutes") {
+      const text = formatDuration(value);
+      return (
+        <p className="text-xs font-semibold text-gray-800">
+          <HighlightText text={text} query="" />
+        </p>
+      );
     }
 
     // Notes with structured rendering
@@ -300,6 +312,16 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-gray-200/60 px-5 py-3">
+          {module === "tasks" && (
+            <button
+              type="button"
+              onClick={() => setShowSicmundusModal(true)}
+              className="inline-flex h-8 items-center gap-1.5 border border-sky-300 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+            >
+              <PaperPlaneTilt size={13} weight="bold" />
+              Sync to Sicmundus
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={onEdit}
@@ -311,6 +333,23 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
           )}
         </div>
       </div>
+
+      {showSicmundusModal && (
+        <SicmundusSyncModal
+          isOpen={showSicmundusModal}
+          onClose={() => setShowSicmundusModal(false)}
+          task={{
+            id: row.id,
+            title: String(row.title || row.caseName || row.name || ""),
+            description: typeof row.description === "string" ? row.description : undefined,
+            project: typeof row.project === "string" ? row.project : typeof row.projectName === "string" ? row.projectName : undefined,
+            category: typeof row.category === "string" ? row.category : undefined,
+            durationMinutes: typeof row.durationMinutes === "number" || typeof row.durationMinutes === "string" ? row.durationMinutes : undefined,
+            startDate: typeof row.startDate === "string" ? row.startDate : typeof row.date === "string" ? row.date : undefined,
+            endDate: typeof row.endDate === "string" ? row.endDate : undefined,
+          }}
+        />
+      )}
     </div>
   );
 }

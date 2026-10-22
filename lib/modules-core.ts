@@ -162,14 +162,15 @@ export const bugTypeOptions: Option[] = [
 export const taskSchema = z.object({
   title: requiredText("Title"),
   project: requiredText("Project"),
-  relatedFeature: requiredText("Feature"),
+  relatedFeature: optionalText,
   category: z.enum(["Feature", "Enhancement", "Bug Fix", "Tech Debt", "Research", "Support", "Refactor", "Documentation", "Improvement"]),
   status: z.enum(["todo", "doing", "review", "done", "blocked"]),
   priority: z.enum(["P0", "P1", "P2", "P3"]),
+  durationMinutes: z.union([z.string(), z.number()]).optional().default(""),
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
   description: requiredText("Description"),
-  acceptanceCriteria: requiredText("Acceptance Criteria"),
+  acceptanceCriteria: optionalText,
   evidence: urlField,
   prUrl: optionalText,
   branchName: optionalText,
@@ -179,10 +180,10 @@ export const taskSchema = z.object({
 
 export const bugSchema = z.object({
   project: requiredText("Project"),
-  module: requiredText("Module"),
+  module: optionalText,
   bugType: z.enum(["Functional", "UI/UX", "Performance", "Validation", "API", "Security", "Compatibility"]),
   title: requiredText("Title"),
-  preconditions: requiredText("Preconditions"),
+  preconditions: optionalText,
   stepsToReproduce: requiredText("Steps to Reproduce"),
   expectedResult: requiredText("Expected Result"),
   actualResult: requiredText("Actual Result"),
@@ -200,7 +201,7 @@ export const testCaseSchema = z.object({
   caseName: requiredText("Test Case Name"),
   assignee: optionalText,
   typeCase: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Positive", "Negative"]).default("Positive")),
-  preCondition: requiredText("Pre-condition"),
+  preCondition: optionalText,
   testStep: requiredText("Test Step"),
   expectedResult: requiredText("Expected Result"),
   actualResult: optionalText,
@@ -213,25 +214,26 @@ export const testPlanStatusOptions: Option[] = [
   ["Active", "active"],
   ["Completed", "completed"],
   ["Closed", "closed"],
+  ["Archived", "archived"],
 ].map(([label, value]) => ({ label, value }));
 
 export const testPlanSchema = z.object({
   code: optionalText,
   title: requiredText("Plan Title"),
   project: requiredText("Project"),
-  sprint: requiredText("Sprint"),
+  sprint: optionalText,
   scope: optionalText,
   startDate: z.string().optional().default(""),
   endDate: z.string().optional().default(""),
-  status: z.enum(["draft", "active", "completed", "closed"]),
+  status: z.enum(["draft", "active", "completed", "closed", "archived"]),
   assignee: optionalText,
   notes: optionalText,
 });
 
 export const sprintSchema = z.object({
   name: requiredText("Sprint Name"),
-  startDate: requiredText("Start Date"),
-  endDate: requiredText("End Date"),
+  startDate: z.string().optional().default(""),
+  endDate: z.string().optional().default(""),
   status: z.enum(["planning", "active", "completed"]),
   goal: optionalText,
 });
@@ -246,9 +248,9 @@ export const sessionResultOptions: Option[] = [
 export const testSessionSchema = z.object({
   date: z.string().min(1, "Date is required"),
   project: requiredText("Project"),
-  sprint: requiredText("Sprint"),
+  sprint: optionalText,
   tester: requiredText("Tester"),
-  scope: requiredText("Scope / Modules Tested"),
+  scope: optionalText,
   totalCases: z.string().optional().default(""),
   passed: z.string().optional().default(""),
   failed: z.string().optional().default(""),
@@ -274,7 +276,7 @@ export const suiteSchema = z.object({
 
 export const meetingNoteSchema = z.object({
   "date": z.string().min(1, "Date is required"),
-  "project": requiredText("Project"),
+  "project": optionalText,
   "title": requiredText("Topic"),
   "attendees": optionalText,
   "content": optionalText,
@@ -305,8 +307,8 @@ export const workLogCategoryOptions: Option[] = [
 
 export const workLogSchema = z.object({
   date: z.string().min(1, "Date is required"),
-  startTime: requiredText("Start Time"),
-  endTime: requiredText("End Time"),
+  startTime: optionalText,
+  endTime: optionalText,
   category: requiredText("Category"),
   project: requiredText("Project"),
   description: requiredText("Description"),

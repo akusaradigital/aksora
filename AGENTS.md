@@ -87,13 +87,6 @@ app/[page]/          → page + co-located sub-components (gantt/, weekly-report
 - Put files flat in `components/` root.
 - Duplicate logic from `lib/data-helpers.ts` or `lib/utils.ts`.
 
-## Strict Post-Task Output Rule (MANDATORY)
-**After completing ANY task (regardless of success, failure, or question):**
-1. **DO NOT list what was done.**
-2. **DO NOT explain fixes, changes, or reasoning.**
-3. **DO NOT give any recap, status report, or summary.**
-4. **ONLY output 10 ideas for next development.**
-
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from"react";
-import { CaretDown, Plus, Trash, Warning } from"@phosphor-icons/react";
+import { Plus, Trash, Warning } from"@phosphor-icons/react";
 import { toast } from"@/components/ui/toast";
 import { getInviteRoleOptions, getRoleLabel } from"@/lib/roles";
 import { cn } from"@/lib/utils";
@@ -204,7 +204,6 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
    </option>
   ))}
  </select>
- <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
 </div>
 <div className="relative min-w-0">
  <select
@@ -222,7 +221,6 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  </option>
  ))}
  </select>
- <CaretDown size={14} weight="bold" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
  </div>
  <input
  value={expiresInDays}

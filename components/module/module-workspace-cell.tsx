@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/shared/badge";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { InlineStatusEditor } from "@/components/module/inline-status-editor";
-import { cn, formatDate, formatRelativeTime } from "@/lib/utils";
+import { cn, formatDate, formatRelativeTime, formatDuration } from "@/lib/utils";
 import { getRoleLabel } from "@/lib/roles";
 import type { ModuleKey } from "@/lib/modules";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
@@ -116,6 +116,8 @@ export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onIn
         <Badge value={String(value)} displayValue={getStatusDisplay(module, String(value))} />
       ) : column.tone ? (
         <Badge value={String(value)} />
+      ) : column.key === "durationMinutes" ? (
+        <span className="font-medium text-gray-700">{formatDuration(value as string | number)}</span>
       ) : column.key.toLowerCase().includes("date") || column.key === "createdAt" || column.key === "updatedAt" ? (
         <span className="inline-block min-w-[70px]" title={formatDate(value == null ? null : String(value))}>
           {column.key === "createdAt" || column.key === "updatedAt"

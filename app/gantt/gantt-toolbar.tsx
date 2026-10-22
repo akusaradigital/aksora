@@ -82,9 +82,6 @@ export function GanttToolbar({
             <option value="plan">Test plans only</option>
             <option value="task">Tasks only</option>
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-gray-400">
-            <CaretRight size={12} weight="bold" className="rotate-90" />
-          </div>
         </div>
       </div>
       <div className="flex w-full flex-col gap-1">

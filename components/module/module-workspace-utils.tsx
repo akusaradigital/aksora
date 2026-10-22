@@ -114,7 +114,7 @@ export function getPreferredColumnOrder(module: ModuleKey) {
     return ["date", "project", "sprint", "tester", "result"];
   }
   if (module === "tasks") {
-    return ["title", "project", "status", "priority", "startDate", "endDate"];
+    return ["title", "project", "status", "priority", "durationMinutes", "startDate", "endDate"];
   }
   if (module === "assignees") {
     return ["name", "role", "email", "status"];
@@ -142,6 +142,7 @@ export function getFieldIcons(): Record<string, ReactNode> {
     category: <SquaresFour size={16} className="text-blue-500" />,
     status: <Pulse size={16} className="text-emerald-500" />,
     priority: <Shield size={16} className="text-orange-500" />,
+    durationMinutes: <Clock size={16} className="text-amber-500" />,
     severity: <WarningCircle size={16} className="text-rose-500" />,
     bugType: <Bug size={16} className="text-rose-500" />,
     startDate: <Calendar size={16} className="text-emerald-500" />,

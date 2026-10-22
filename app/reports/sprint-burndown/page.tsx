@@ -8,7 +8,6 @@ import {
   Clock,
   Kanban,
   ArrowRight,
-  CaretDown,
 } from "@phosphor-icons/react";
 import {
   LineChart,

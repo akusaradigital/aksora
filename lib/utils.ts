@@ -104,3 +104,32 @@ export function formatRelativeTime(value?: string | Date | null): string {
     return String(value ?? "-");
   }
 }
+
+export function formatDuration(minutes?: number | string | null): string {
+  if (minutes == null || minutes === "") return "-";
+  const num = typeof minutes === "number" ? minutes : parseInt(String(minutes).replace(/\D+/g, ""), 10);
+  if (isNaN(num) || num <= 0) return "-";
+  const h = Math.floor(num / 60);
+  const m = num % 60;
+  if (h > 0 && m > 0) return `${h}j ${m}m (${num}m)`;
+  if (h > 0) return `${h}j (${num}m)`;
+  return `${m}m`;
+}
+
+export function decomposeDuration(minutes?: number | string | null): { hours: number; minutes: number; totalMinutes: number } {
+  if (minutes == null || minutes === "") return { hours: 0, minutes: 0, totalMinutes: 0 };
+  const num = typeof minutes === "number" ? minutes : parseInt(String(minutes).replace(/\D+/g, ""), 10);
+  if (isNaN(num) || num <= 0) return { hours: 0, minutes: 0, totalMinutes: 0 };
+  return {
+    hours: Math.floor(num / 60),
+    minutes: num % 60,
+    totalMinutes: num,
+  };
+}
+
+export function composeDuration(hours: number | string, minutes: number | string): number {
+  const h = Math.max(0, parseInt(String(hours || 0).replace(/\D+/g, ""), 10) || 0);
+  const m = Math.max(0, parseInt(String(minutes || 0).replace(/\D+/g, ""), 10) || 0);
+  return h * 60 + m;
+}
+

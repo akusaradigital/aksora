@@ -42,7 +42,7 @@ export async function getModuleRows(module: ModuleKey, limit?: number) {
     case "bugs":
       return await selectAll(`SELECT "id", "company", "publicToken", "project", "module", "bugType", "title", "preconditions", "stepsToReproduce", "expectedResult", "actualResult", "severity", "priority", "status", "evidence", "relatedItems", "suggestedDev", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Bug" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams);
     case "tasks":
-      return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams);
+      return await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "durationMinutes", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL ${andWhere} ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC${limitClause}`, qParams);
     case "test-suites": {
       const suiteCompanyWhere = scope.getScopedAndClause("ts");
       const tcCompanyWhere = scope.getScopedAndClause("tc");
@@ -136,7 +136,7 @@ const SORTABLE_COLUMNS: Record<string, string[]> = {
   "test-sessions": ["project", "date", "tester", "result", "totalCases", "updatedAt", "createdAt"],
   "test-cases": ["caseName", "typeCase", "assignee", "status", "priority", "updatedAt", "createdAt"],
   "bugs": ["title", "project", "module", "bugType", "severity", "priority", "status", "suggestedDev", "updatedAt", "createdAt"],
-  "tasks": ["title", "project", "category", "status", "priority", "assignee", "updatedAt", "createdAt"],
+  "tasks": ["title", "project", "category", "status", "priority", "durationMinutes", "assignee", "updatedAt", "createdAt"],
   "test-suites": ["title", "status", "updatedAt", "createdAt"],
   "assignees": ["name", "role", "email", "updatedAt", "createdAt"],
   "meeting-notes": ["title", "date", "project", "updatedAt", "createdAt"],
@@ -217,7 +217,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
     case "tasks": {
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}`, [...qParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "title", "project", "relatedFeature", "category", "status", "priority", "durationMinutes", "startDate", "endDate", "description", "acceptanceCriteria", "assignee", "evidence", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "Task" WHERE "deletedAt" IS NULL${andWhere}${searchClause}${orderClause}${limitClause}`, [...qParams, ...searchParams]);
       return { rows, total };
     }
     case "test-suites": {

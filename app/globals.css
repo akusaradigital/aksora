@@ -326,6 +326,24 @@ select {
     transform 100ms ease;
 }
 
+select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' width='14' height='14' fill='%2364748b'%3E%3Cpath d='M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px 14px;
+  padding-right: 2.25rem !important;
+  cursor: pointer;
+}
+
+.dark select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' width='14' height='14' fill='%2394a3b8'%3E%3Cpath d='M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z'/%3E%3C/svg%3E");
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* ── Tap feedback (native CSS, no per-component JS) ───────────── */
 button:not(:disabled):active,
 [role="button"]:not([aria-disabled="true"]):active {

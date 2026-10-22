@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from"react";
-import Link from"next/link";
-import { Badge } from"@/components/shared/badge";
-import { AutoResizeTextarea } from"@/components/ui/auto-resize-textarea";
-import { FormFieldError } from"@/components/shared/form-field-error";
-import { InlineAlert } from"@/components/ui/inline-alert";
-import { cn } from"@/lib/utils";
-import { Info } from"@phosphor-icons/react";
-import type { ModuleKey } from"@/lib/modules";
-import type { FormField } from"@/components/module/module-workspace-form-field";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Badge } from "@/components/shared/badge";
+import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
+import { FormFieldError } from "@/components/shared/form-field-error";
+import { DurationInput } from "@/components/shared/duration-input";
+import { InlineAlert } from "@/components/ui/inline-alert";
+import { cn } from "@/lib/utils";
+import { Info } from "@phosphor-icons/react";
+import type { ModuleKey } from "@/lib/modules";
+import type { FormField } from "@/components/module/module-workspace-form-field";
 
 type Row = Record<string, unknown> & { id?: string | number };
 type DuplicateRow = { id: string | number; code: string; title: string; status: string };
@@ -30,9 +31,9 @@ type Props = {
 
 function getNextVersion(version: string) {
  const match = version.match(/^(v\.?|)(\d+)\.(\d+)\.(\d+)$/i);
- if (!match) return"";
+ if (!match) return "";
  const [, prefix, major, minor, patch] = match;
- return`${prefix}${major}.${minor}.${Number(patch) + 1}`;
+ return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
 }
 
 export function ModuleWorkspaceFormText({
@@ -48,25 +49,40 @@ export function ModuleWorkspaceFormText({
  versionSequenceLabel,
  versionSequenceDefaultValue,
 }: Props) {
- const value = editingRow ? String(editingRow[field.name] ||"") :"";
+ const value = editingRow ? String(editingRow[field.name] || "") : "";
  const isLocked = Boolean(field.readonly);
- const versionValue = versionSequenceLabel?.trim() ||"";
- const nextVersion = versionValue ? getNextVersion(versionValue) :"";
+ const versionValue = versionSequenceLabel?.trim() || "";
+ const nextVersion = versionValue ? getNextVersion(versionValue) : "";
  const initialValue =
- field.helperKind ==="version-sequence" && !editingRow
+ field.helperKind === "version-sequence" && !editingRow
  ? (versionSequenceDefaultValue?.trim() || nextVersion || value)
  : value;
  const [versionDraft, setVersionDraft] = useState(initialValue);
+ const isDuration = field.name === "durationMinutes";
 
-useEffect(() => {
- if (field.helperKind !=="version-sequence") return;
- queueMicrotask(() => setVersionDraft(initialValue));
-}, [field.helperKind, initialValue]);
+ useEffect(() => {
+  if (field.helperKind !== "version-sequence") return;
+  queueMicrotask(() => setVersionDraft(initialValue));
+ }, [field.helperKind, initialValue]);
+
+ if (isDuration) {
+  return (
+    <div className="space-y-1">
+      <DurationInput
+        name={field.name}
+        value={value}
+        disabled={isLocked}
+        error={!!fieldError}
+      />
+      <FormFieldError message={fieldError} />
+    </div>
+  );
+ }
 
  if (isLocked) {
  return (
  <div className="flex min-h-10 w-full items-center  border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none">
- {value ||"-"}
+ {value || "-"}
  <input type="hidden" name={field.name} value={value} />
  </div>
  );
@@ -77,28 +93,36 @@ useEffect(() => {
  <div className="relative">
  <AutoResizeTextarea
  name={field.name}
- value={field.helperKind ==="version-sequence" ? versionDraft : undefined}
- defaultValue={field.helperKind ==="version-sequence" ? undefined : initialValue}
- rows={field.kind ==="textarea" ? 1 : 1}
+ value={
+   field.helperKind === "version-sequence"
+     ? versionDraft
+     : undefined
+ }
+ defaultValue={
+   field.helperKind === "version-sequence"
+     ? undefined
+     : initialValue
+ }
+ rows={field.kind === "textarea" ? 1 : 1}
  required={field.required}
- placeholder={field.placeholder ??`Enter ${field.label}`}
- disabled={module ==="test-plans" && field.name ==="scope"}
+ placeholder={field.placeholder ?? `Enter ${field.label}`}
+ disabled={module === "test-plans" && field.name === "scope"}
  error={!!fieldError}
  onChange={(e) => {
- if (field.helperKind ==="version-sequence") {
+ if (field.helperKind === "version-sequence") {
  setVersionDraft(e.target.value);
  }
- if (field.name ==="title" || field.name ==="caseName") {
+ if (field.name === "title" || field.name === "caseName") {
  checkDuplicates(e.target.value);
  }
- if (field.name ==="sprint") {
+ if (field.name === "sprint") {
  checkSprintDuplicate(e.target.value);
  }
  }}
  className={cn(
- field.kind ==="textarea" ?"min-h-10" :"min-h-10 overflow-y-hidden",
- field.helperKind ==="version-sequence" &&"pr-10",
- field.name ==="scope" && module ==="test-plans" &&"bg-gray-100 text-gray-500 cursor-not-allowed",
+ field.kind === "textarea" ? "min-h-10" : "min-h-10 overflow-y-hidden",
+ field.helperKind === "version-sequence" && "pr-10",
+ field.name === "scope" && module === "test-plans" && "bg-gray-100 text-gray-500 cursor-not-allowed",
  )}
  />
  {field.helperKind ==="version-sequence" && (
