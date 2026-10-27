@@ -43,6 +43,19 @@ const DashboardStandupModal = dynamic(
   { ssr: false, loading: () => null }
 );
 
+const QualityHealthScore = dynamic(
+  () =>
+    import("@/components/dashboard/quality-health-score").then(
+      (module) => module.QualityHealthScore
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-24 rounded-xl border border-gray-200 bg-gray-50" />
+    ),
+  }
+);
+
 export type DashboardProps = {
   metrics?: { label: string; value: number; caption: string }[];
   distribution?: {
@@ -89,6 +102,14 @@ export type DashboardProps = {
     current: number | null;
     previousWeek: number | null;
     delta: number | null;
+  };
+  qualityHealthScore?: {
+    score: number;
+    components: {
+      resolutionRate: number | null;
+      inverseCriticalRatio: number | null;
+      testPassRate: number | null;
+    };
   };
   overview?: OverviewDashboardData;
   [key: string]: unknown;
@@ -284,6 +305,18 @@ export function Dashboard(props: DashboardProps) {
       {props.resolutionRate && (
         <div className="max-w-xs">
           <ResolutionRateMetric resolutionRate={props.resolutionRate} />
+        </div>
+      )}
+
+      {/* Quality Health Score / Bug Distribution */}
+      {props.qualityHealthScore && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900">Bug Distribution</h3>
+          </div>
+          <div className="flex items-center justify-center p-2">
+            <QualityHealthScore qualityHealthScore={props.qualityHealthScore} />
+          </div>
         </div>
       )}
 

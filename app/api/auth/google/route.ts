@@ -13,7 +13,9 @@ import { checkCompanyUserLimit } from "@/lib/plan-limits";
 import { rateLimitKey, isRateLimited, recordFailedAttempt, clearRateLimit, getClientIp } from "@/lib/rate-limit";
 import { ensureWorkspaceForUser, ensureWorkspaceMembership } from "@/lib/workspace-memberships";
 
-const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
+function getGoogleClientId(): string {
+  return (process.env.GOOGLE_CLIENT_ID || "").trim();
+}
 const TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
 
 type GoogleTokenInfo = {
@@ -32,6 +34,8 @@ type UserRow = { id: number; name: string; email: string; role: string; company:
 async function verifyGoogleToken(credential: string): Promise<GoogleTokenInfo | null> {
   if (!credential) return null;
 
+  const googleClientId = getGoogleClientId();
+
   // Local development shortcut when origin is localhost:3001 or testing
   if (process.env.NODE_ENV !== "production" && credential.startsWith("dev_gmail:")) {
     const email = credential.replace("dev_gmail:", "").trim().toLowerCase();
@@ -41,20 +45,20 @@ async function verifyGoogleToken(credential: string): Promise<GoogleTokenInfo | 
         email_verified: true,
         name: email.split("@")[0],
         picture: "",
-        aud: GOOGLE_CLIENT_ID,
+        aud: googleClientId,
         exp: String(Math.floor(Date.now() / 1000) + 3600),
       };
     }
   }
 
-  if (!GOOGLE_CLIENT_ID) return null;
+  if (!googleClientId) return null;
   try {
     const url = new URL(TOKENINFO_URL);
     url.searchParams.set("id_token", credential);
     const res = await fetch(url.toString(), { cache: "no-store" });
     if (!res.ok) return null;
     const info = (await res.json()) as GoogleTokenInfo;
-    if (!info || info.aud !== GOOGLE_CLIENT_ID) return null;
+    if (!info || info.aud !== googleClientId) return null;
     if (String(info.email_verified) !== "true") return null;
     if (info.exp && Number(info.exp) * 1000 < Date.now()) return null;
     return info;
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
   if (!authEnabled()) {
     return NextResponse.json({ error: "Auth is not configured." }, { status: 500 });
   }
-  if (!GOOGLE_CLIENT_ID) {
+  if (!getGoogleClientId()) {
     return NextResponse.json({ error: "Google sign-in is not configured." }, { status: 500 });
   }
 

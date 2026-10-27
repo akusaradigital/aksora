@@ -13,6 +13,16 @@ import {
 } from "recharts";
 import { ResponsiveContainer } from "@/components/shared/responsive-container";
 
+const SafeLineChart = (LineChart || (({ children }: { children?: React.ReactNode }) => <div>{children}</div>)) as typeof LineChart;
+const SafeLine = (Line || (() => null)) as typeof Line;
+const SafePieChart = (PieChart || (({ children }: { children?: React.ReactNode }) => <div>{children}</div>)) as typeof PieChart;
+const SafePie = (Pie || (() => null)) as typeof Pie;
+const SafeCell = (Cell || (() => null)) as typeof Cell;
+const SafeXAxis = (XAxis || (() => null)) as typeof XAxis;
+const SafeYAxis = (YAxis || (() => null)) as typeof YAxis;
+const SafeTooltip = (Tooltip || (() => null)) as typeof Tooltip;
+const SafeCartesianGrid = (CartesianGrid || (() => null)) as typeof CartesianGrid;
+
 export type ExecutionTrendPoint = {
   date: string;
   passed: number;
@@ -66,22 +76,22 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
 
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid stroke="#f1f5f9" vertical={false} />
-            <XAxis
+          <SafeLineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <SafeCartesianGrid stroke="#f1f5f9" vertical={false} />
+            <SafeXAxis
               dataKey="date"
               tick={{ fontSize: 10, fill: "#94a3b8", fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
             />
-            <YAxis
+            <SafeYAxis
               tick={{ fontSize: 10, fill: "#94a3b8", fontWeight: 500 }}
               axisLine={false}
               tickLine={false}
               domain={[0, 80]}
             />
-            <Tooltip
+            <SafeTooltip
               contentStyle={{
                 backgroundColor: "#ffffff",
                 borderRadius: "12px",
@@ -90,7 +100,7 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
             />
-            <Line
+            <SafeLine
               type="monotone"
               dataKey="passed"
               name="Passed"
@@ -99,7 +109,7 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
               dot={{ r: 3, fill: COLORS.passed, strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
-            <Line
+            <SafeLine
               type="monotone"
               dataKey="failed"
               name="Failed"
@@ -108,7 +118,7 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
               dot={{ r: 3, fill: COLORS.failed, strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
-            <Line
+            <SafeLine
               type="monotone"
               dataKey="blocked"
               name="Blocked"
@@ -117,7 +127,7 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
               dot={{ r: 3, fill: COLORS.blocked, strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
-            <Line
+            <SafeLine
               type="monotone"
               dataKey="notRun"
               name="Not Run"
@@ -126,7 +136,7 @@ export function TestExecutionTrendChart({ data }: { data: ExecutionTrendPoint[] 
               dot={{ r: 3, fill: COLORS.notRun, strokeWidth: 0 }}
               activeDot={{ r: 5 }}
             />
-          </LineChart>
+          </SafeLineChart>
         </ResponsiveContainer>
       </div>
     </div>
@@ -152,8 +162,8 @@ export function TestCaseBreakdownChart({ data }: { data: ResultBreakdownData }) 
         {/* Donut Chart with centered Total */}
         <div className="relative flex h-52 items-center justify-center sm:col-span-7">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
+            <SafePieChart>
+              <SafePie
                 data={pieData}
                 innerRadius={56}
                 outerRadius={76}
@@ -161,10 +171,10 @@ export function TestCaseBreakdownChart({ data }: { data: ResultBreakdownData }) 
                 dataKey="value"
               >
                 {pieData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
+                  <SafeCell key={entry.name} fill={entry.color} />
                 ))}
-              </Pie>
-            </PieChart>
+              </SafePie>
+            </SafePieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute flex flex-col items-center justify-center text-center">
             <span className="text-3xl font-black text-slate-900 leading-none">
