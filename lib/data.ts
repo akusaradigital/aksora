@@ -30,6 +30,15 @@ export {
 } from "@/lib/data/data-dashboard-main";
 
 export {
+  getDashboardOverviewData,
+  type OverviewDashboardData,
+  type OverviewBugItem,
+  type OverviewTestRunItem,
+  type OverviewActivityItem,
+  type OverviewProjectItem,
+} from "@/lib/data/data-dashboard-overview";
+
+export {
   getComments,
   createComment,
   updateFilter,

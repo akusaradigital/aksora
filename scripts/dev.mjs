@@ -3,18 +3,20 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import net from "node:net";
 
-// Load .env and validate DATABASE_URL
-const envPath = resolve(".", ".env");
-if (existsSync(envPath)) {
-  const envContent = readFileSync(envPath, "utf-8");
-  for (const line of envContent.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx < 0) continue;
-    const key = trimmed.slice(0, eqIdx);
-    const value = trimmed.slice(eqIdx + 1);
-    if (!process.env[key]) process.env[key] = value;
+// Load .env and .env.local and validate DATABASE_URL
+for (const envFile of [".env.local", ".env"]) {
+  const envPath = resolve(".", envFile);
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, "utf-8");
+    for (const line of envContent.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx < 0) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = value;
+    }
   }
 }
 
@@ -26,7 +28,7 @@ if (!dbUrl.startsWith("postgres")) {
   process.exit(1);
 }
 
-const basePort = Number(process.env.PORT || 3000);
+const basePort = Number(process.env.PORT || 3001);
 const maxPort = basePort + 20;
 
 function isPortFree(port) {
@@ -62,23 +64,8 @@ async function findPort() {
   throw new Error(`No free port found between ${basePort} and ${maxPort}`);
 }
 
-async function getOpenPorts() {
-  const ports = [];
-  for (let port = basePort; port <= maxPort; port += 1) {
-    if (!(await isPortFree(port))) ports.push(port);
-  }
-  return ports;
-}
-
-const occupiedPorts = await getOpenPorts();
-if (occupiedPorts.length > 0) {
-  console.log(`Next.js dev server already running on port(s): ${occupiedPorts.join(", ")}`);
-  console.log(`Open http://localhost:${occupiedPorts[0]}`);
-  process.exit(0);
-}
-
 const port = await findPort();
-console.log(`Starting Next.js dev server on port ${port}`);
+console.log(`Starting Next.js dev server on port ${port}...`);
 
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--port", String(port)], {
   stdio: "inherit",

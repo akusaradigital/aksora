@@ -114,29 +114,20 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
     <div className="relative space-y-6">
       <DashboardRealtime />
 
-      <section className="relative rounded-xl border-l-4 border-l-blue-600 border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-6">
-          <div className="max-w-xl">
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Workspace scope</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Dashboard</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              Review the workspace or narrow it to one project without changing the underlying data flow.
-            </p>
-          </div>
-        </div>
-
-        {projects.length > 1 && (
-          <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+      {projects.length > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-4 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">Project scope:</span>
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setOpen((v) => !v)}
-                className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
+                className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
               >
                 <Funnel size={13} weight="bold" />
                 {selectedProject || "All Projects"}
               </button>
               {open && (
-                <div className="absolute left-0 top-full z-50 mt-2 max-h-64 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
                   <button
                     onClick={() => { setSelectedProject(""); setOpen(false); }}
                     className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50"
@@ -158,23 +149,21 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
             {selectedProject && (
               <button
                 onClick={() => setSelectedProject("")}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+                className="flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
               >
                 <X size={11} weight="bold" />
                 Clear filter
               </button>
             )}
           </div>
-        )}
 
-        <div className="mt-4">
           <DashboardSavedFilters
             activeProject={selectedProject}
             availableProjects={projects}
             onApplyFilter={(project) => setSelectedProject(project)}
           />
         </div>
-      </section>
+      )}
 
       <div>
         {loading || !data ? <DashboardSkeleton /> : <Dashboard {...data} />}

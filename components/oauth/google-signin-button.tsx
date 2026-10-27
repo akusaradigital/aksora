@@ -161,7 +161,45 @@ export function GoogleSignInButton({
         Loading Google sign-in…
         </p>
       )}
-      <div ref={buttonHostRef} />
+      <div ref={buttonHostRef} className="min-h-[44px]" />
+      {/* Dev helper for localhost:3001 if Google OAuth origin is restricted */}
+      {process.env.NODE_ENV !== "production" && (
+        <div className="pt-1 text-center">
+          <button
+            type="button"
+            onClick={async () => {
+              const inputEmail = window.prompt("Enter your Gmail address for login:", "wahyu@gmail.com");
+              if (!inputEmail || !inputEmail.trim()) return;
+              setPending(true);
+              setError("");
+              try {
+                const res = await fetch("/api/auth/google", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ credential: `dev_gmail:${inputEmail.trim()}`, inviteToken }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  setError(data.error || "Google sign-in failed.");
+                  setPending(false);
+                  return;
+                }
+                const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
+                const isPlatformSuperAdmin = data.role === "superadmin" && !String(data.company || "").trim();
+                router.push(isPlatformSuperAdmin ? "/admin/overview" : next);
+                router.refresh();
+                toast(`Signed in as ${inputEmail}`, "success");
+              } catch {
+                setError("Network error. Please try again.");
+                setPending(false);
+              }
+            }}
+            className="text-[11px] font-semibold text-slate-400 hover:text-blue-600 transition underline underline-offset-2"
+          >
+            Sign in with Gmail (Dev 3001)
+          </button>
+        </div>
+      )}
       {pending && (
         <p className="text-center text-[11px] font-semibold text-blue-600">
           Signing you in…

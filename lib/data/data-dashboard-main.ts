@@ -11,6 +11,7 @@ import {
   computeResolutionRate,
   computeResolutionRateDelta,
 } from "@/lib/data/data-dashboard-stats";
+import { getDashboardOverviewData } from "@/lib/data/data-dashboard-overview";
 
 type SqlValue = string | number | null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +103,7 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
     suiteAndSessionCounts,
     recentSessions,
     weekPulseData,
+    overviewData,
   ] = await Promise.all([
     safeQuery(selectAll(`SELECT "id", "title", "priority", "status" FROM "Task" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
     safeQuery(selectAll(`SELECT "id", "title", "severity", "priority", "status" FROM "Bug" ${projectWhere}${projectWhere ? " AND" : " WHERE"} "deletedAt" IS NULL ORDER BY COALESCE("sortOrder", 0) ASC, "updatedAt" DESC LIMIT 5`, projectParams), []),
@@ -154,6 +156,7 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
        `,
       [...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams, ...projectParams],
     ), null),
+    safeQuery(getDashboardOverviewData(filterProject), null),
   ]);
 
   // Heatmap: merge 4 lightweight queries instead of 1 heavy CTE
@@ -441,6 +444,7 @@ export async function getDashboardData(filterProject?: string): Promise<Dashboar
       endDate: String(s.endDate),
       status: String(s.status),
     })),
+    overview: overviewData,
   };
   dashboardCache.set(cacheKey, { data, expiresAt: Date.now() + 30000 });
   return structuredClone(data as DashboardData);

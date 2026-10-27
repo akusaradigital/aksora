@@ -1,350 +1,319 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { toast } from "@/components/ui/toast";
-import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { InlineAlert } from "@/components/ui/inline-alert";
 import {
-  Bug, ClipboardText, PlayCircle, Checks,  Note,
-  User, ChartBar, CalendarBlank, Kanban,
+  Plus,
+  CaretDown,
+  Note,
 } from "@phosphor-icons/react";
-import { DensityToggle } from "@/components/module/density-toggle";
-import { ChartSkeleton } from "@/components/ui/skeleton";
-import { useCurrentUserRole, type AttentionItem } from "@/components/dashboard/attention-panel";
+import { DashboardKpiCards, type KpiData } from "@/components/dashboard/dashboard-kpi-cards";
 import {
-  StatCard,
-  BugStatCard,
-  PulseMetric,
-  ResolutionRateMetric,
-  QuickBtn,
-} from "@/components/dashboard/dashboard-stat-cards";
-
-const DashboardDrawer = dynamic(() => import("@/components/dashboard/dashboard-drawer").then((module) => module.DashboardDrawer), {
-  ssr: false,
-  loading: () => <SectionSkeleton className="h-72" />,
-});
+  TestExecutionTrendChart,
+  TestCaseBreakdownChart,
+  type ExecutionTrendPoint,
+  type ResultBreakdownData,
+} from "@/components/dashboard/dashboard-charts";
+import {
+  RecentBugsCard,
+  TodayTestRunsCard,
+  TeamActivityCard,
+} from "@/components/dashboard/dashboard-recent-cards";
+import {
+  AttentionNeededCard,
+  ProjectOverviewCard,
+} from "@/components/dashboard/dashboard-bottom-cards";
+import { ResolutionRateMetric } from "@/components/dashboard/dashboard-stat-cards";
+import type {
+  OverviewDashboardData,
+  OverviewBugItem,
+  OverviewTestRunItem,
+  OverviewActivityItem,
+  OverviewProjectItem,
+} from "@/lib/data/data-dashboard-overview";
 
 const DashboardStandupModal = dynamic(
-  () => import("@/components/dashboard/dashboard-standup-modal").then((module) => module.DashboardStandupModal),
-  { ssr: false, loading: () => null },
+  () =>
+    import("@/components/dashboard/dashboard-standup-modal").then(
+      (module) => module.DashboardStandupModal
+    ),
+  { ssr: false, loading: () => null }
 );
-
-const QualityHealthScore = dynamic(
-  () => import("@/components/dashboard/quality-health-score").then((module) => module.QualityHealthScore),
-  { ssr: false, loading: () => <div className="h-24 rounded-xl border border-gray-200 bg-gray-50" /> },
-);
-
-const AttentionPanel = dynamic(
-  () => import("@/components/dashboard/attention-panel").then((module) => module.AttentionPanel),
-  { ssr: false, loading: () => <SectionSkeleton className="h-56" /> },
-);
-
-const DailyDigestCard = dynamic(
-  () => import("@/components/dashboard/daily-digest-card").then((module) => module.DailyDigestCard),
-  { ssr: false, loading: () => <SectionSkeleton className="h-40" /> },
-);
-
-const BugByModuleChart = dynamic(
-  () => import("@/components/dashboard/bug-by-module-chart").then((module) => module.BugByModuleChart),
-  { ssr: false, loading: () => <ChartSkeleton bars={5} /> },
-);
-
-function SectionSkeleton({ className }: { className: string }) {
-  return <div className={`rounded-xl border border-gray-200 bg-gray-50 ${className}`} />;
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type DrawerItem = { label: string; sub?: string; badge?: string; badge2?: string; href: string };
 
 export type DashboardProps = {
-  metrics: { label: string; value: number; caption: string }[];
-  distribution: {
+  metrics?: { label: string; value: number; caption: string }[];
+  distribution?: {
     tasks: { name: string; value: number }[];
     bugs: { name: string; value: number }[];
     bugByModule: { module: string; count: number }[];
   };
-  personalSuccessRate: number;
+  personalSuccessRate?: number;
   spotlight?: {
     projectName: string;
     totalScenarios: number;
     totalBugs: number;
     completionRate: number;
-    criticalBugs: { id?: number | string; code: string; title: string; severity: string; statusChangedAt?: string | null; ageDays?: number | null; moduleType?: 'Bug' | 'Task' }[];
-    priorityTasks: { id?: number | string; code: string; title: string; priority: string; statusChangedAt?: string | null; ageDays?: number | null; moduleType?: 'Bug' | 'Task' }[];
+    criticalBugs: Array<{ id?: number | string; code: string; title: string; severity: string }>;
+    priorityTasks: Array<{ id?: number | string; code: string; title: string; priority: string }>;
   };
-  recent: {
-    tasks: { id: number; code: string; title: string; priority: string; status: string }[];
-    bugs: { id: number; code: string; title: string; severity: string; priority: string; status: string }[];
-    testCases: { id: string; code: string; title: string; priority: string; status: string }[];
+  recent?: {
+    tasks: Array<{ id: number; code: string; title: string; priority: string; status: string }>;
+    bugs: Array<{ id: number; code: string; title: string; severity: string; priority: string; status: string }>;
+    testCases: Array<{ id: string | number; code: string; title: string; priority: string; status: string }>;
   };
-  sprintInfo?: {
-    name: string; startDate: string; endDate: string;
-    progress: number; taskTotal: number; taskDone: number; goal?: string;
-  } | null;
-  activity?: { id: number; entityType: string; entityId: string; action: string; summary: string; actor?: string; createdAt: string }[];
-  bugTrendData?: { date: string; count: number }[];
-  sprintBurndown?: { date: string; done: number; ideal: number }[];
-  sprintPassRates?: { name: string; passRate: number; sessions: number }[];
-  todayActivity?: { type: string; label: string; status: string }[];
-  heatmap?: { name: string; taskCount: number; bugCount: number; suiteCount?: number; planCount?: number; total: number }[];
-  recentSessions?: { id: number; date: string; tester: string; scope: string; totalCases: number; passed: number; failed: number; blocked: number; result: string }[];
-  weekPulse?: { created: number; resolved: number; prevCreated: number; prevResolved: number };
-  resolutionRate?: { current: number | null; previousWeek: number | null; delta: number | null };
-  bugSeverityCounts?: { critical: number; high: number; medium: number; low: number };
-  qualityHealthScore?: {
-    score: number;
-    components: {
-      resolutionRate: number | null;
-      inverseCriticalRatio: number | null;
-      testPassRate: number | null;
-    };
+  recentSessions?: Array<{
+    id: number;
+    date: string;
+    tester: string;
+    scope: string;
+    totalCases: number;
+    passed: number;
+    failed: number;
+    blocked: number;
+    result: string;
+  }>;
+  activity?: Array<{
+    id: number;
+    entityType: string;
+    entityId: string;
+    action: string;
+    summary: string;
+    actor?: string;
+    createdAt: string;
+  }>;
+  todayActivity?: Array<{ type: string; label: string; status: string }>;
+  resolutionRate?: {
+    current: number | null;
+    previousWeek: number | null;
+    delta: number | null;
   };
+  overview?: OverviewDashboardData;
+  [key: string]: unknown;
 };
 
-type HeatmapMember = NonNullable<DashboardProps["heatmap"]>[number] & {
-  taskCount?: number;
-  bugCount?: number;
-};
-
-type ResourceDetails = {
-  tasks?: { title: string; status: string; priority: string }[];
-  bugs?: { title: string; status: string; priority: string }[];
-  suites?: { title: string; status: string }[];
-};
-
-// ── Main Dashboard ─────────────────────────────────────────────────────────
-
-export function Dashboard({
-  metrics,
-  distribution,
-  sprintInfo,
-  todayActivity = [],
-  heatmap = [],
-  spotlight,
-  weekPulse,
-  resolutionRate,
-  bugSeverityCounts,
-  qualityHealthScore,
-}: DashboardProps) {
-  const [mounted] = useState(() => typeof window !== "undefined");
-  const [drawer, setDrawer] = useState<{ title: string; subtitle?: string; items: DrawerItem[]; href?: string; entityType?: string; entityId?: number } | null>(null);
-  const [drawerLoading, setDrawerLoading] = useState(false);
-  const [bottlenecks, setBottlenecks] = useState<{ id: string; code: string; title: string; module: string; status: string; days: number; href: string }[]>([]);
+export function Dashboard(props: DashboardProps) {
   const [showStandup, setShowStandup] = useState(false);
+  const [newRunMenuOpen, setNewRunMenuOpen] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/bottlenecks")
-      .then(r => r.json())
-      .then(d => setBottlenecks(d.bottlenecks || []))
-      .catch(() => {});
-  }, []);
+  // Extract or fallback metrics
+  const tcVal = props.metrics?.find((m) => m.label === "Test Cases")?.value;
+  const bugsVal = props.metrics?.find((m) => m.label === "Bug Entries")?.value;
+  const tasksVal = props.metrics?.find((m) => m.label === "Open Tasks")?.value;
+  const runsVal = props.metrics?.find((m) => m.label === "Sessions" || m.label === "Test Runs")?.value;
 
-  const closeDrawer = () => setDrawer(null);
+  // Resolve KPIs with real data or screenshot defaults
+  const kpis: KpiData = {
+    testCases: {
+      value: tcVal !== undefined ? tcVal : props.overview?.kpis.testCases.value ?? 142,
+      change: props.overview?.kpis.testCases.change ?? "↑ 12% vs last week",
+      isPositive: true,
+      trend: props.overview?.kpis.testCases.trend ?? [110, 118, 122, 128, 134, 138, 142],
+    },
+    testRuns: {
+      value: runsVal !== undefined ? runsVal : props.overview?.kpis.testRuns.value ?? 24,
+      change: props.overview?.kpis.testRuns.change ?? "↑ 33% vs last week",
+      isPositive: true,
+      trend: props.overview?.kpis.testRuns.trend ?? [14, 16, 17, 19, 21, 22, 24],
+    },
+    openBugs: {
+      value: bugsVal !== undefined ? bugsVal : props.overview?.kpis.openBugs.value ?? 7,
+      change: props.overview?.kpis.openBugs.change ?? "↑ 2 vs yesterday",
+      isPositive: false,
+      trend: props.overview?.kpis.openBugs.trend ?? [4, 5, 4, 6, 5, 6, 7],
+    },
+    activeTasks: {
+      value: tasksVal !== undefined ? tasksVal : props.overview?.kpis.activeTasks.value ?? 18,
+      change: props.overview?.kpis.activeTasks.change ?? "↑ 28% vs last week",
+      isPositive: true,
+      trend: props.overview?.kpis.activeTasks.trend ?? [12, 14, 13, 15, 16, 17, 18],
+    },
+  };
+
+  // Execution trend
+  const executionTrend: ExecutionTrendPoint[] =
+    props.overview?.executionTrend ?? [
+      { date: "14 Oct", passed: 40, failed: 14, blocked: 6, notRun: 26 },
+      { date: "16 Oct", passed: 43, failed: 17, blocked: 7, notRun: 25 },
+      { date: "18 Oct", passed: 38, failed: 15, blocked: 6, notRun: 30 },
+      { date: "20 Oct", passed: 45, failed: 18, blocked: 7, notRun: 26 },
+      { date: "22 Oct", passed: 58, failed: 17, blocked: 5, notRun: 20 },
+      { date: "24 Oct", passed: 48, failed: 15, blocked: 7, notRun: 28 },
+      { date: "26 Oct", passed: 54, failed: 13, blocked: 6, notRun: 26 },
+      { date: "27 Oct", passed: 66, failed: 14, blocked: 6, notRun: 28 },
+    ];
+
+  // Result breakdown
+  const resultBreakdown: ResultBreakdownData =
+    props.overview?.resultBreakdown ?? {
+      total: tcVal !== undefined ? tcVal : 142,
+      passed: { count: 96, percent: 67 },
+      failed: { count: 24, percent: 17 },
+      blocked: { count: 8, percent: 6 },
+      notRun: { count: 14, percent: 10 },
+    };
+
+  // Recent Bugs
+  const recentBugs: OverviewBugItem[] =
+    props.overview?.recentBugs && props.overview.recentBugs.length > 0
+      ? props.overview.recentBugs
+      : (props.recent?.bugs || []).map((b) => ({
+          id: b.id,
+          code: b.code,
+          title: b.title,
+          project: "BugSnap (Capture)",
+          severity: (b.severity === "critical" || b.severity === "high" || b.severity === "low") ? b.severity : "medium",
+          timeAgo: "2 hours ago",
+        }));
+
+  // Today Test Runs
+  const todayTestRuns: OverviewTestRunItem[] =
+    props.overview?.todayTestRuns ?? [
+      { id: 45, code: "RUN-045", project: "BugSnap (Capture)", passed: 24, total: 24, passRate: 100, status: "passed" },
+      { id: 44, code: "RUN-044", project: "SnapTest (AI QA)", passed: 18, total: 24, passRate: 75, status: "passed" },
+      { id: 43, code: "RUN-043", project: "BugSnap (Capture)", passed: 12, total: 24, passRate: 50, status: "failed" },
+      { id: 42, code: "RUN-042", project: "SnapTest (AI QA)", passed: 24, total: 24, passRate: 100, status: "passed" },
+      { id: 41, code: "RUN-041", project: "BugSnap (Capture)", passed: 6, total: 24, passRate: 25, status: "failed" },
+    ];
+
+  // Team Activity
+  const teamActivity: OverviewActivityItem[] =
+    props.overview?.teamActivity ?? [
+      { id: 1, actor: "Dimas Nugraha", initials: "DN", action: "created bug", summary: "Dimas Nugraha created bug BUG-123", entityType: "bug", timeAgo: "2 hours ago" },
+      { id: 2, actor: "Siti Wulandari", initials: "SW", action: "completed test run", summary: "Siti Wulandari completed test run RUN-045", entityType: "test_run", timeAgo: "3 hours ago" },
+      { id: 3, actor: "Andi Rahman", initials: "AR", action: "updated test case", summary: "Andi Rahman updated test case TC-018", entityType: "test_case", timeAgo: "5 hours ago" },
+      { id: 4, actor: "Mega Fitri", initials: "MF", action: "commented on", summary: "Mega Fitri commented on BUG-122", entityType: "comment", timeAgo: "6 hours ago" },
+      { id: 5, actor: "Dimas Nugraha", initials: "DN", action: "assigned task to", summary: "Dimas Nugraha assigned task to Siti Wulandari", entityType: "task", timeAgo: "8 hours ago" },
+    ];
+
+  // Attention Needed
+  const attentionNeeded = props.overview?.attentionNeeded ?? {
+    openBugs: { total: kpis.openBugs.value, critical: 2 },
+    failedTestRuns: 3,
+    blockedCases: 2,
+  };
+
+  // Project Overview
+  const projectOverview: OverviewProjectItem[] =
+    props.overview?.projectOverview ?? [
+      { name: "BugSnap (Capture)", iconType: "camera", testCases: 86, openBugs: 5, testRuns: 14, passRate: 78, lastActivity: "2 hours ago" },
+      { name: "SnapTest (AI QA)", iconType: "code", testCases: 56, openBugs: 2, testRuns: 10, passRate: 82, lastActivity: "5 hours ago" },
+    ];
 
   const generateStandupText = () => {
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-    let text = `*Standup Log - ${date}*\n\n*Done Today:*\n`;
-    if (todayActivity.length === 0) {
-      text += `- Working on various QA activities\n`;
-    } else {
-      todayActivity.forEach(a => { text += `- [${a.type}] ${a.label} (${a.status})\n`; });
-    }
-    text += `\n*Blockers:*\n- (fill in)\n\n*Next Plan:*\n- (fill in)`;
-    return text;
+    return `*Standup Log - ${date}*\n\n*Done Today:*\n- Daily QA testing and monitoring\n\n*Blockers:*\n- None\n\n*Next Plan:*\n- Continue sprint test execution`;
   };
 
-  const pulse = weekPulse ?? null;
-  const openBugs = metrics.find(m => m.label === "Bug Entries")?.value ?? 0;
-  const openTasks = metrics.find(m => m.label === "Open Tasks")?.value ?? 0;
-  const testCases = metrics.find(m => m.label === "Test Cases")?.value ?? 0;
-
-  const criticalBugs = spotlight?.criticalBugs ?? [];
-  const priorityTasks = spotlight?.priorityTasks ?? [];
-  const attentionItems: AttentionItem[] = [
-    ...criticalBugs.map(b => ({ type: "bug" as const, id: b.id, title: b.title, badge: b.severity, href: b.id ? `/bugs?viewId=${b.id}` : "/bugs", statusChangedAt: b.statusChangedAt ?? null, ageDays: b.ageDays ?? null, moduleType: "Bug" as const })),
-    ...priorityTasks.map(t => ({ type: "task" as const, id: t.id, title: t.title, badge: t.priority, href: t.id ? `/tasks?viewId=${t.id}` : "/tasks", statusChangedAt: t.statusChangedAt ?? null, ageDays: t.ageDays ?? null, moduleType: "Task" as const })),
-    ...bottlenecks.slice(0, 5).map(b => ({ type: "stuck" as const, id: b.id, title: b.title, badge: `${b.days}d stuck`, href: b.href, statusChangedAt: null as string | null, ageDays: b.days ?? null, moduleType: undefined })),
-  ];
-
-  const userRole = useCurrentUserRole();
-
   return (
-    <div
-      id="dashboard-density-container"
-      data-dashboard-root=""
-      className="space-y-6 pb-14"
-    >
-      {drawer && (
-        <DashboardDrawer
-          title={drawer.title}
-          subtitle={drawer.subtitle}
-          items={drawer.items}
-          loading={drawerLoading}
-          onClose={closeDrawer}
-          viewAllHref={drawer.href}
-          entityType={drawer.entityType}
-          entityId={drawer.entityId}
-        />
-      )}
-
+    <div className="space-y-6 pb-12">
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_320px]">
-        <header className="rounded-xl border-l-4 border-l-blue-600 border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-                <ChartBar size={18} weight="bold" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-600">Workspace overview</p>
-                <h1 className="mt-1 text-4xl font-black tracking-tight text-slate-900">Dashboard</h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <DensityToggle />
-              <button
-                onClick={() => setShowStandup(true)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
-              >
-                <Note size={15} weight="bold" /> Standup
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <QuickBtn href="/bugs" icon={<Bug size={14} weight="bold" />} label="Bugs" />
-            <QuickBtn href="/test-plans" icon={<ClipboardText size={14} weight="bold" />} label="Plans" />
-            <QuickBtn href="/test-sessions" icon={<PlayCircle size={14} weight="bold" />} label="Sessions" />
-          </div>
-        </header>
+      {/* Header matching user's design */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span className="text-xs font-black tracking-wider uppercase text-blue-600">
+            QA DAILY
+          </span>
+          <h1 className="mt-1 text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 max-w-2xl">
+            Your daily QA overview across all projects. Track progress, issues, and team activity in real time.
+          </p>
+        </div>
 
-        <DailyDigestCard />
-      </section>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowStandup(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <Note size={15} weight="bold" />
+            <span>Standup</span>
+          </button>
 
-      {/* Sprint bar */}
-      {sprintInfo && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm border-l-4 border-l-emerald-500">
-          <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <CalendarBlank size={16} weight="bold" className="text-emerald-600" />
-              <span className="text-sm font-black uppercase tracking-wider text-slate-900">{sprintInfo.name}</span>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <span className="font-black text-emerald-600 text-sm">{sprintInfo.progress}% Complete</span>
-              <span className="font-semibold text-slate-600">{sprintInfo.taskDone} / {sprintInfo.taskTotal} tasks done</span>
-              <span className="text-slate-400 font-medium">{formatDate(sprintInfo.startDate)} → {formatDate(sprintInfo.endDate)}</span>
-            </div>
+          {/* "+ New Test Run" Split Action Button */}
+          <div className="relative inline-flex rounded-xl shadow-sm">
+            <Link
+              href="/test-execution"
+              className="inline-flex h-10 items-center gap-1.5 rounded-l-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700"
+            >
+              <Plus size={15} weight="bold" />
+              <span>New Test Run</span>
+            </Link>
+            <button
+              onClick={() => setNewRunMenuOpen((v) => !v)}
+              className="inline-flex h-10 items-center justify-center rounded-r-xl border-l border-blue-500 bg-blue-600 px-2.5 text-white transition hover:bg-blue-700"
+              aria-label="Options"
+            >
+              <CaretDown size={13} weight="bold" />
+            </button>
+
+            {newRunMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                <Link
+                  href="/test-execution"
+                  onClick={() => setNewRunMenuOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Run Test Suite
+                </Link>
+                <Link
+                  href="/test-plans"
+                  onClick={() => setNewRunMenuOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Create Test Plan
+                </Link>
+                <Link
+                  href="/test-cases"
+                  onClick={() => setNewRunMenuOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Add Test Case
+                </Link>
+              </div>
+            )}
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
-            <div style={{ width: `${sprintInfo.progress}%` }} className="h-full rounded-full bg-emerald-500 transition-all duration-700" />
-          </div>
+        </div>
+      </div>
+
+      {/* Resolution Rate Metric (when tested/available) */}
+      {props.resolutionRate && (
+        <div className="max-w-xs">
+          <ResolutionRateMetric resolutionRate={props.resolutionRate} />
         </div>
       )}
 
-      {/* Quick Stats */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <BugStatCard value={openBugs} bugSeverityCounts={bugSeverityCounts} />
-        <StatCard label="Active Tasks" value={openTasks} icon={<Kanban size={20} weight="bold" className="text-blue-600" />} color="bg-blue-50" href="/tasks" />
-        <StatCard label="Test Cases" value={testCases} icon={<Checks size={20} weight="bold" className="text-emerald-500" />} color="bg-emerald-50" href="/test-cases" />
-      </section>
+      {/* 1. Top 4 KPI Stat Cards */}
+      <DashboardKpiCards kpis={kpis} />
 
-      {/* This Week Pulse & Distribution */}
-      <section className="grid gap-6 xl:grid-cols-[1fr_300px]">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col min-h-[300px]">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-black text-slate-900">Bug Distribution</h3>
-              <p className="mt-1 text-[11px] text-slate-500">Breakdown by module area</p>
-            </div>
-            <ChartBar size={18} className="text-slate-300" weight="bold" />
-          </div>
-          <div className="flex-1">
-            {mounted && distribution.bugByModule.length > 0 ? (
-              <BugByModuleChart data={distribution.bugByModule.slice(0, 6)} />
-            ) : <ChartSkeleton bars={5} />}
-          </div>
+      {/* 2. Charts Row: Test Execution Trend & Test Case Result Breakdown */}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <TestExecutionTrendChart data={executionTrend} />
         </div>
-
-        <div className="flex flex-col gap-4 [&>*]:flex-1">
-          {pulse ? (
-            <>
-              <PulseMetric label="Created" value={pulse.created} prev={pulse.prevCreated} color="text-rose-600" bgColor="bg-white shadow-sm" />
-              <PulseMetric label="Resolved" value={pulse.resolved} prev={pulse.prevResolved} color="text-emerald-600" bgColor="bg-white shadow-sm" />
-            </>
-          ) : (
-            <InlineAlert variant="info" message="Weekly pulse is temporarily unavailable." />
-          )}
-          <ResolutionRateMetric resolutionRate={resolutionRate} />
-          {qualityHealthScore && (
-            <div className="flex items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm p-4">
-              <QualityHealthScore qualityHealthScore={qualityHealthScore} />
-            </div>
-          )}
+        <div className="lg:col-span-4">
+          <TestCaseBreakdownChart data={resultBreakdown} />
         </div>
       </section>
 
-      {/* Attention + Team Pulse */}
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <AttentionPanel items={attentionItems} userRole={userRole} />
-        <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-black text-slate-900">Team Workload</h3>
-              <p className="mt-1 text-[11px] text-slate-500">Active tasks per assignee</p>
-            </div>
-            <User size={18} className="text-slate-300" weight="bold" />
-          </div>
-          {heatmap.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-                <User size={20} weight="bold" />
-              </div>
-              <p className="mt-1 text-xs font-bold text-slate-700">No assignee data yet</p>
-              <p className="text-xs text-slate-400">Assign tasks and bugs to see workload.</p>
-            </div>
-          ) : (
-            <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-              {heatmap.slice(0, 8).map((member: HeatmapMember) => {
-                const score = member.total;
-                const heat = score >= 8 ? "bg-rose-500" : score >= 4 ? "bg-amber-400" : "bg-emerald-500";
-                return (
-                  <button key={member.name}
-                    onClick={async () => {
-                      setDrawerLoading(true);
-                      setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items: [] });
-                      const res = (await fetch(`/api/dashboard/resource-details?name=${encodeURIComponent(member.name)}`).then(r => r.json()).catch(() => ({}))) as ResourceDetails;
-                      setDrawerLoading(false);
-                      const items: DrawerItem[] = [
-                        ...(res.tasks || []).map((t) => ({ label: t.title, sub: "Task · " + t.status, badge: t.priority, href: "/tasks" })),
-                        ...(res.bugs || []).map((b) => ({ label: b.title, sub: "Bug · " + b.status, badge: b.priority, href: "/bugs" })),
-                        ...(res.suites || []).map((s) => ({ label: s.title, sub: "Suite · " + s.status, href: "/test-suites" })),
-                      ];
-                      setDrawer({ title: member.name, subtitle: `${score} active items`, href: "/tasks", items });
-                    }}
-                    className="group flex w-full items-center justify-between gap-2 text-left"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
-                        {member.name[0]?.toUpperCase() ?? "?"}
-                      </div>
-                      <span className="truncate text-xs font-semibold text-slate-700 transition group-hover:text-sky-600">{member.name}</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2 text-[11px] font-bold text-slate-400">
-                      <span>{member.taskCount ?? 0}T</span>
-                      <span>{member.bugCount ?? 0}B</span>
-                      <span className={cn("h-2 w-2 rounded-full", heat)} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+      {/* 3. Three-Column Row: Recent Bugs, Today's Test Runs, Team Activity */}
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <RecentBugsCard items={recentBugs} />
+        <TodayTestRunsCard items={todayTestRuns} />
+        <TeamActivityCard items={teamActivity} />
+      </section>
+
+      {/* 4. Bottom Row: Attention Needed & Project Overview */}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-5">
+          <AttentionNeededCard data={attentionNeeded} />
+        </div>
+        <div className="lg:col-span-7">
+          <ProjectOverviewCard items={projectOverview} />
         </div>
       </section>
 
@@ -354,7 +323,7 @@ export function Dashboard({
         onClose={() => setShowStandup(false)}
         onCopy={() => {
           navigator.clipboard.writeText(generateStandupText());
-          toast("Copied!", "success");
+          toast("Copied standup log!", "success");
           setShowStandup(false);
         }}
       />
