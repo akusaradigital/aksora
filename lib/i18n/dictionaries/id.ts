@@ -45,6 +45,7 @@ const dict: Dictionary = {
     ganttTimeline: "Gantt / Linimasa",
     groupSystemSettings: "Pengaturan Sistem",
     settings: "Pengaturan",
+    aiSettings: "AI & Model",
     apiKeys: "Kunci API",
     support: "Dukungan",
     sisterApps: "Aplikasi Terkait",

@@ -250,6 +250,13 @@ export async function createSicmundusTimeEntry(
   return (await res.json()) as SicmundusTimeEntry;
 }
 
+export interface SicmundusAIOptions {
+  ai_provider?: string;
+  ai_model?: string;
+  api_key?: string;
+  nine_router_public_url?: string;
+}
+
 /**
  * AI-assisted subtask title & note formatting conforming to Sicmundus conventions.
  * Examples from Sicmundus:
@@ -257,13 +264,16 @@ export async function createSicmundusTimeEntry(
  * - "Bug Fix RTD Top Spender - Resolving timeout in payment reconciliation"
  * - "Feature Implementation - Dynamic Table Column Filtering & DB Persistence"
  */
-export async function formatSicmundusTaskWithAI(task: {
-  title: string;
-  description?: string;
-  project?: string;
-  category?: string;
-  durationMinutes?: number | string;
-}): Promise<{
+export async function formatSicmundusTaskWithAI(
+  task: {
+    title: string;
+    description?: string;
+    project?: string;
+    category?: string;
+    durationMinutes?: number | string;
+  },
+  aiOpts?: SicmundusAIOptions
+): Promise<{
   subtaskTitle: string;
   notes: string;
   durationMinutes: number;
@@ -280,10 +290,7 @@ export async function formatSicmundusTaskWithAI(task: {
     if (!isNaN(parsed) && parsed > 0) duration = parsed;
   }
 
-  // Attempt AI generation if configured
-  try {
-    const { executeCompletionWithFailover } = await import("@/lib/ai-gateway");
-    const aiPrompt = `You are a technical lead standardizing daily work logs for the Sicmundus engineering tracker.
+  const aiPrompt = `You are a technical lead standardizing daily work logs for the Sicmundus engineering tracker.
 Transform this task into a clean, professional, action-oriented Sicmundus subtask title and concise notes.
 
 Conventions:
@@ -306,6 +313,41 @@ Return ONLY a valid JSON object in this exact structure with no extra text or ma
   "subtaskTitle": "Formatted Title here",
   "notes": "1-2 sentence concise summary of work accomplished and verified"
 }`;
+
+  // 1. Attempt using user-provided AI settings (SnapTest style)
+  if (aiOpts?.ai_provider && (aiOpts.api_key || aiOpts.ai_provider === "9router" || aiOpts.nine_router_public_url)) {
+    try {
+      const { callLLM } = await import("@/lib/ai-service");
+      const res = await callLLM({
+        provider: aiOpts.ai_provider,
+        model: aiOpts.ai_model,
+        apiKey: aiOpts.api_key,
+        publicBaseUrl: aiOpts.nine_router_public_url,
+        systemPrompt: "You standardise engineering work logs. Return valid JSON only.",
+        userPrompt: aiPrompt,
+        jsonMode: true,
+        maxTokens: 300,
+      });
+
+      const jsonMatch = res.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as { subtaskTitle?: string; notes?: string };
+        if (parsed.subtaskTitle) {
+          return {
+            subtaskTitle: parsed.subtaskTitle.trim(),
+            notes: parsed.notes?.trim() || `${rawTitle} - ${rawDesc || "Completed and verified."}`,
+            durationMinutes: duration,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("User AI provider failed for Sicmundus format, trying fallback:", err);
+    }
+  }
+
+  // 2. Attempt AI generation via server environment gateway if configured
+  try {
+    const { executeCompletionWithFailover } = await import("@/lib/ai-gateway");
 
     const completion = await executeCompletionWithFailover(
       {

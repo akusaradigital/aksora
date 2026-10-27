@@ -375,7 +375,6 @@ export default function WorkloadPage() {
  <Link
  key={i}
  href={item.href}
- prefetch={false}
  onClick={() => setDetail(null)}
  className="group flex items-center gap-3  border border-gray-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40"
  >

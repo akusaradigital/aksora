@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo, Lightning } from"@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo, Lightning, Robot } from "@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -32,6 +32,15 @@ export default async function SettingsPage() {
           icon: Lock,
           color: "text-emerald-600",
           bg: "bg-emerald-50",
+          disabled: false,
+        },
+        {
+          title: "AI & Models",
+          description: "Configure multi-provider AI keys (Gemini, Claude, OpenAI, Groq, DeepSeek, 9Router).",
+          href: "/settings/ai",
+          icon: Robot,
+          color: "text-purple-600",
+          bg: "bg-purple-50",
           disabled: false,
         },
         {

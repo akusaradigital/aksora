@@ -115,7 +115,8 @@ export default function AutomationSettingsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-semibold text-slate-500 uppercase">
               <tr>
                 <th className="px-4 py-3">Rule Name</th>
@@ -151,6 +152,7 @@ export default function AutomationSettingsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

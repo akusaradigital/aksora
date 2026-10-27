@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: { id } }, { status: 201 });
   } catch (error) {
     console.error("Vault POST error:", error);
-    return NextResponse.json({ error: "Failed to create vault entry." }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Failed to create vault entry.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

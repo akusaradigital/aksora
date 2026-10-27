@@ -132,7 +132,8 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Run</th>
@@ -196,6 +197,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

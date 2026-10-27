@@ -43,6 +43,7 @@ const dict = {
     ganttTimeline: "Gantt / Timeline",
     groupSystemSettings: "System Settings",
     settings: "Settings",
+    aiSettings: "AI & Models",
     apiKeys: "API Keys",
     support: "Support",
     sisterApps: "Sister Apps",

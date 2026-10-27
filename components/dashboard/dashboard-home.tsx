@@ -114,7 +114,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
     <div className="relative space-y-6">
       <DashboardRealtime />
 
-      <section className="relative border-l-4 border-l-blue-600 border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="relative rounded-xl border-l-4 border-l-blue-600 border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-6">
           <div className="max-w-xl">
             <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Workspace scope</p>
@@ -130,13 +130,13 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setOpen((v) => !v)}
-                className="flex h-9 items-center gap-2 border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
+                className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700"
               >
                 <Funnel size={13} weight="bold" />
                 {selectedProject || "All Projects"}
               </button>
               {open && (
-                <div className="absolute left-0 top-full z-50 mt-2 max-h-64 w-56 overflow-y-auto border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 top-full z-50 mt-2 max-h-64 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
                   <button
                     onClick={() => { setSelectedProject(""); setOpen(false); }}
                     className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50"
@@ -158,7 +158,7 @@ export function DashboardHome({ initialData, initialProjects }: Props) {
             {selectedProject && (
               <button
                 onClick={() => setSelectedProject("")}
-                className="flex h-9 items-center gap-1.5 border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
               >
                 <X size={11} weight="bold" />
                 Clear filter

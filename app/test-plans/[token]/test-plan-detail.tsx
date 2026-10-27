@@ -430,7 +430,7 @@ export function TestPlanDetail({
  {visibleCases.length === 0 ? (
  <div className="py-8 text-center text-sm text-slate-400">No cases match this filter.</div>
  ) : (
- <div className="max-h-[360px] overflow-y-auto">
+ <div className="max-h-[360px] overflow-auto">
  <table className="w-full text-sm">
  <thead className="sticky top-0 bg-slate-200 z-10">
  <tr className="border-b border-slate-100">

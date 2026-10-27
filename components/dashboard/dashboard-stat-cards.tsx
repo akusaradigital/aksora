@@ -15,7 +15,7 @@ export function StatCard({ label, value, icon, color, href }: {
 }) {
   const animClass = useValueChangeAnimation(value);
   return (
-    <Link href={href} prefetch={false}
+    <Link href={href}
       className={cn(
         "flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md group",
       )}>
@@ -39,7 +39,7 @@ export function BugStatCard({ value, bugSeverityCounts }: {
     <div className="flex flex-col justify-between rounded-xl border border-slate-200 border-l-4 border-l-rose-500 bg-white p-6 shadow-sm transition-all hover:shadow-md group relative">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-wider text-rose-500">Open Bugs</p>
-        <Link href="/bugs" prefetch={false} aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
+        <Link href="/bugs" aria-label="View all bugs" className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-500 transition-colors hover:bg-rose-100">
           <ArrowRight size={16} weight="bold" />
         </Link>
       </div>
@@ -50,7 +50,6 @@ export function BugStatCard({ value, bugSeverityCounts }: {
             <Link
               key={severity}
               href={`/bugs?severity=${severity}`}
-              prefetch={false}
               className="text-center group/sev transition-transform hover:-translate-y-0.5"
             >
               <p className="text-lg font-black text-slate-800 group-hover/sev:text-rose-600 transition-colors">{bugSeverityCounts[severity]}</p>
@@ -114,7 +113,7 @@ export function ResolutionRateMetric({ resolutionRate }: {
 
 export function QuickBtn({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <Link href={href} prefetch={false} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
+    <Link href={href} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 hover:text-blue-600">
       {icon}{label}
     </Link>
   );

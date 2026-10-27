@@ -56,7 +56,7 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
  </div>
  <button
  onClick={onClose}
- className="flex h-8 w-8 items-center justify-center  text-gray-400 transition hover:bg-gray-100"
+ className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100"
  >
  <X size={16} weight="bold" />
  </button>
@@ -65,7 +65,7 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
  <div className="flex-1 space-y-2 overflow-y-auto p-4">
  {loading ? (
  Array.from({ length: 4 }).map((_, i) => (
- <div key={i} className="h-14 animate-pulse  bg-gray-100" />
+ <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100" />
  ))
  ) : items.length === 0 ? (
  <div className="py-10 text-center text-xs text-gray-400">No items found.</div>
@@ -74,9 +74,8 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
  <Link
  key={i}
  href={item.href}
- prefetch={false}
  onClick={onClose}
- className="group flex items-center gap-3  border border-gray-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40"
+ className="group flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition hover:border-blue-200 hover:bg-blue-50/40"
  >
  <div className="min-w-0 flex-1">
  <p className="truncate text-sm font-semibold text-gray-800 transition group-hover:text-blue-700">
@@ -103,9 +102,8 @@ export function DashboardDrawer({ title, subtitle, items, loading, onClose, view
  <div className="border-t border-gray-100 p-4">
  <Link
  href={viewAllHref}
- prefetch={false}
  onClick={onClose}
- className="flex h-10 items-center justify-center gap-2  bg-gray-900 text-sm font-bold text-white transition hover:bg-blue-600"
+ className="flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 text-sm font-bold text-white transition hover:bg-blue-600"
  >
  View All <ArrowRight size={14} weight="bold" />
  </Link>

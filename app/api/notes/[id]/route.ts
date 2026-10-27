@@ -23,7 +23,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Notes PATCH error:", error);
-    return NextResponse.json({ error: "Failed to update note." }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Failed to update note.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

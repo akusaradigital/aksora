@@ -48,73 +48,79 @@ export async function PATCH(
 
   const { id } = await params;
   const { company, andWhere, params: qParams } = getAccessScope(user);
-  const body = await request.json();
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
-  // Check run exists
-  const run = await db.get<Record<string, unknown>>(
-    `SELECT * FROM "ExecutionRun"
-     WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${andWhere}`,
-    [id, ...qParams]
-  );
-
-  if (!run) {
-    return NextResponse.json({ error: "Run not found" }, { status: 404 });
-  }
-
-  // If finishing the run
-  if (body.status === "completed") {
-    const counts = await db.get<{ passed: number; failed: number; blocked: number }>(
-      `SELECT
-        SUM(CASE WHEN "verdict" = 'Passed' THEN 1 ELSE 0 END) as "passed",
-        SUM(CASE WHEN "verdict" = 'Failed' THEN 1 ELSE 0 END) as "failed",
-        SUM(CASE WHEN "verdict" = 'Blocked' THEN 1 ELSE 0 END) as "blocked"
-       FROM "CaseVerdict"
-       WHERE "executionRunId" = CAST(? AS INTEGER)`,
-      [id]
-    );
-
-    const passed = Number(counts?.passed) || 0;
-    const failed = Number(counts?.failed) || 0;
-    const blocked = Number(counts?.blocked) || 0;
-
-    await db.run(
-      `UPDATE "ExecutionRun"
-       SET "status" = 'completed', "passed" = ?, "failed" = ?, "blocked" = ?,
-           "notes" = COALESCE(?, "notes"), "tester" = COALESCE(?, "tester"),
-           "completedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
-      [passed, failed, blocked, body.notes ?? null, body.tester ?? null, id, ...qParams]
-    );
-
-    await logActivity(company, "ExecutionRun", id, "Completed", `Run #${run.runNumber} completed - ${passed}P/${failed}F/${blocked}B`, user.name || user.email || "");
-
-    return NextResponse.json({ data: { passed, failed, blocked, status: "completed" } });
-  }
-
-  // If abandoning
-  if (body.status === "abandoned") {
-    await db.run(
-      `UPDATE "ExecutionRun"
-       SET "status" = 'abandoned', "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+  try {
+    // Check run exists
+    const run = await db.get<Record<string, unknown>>(
+      `SELECT * FROM "ExecutionRun"
+       WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL${andWhere}`,
       [id, ...qParams]
     );
-    return NextResponse.json({ data: { status: "abandoned" } });
+
+    if (!run) {
+      return NextResponse.json({ error: "Run not found" }, { status: 404 });
+    }
+
+    // If finishing the run
+    if (body.status === "completed") {
+      const counts = await db.get<{ passed: number; failed: number; blocked: number }>(
+        `SELECT
+          SUM(CASE WHEN "verdict" = 'Passed' THEN 1 ELSE 0 END) as "passed",
+          SUM(CASE WHEN "verdict" = 'Failed' THEN 1 ELSE 0 END) as "failed",
+          SUM(CASE WHEN "verdict" = 'Blocked' THEN 1 ELSE 0 END) as "blocked"
+         FROM "CaseVerdict"
+         WHERE "executionRunId" = CAST(? AS INTEGER)`,
+        [id]
+      );
+
+      const passed = Number(counts?.passed) || 0;
+      const failed = Number(counts?.failed) || 0;
+      const blocked = Number(counts?.blocked) || 0;
+
+      await db.run(
+        `UPDATE "ExecutionRun"
+         SET "status" = 'completed', "passed" = ?, "failed" = ?, "blocked" = ?,
+             "notes" = COALESCE(?, "notes"), "tester" = COALESCE(?, "tester"),
+             "completedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+        [passed, failed, blocked, body.notes ?? null, body.tester ?? null, id, ...qParams]
+      );
+
+      await logActivity(company, "ExecutionRun", id, "Completed", `Run #${run.runNumber} completed - ${passed}P/${failed}F/${blocked}B`, user.name || user.email || "");
+
+      return NextResponse.json({ data: { passed, failed, blocked, status: "completed" } });
+    }
+
+    // If abandoning
+    if (body.status === "abandoned") {
+      await db.run(
+        `UPDATE "ExecutionRun"
+         SET "status" = 'abandoned', "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+        [id, ...qParams]
+      );
+      return NextResponse.json({ data: { status: "abandoned" } });
+    }
+
+    // Generic update (notes, tester)
+    if (body.notes !== undefined || body.tester !== undefined) {
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      if (body.notes !== undefined) { sets.push('"notes" = ?'); vals.push(body.notes); }
+      if (body.tester !== undefined) { sets.push('"tester" = ?'); vals.push(body.tester); }
+      sets.push('"updatedAt" = CURRENT_TIMESTAMP');
+
+      await db.run(
+        `UPDATE "ExecutionRun" SET ${sets.join(", ")} WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
+        [...vals, id, ...qParams]
+      );
+    }
+
+    return NextResponse.json({ data: { success: true } });
+  } catch (error) {
+    console.error("Execution run PATCH error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to update execution run.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  // Generic update (notes, tester)
-  if (body.notes !== undefined || body.tester !== undefined) {
-    const sets: string[] = [];
-    const vals: unknown[] = [];
-    if (body.notes !== undefined) { sets.push('"notes" = ?'); vals.push(body.notes); }
-    if (body.tester !== undefined) { sets.push('"tester" = ?'); vals.push(body.tester); }
-    sets.push('"updatedAt" = CURRENT_TIMESTAMP');
-
-    await db.run(
-      `UPDATE "ExecutionRun" SET ${sets.join(", ")} WHERE "id" = CAST(? AS INTEGER)${andWhere}`,
-      [...vals, id, ...qParams]
-    );
-  }
-
-  return NextResponse.json({ data: { success: true } });
 }

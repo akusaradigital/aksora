@@ -184,7 +184,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
       <div
         ref={ref}
         className={cn(
-          "relative flex max-h-[85vh] w-full flex-col  bg-white shadow-md animate-in slide-in-from-bottom-4 duration-150 sm:slide-in-from-bottom-0",
+          "relative flex max-h-[85vh] w-full flex-col bg-white shadow-md animate-in slide-in-from-bottom-4 duration-150 rounded-t-xl sm:rounded-xl overflow-hidden sm:slide-in-from-bottom-0",
           modalMaxWidth,
         )}
       >
@@ -195,7 +195,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
         )}>
           <div className="min-w-0 flex-1 pr-3">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center  bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
                 <Note size={18} weight="bold" />
               </div>
               <div className="min-w-0">
@@ -256,7 +256,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
                     return (
                       <div
                         key={field.name}
-                        className=" bg-gray-50 px-3 py-2 ring-1 ring-gray-100"
+                        className="rounded-lg bg-gray-50 px-3 py-2 ring-1 ring-gray-100"
                       >
                         <div className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
                           {Icon}
@@ -284,7 +284,7 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
                       <div
                         key={field.name}
                         className={cn(
-                          " px-4 py-3",
+                          "rounded-lg px-4 py-3",
                           field.name === "expectedResult" ? "bg-emerald-50 ring-1 ring-emerald-100"
                           : field.name === "actualResult" ? "bg-rose-50 ring-1 ring-rose-100"
                           : field.name === "testStep" || field.name === "stepsToReproduce" ? "bg-blue-50 ring-1 ring-blue-100"

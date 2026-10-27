@@ -74,20 +74,48 @@ export async function POST(request: NextRequest) {
   const validCategories = ["general", "billing", "technical", "feature-request"];
   const validPriorities = ["low", "normal", "high", "urgent"];
 
-  await db.run(
-    `INSERT INTO "SupportTicket" ("company", "subject", "message", "category", "status", "priority", "createdBy")
-    VALUES (?, ?, ?, ?, 'open', ?, ?)`,
-    [company, subject, message, validCategories.includes(category) ? category : "general", validPriorities.includes(priority) ? priority : "normal", user.name || user.email]
-  );
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS "SupportTicket" (
+        "id" SERIAL PRIMARY KEY,
+        "company" TEXT NOT NULL,
+        "subject" TEXT NOT NULL,
+        "message" TEXT NOT NULL,
+        "category" TEXT NOT NULL DEFAULT 'general',
+        "status" TEXT NOT NULL DEFAULT 'open',
+        "priority" TEXT NOT NULL DEFAULT 'normal',
+        "createdBy" TEXT NOT NULL,
+        "adminReply" TEXT NOT NULL DEFAULT '',
+        "repliedAt" TIMESTAMP,
+        "closedAt" TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Notify superadmin
-  await createAdminNotification({
-    type: "new_ticket",
-    title: `New ticket: ${subject}`,
-    message: `From ${company} (${user.name || user.email}) — ${priority} priority`,
-    companyName: company,
-    meta: { category, priority },
-  });
+    await db.run(
+      `INSERT INTO "SupportTicket" ("company", "subject", "message", "category", "status", "priority", "createdBy")
+      VALUES (?, ?, ?, ?, 'open', ?, ?)`,
+      [company, subject, message, validCategories.includes(category) ? category : "general", validPriorities.includes(priority) ? priority : "normal", user.name || user.email]
+    );
 
-  return NextResponse.json({ ok: true });
+    // Notify superadmin
+    try {
+      await createAdminNotification({
+        type: "new_ticket",
+        title: `New ticket: ${subject}`,
+        message: `From ${company} (${user.name || user.email}) — ${priority} priority`,
+        companyName: company,
+        meta: { category, priority },
+      });
+    } catch {
+      // Non-critical notification failure
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Support ticket POST error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to create support ticket.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

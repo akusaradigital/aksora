@@ -74,6 +74,7 @@ export function ModuleWorkspace({
     refresh: () => {
       const url = currentSearch ? `${pathname}?${currentSearch}` : pathname;
       nextRouter.replace(url);
+      nextRouter.refresh();
     },
   }), [nextRouter, pathname, currentSearch]);
   const [pending, startTransition] = useTransition();

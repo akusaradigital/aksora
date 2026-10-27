@@ -337,7 +337,7 @@ export function SuiteDetail({
  <p className="text-sm font-semibold">No cases found</p>
  </div>
  ) : (
- <div className="max-h-[480px] overflow-y-auto">
+ <div className="max-h-[480px] overflow-auto">
  <table className="w-full text-sm border-collapse">
  <thead className="sticky top-0 bg-slate-100 z-10">
  <tr className="border-b border-slate-200">
@@ -401,7 +401,7 @@ export function SuiteDetail({
  <p className="text-xs">Execute this suite to start tracking history.</p>
  </div>
  ) : (
- <div className="max-h-[480px] overflow-y-auto">
+ <div className="max-h-[480px] overflow-auto">
  <table className="w-full text-sm">
  <thead className="sticky top-0 bg-slate-200 z-10">
  <tr className="border-b border-slate-100 bg-slate-50/60">

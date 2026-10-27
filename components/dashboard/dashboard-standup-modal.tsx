@@ -13,24 +13,24 @@ export function DashboardStandupModal({ open, text, onClose, onCopy }: Dashboard
  if (!open) return null;
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 ">
- <div className="w-full max-w-lg  glass-card shadow-md">
- <div className="flex items-center justify-between border-b border-gray-200/60 p-5">
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-in fade-in duration-150">
+ <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden">
+ <div className="flex items-center justify-between border-b border-gray-200/80 px-5 py-4">
  <h2 className="text-base font-bold text-gray-900">Standup Log</h2>
- <button onClick={onClose} className="flex h-7 w-7 items-center justify-center  text-gray-400 transition hover:bg-gray-100">
+ <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
  <X size={15} weight="bold" />
  </button>
  </div>
  <div className="p-5">
- <pre className="whitespace-pre-wrap  glass-card bg-white/40 p-4 font-mono text-xs leading-relaxed text-gray-600">
+ <pre className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50/70 p-4 font-mono text-xs leading-relaxed text-gray-700">
  {text}
  </pre>
  </div>
- <div className="flex gap-3 p-5 pt-0">
- <button onClick={onClose} className="flex h-10 flex-1 items-center justify-center  glass-card text-sm font-bold text-gray-600 transition-all duration-150 hover:bg-gray-100  ">
+ <div className="flex gap-3 border-t border-gray-100 px-5 py-4">
+ <button onClick={onClose} className="flex h-9 flex-1 items-center justify-center rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700 transition hover:bg-gray-50">
  Cancel
  </button>
- <button onClick={onCopy} className="flex h-10 flex-1 items-center justify-center  bg-blue-600 text-sm font-bold text-white transition-all duration-150 hover:bg-blue-500  ">
+ <button onClick={onCopy} className="flex h-9 flex-1 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white transition hover:bg-blue-700">
  Copy to Clipboard
  </button>
  </div>

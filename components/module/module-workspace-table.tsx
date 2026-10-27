@@ -288,11 +288,11 @@ export function ModuleWorkspaceTable({
   return (
     <div
       ref={parentRef}
-      className={`max-w-full overflow-x-auto px-6 pb-32 pt-2${shouldVirtualize ? " max-h-[calc(100vh-220px)] overflow-y-auto" : ""}`}
+      className={`max-w-full overflow-x-auto px-3 sm:px-6 pb-32 pt-2${shouldVirtualize ? " max-h-[calc(100vh-220px)] overflow-y-auto" : ""}`}
     >
       {/* Bulk action toolbar */}
       {hasSelection && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 border border-blue-200 bg-blue-50 px-4 py-2 animate-in fade-in duration-100">
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 animate-in fade-in duration-100">
           <span className="text-xs font-semibold text-blue-700">
             {selectedIds.size} selected
           </span>
@@ -308,7 +308,7 @@ export function ModuleWorkspaceTable({
                   }
                 }}
                 defaultValue=""
-                className="border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
               >
                 <option value="" disabled>Change status...</option>
                 {statusOptions.map((opt) => (
@@ -330,7 +330,7 @@ export function ModuleWorkspaceTable({
                   }
                 }}
                 defaultValue=""
-                className="border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
               >
                 <option value="" disabled>Assign to...</option>
                 {assigneeOptions.map((opt) => (
@@ -345,7 +345,7 @@ export function ModuleWorkspaceTable({
             <button
               type="button"
               onClick={onBulkDelete}
-              className="inline-flex items-center gap-1.5 border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
             >
               <Trash size={14} weight="bold" />
               Delete

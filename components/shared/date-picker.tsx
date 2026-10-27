@@ -47,11 +47,16 @@ export function ModernDatePicker({
  const rect = triggerRef.current.getBoundingClientRect();
  const spaceBelow = window.innerHeight - rect.bottom;
  const dropdownHeight = 320; // approximate calendar height
+ const dropdownWidth = 288;
+ let left = rect.left;
+ if (typeof window !== "undefined" && left + dropdownWidth > window.innerWidth - 12) {
+  left = Math.max(12, window.innerWidth - dropdownWidth - 12);
+ }
  // If not enough space below, open above
  if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
- setDropdownPos({ top: rect.top - dropdownHeight - 4, left: rect.left });
+  setDropdownPos({ top: rect.top - dropdownHeight - 4, left });
  } else {
- setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+  setDropdownPos({ top: rect.bottom + 4, left });
  }
  }, []);
 
@@ -129,7 +134,7 @@ export function ModernDatePicker({
 
  if (!mounted) {
  return (
- <div className="h-12 w-full animate-pulse  border border-gray-200 bg-gray-100" />
+ <div className="h-12 w-full animate-pulse rounded-lg border border-gray-200 bg-gray-100" />
  );
  }
 
@@ -137,8 +142,8 @@ export function ModernDatePicker({
  <div className="relative w-full" ref={popoverRef}>
  {/* Hidden native input so forms continue to work without changing module-workspace logic significantly */}
  <input type="hidden" name={name} value={selectedDate ? selectedDate.toISOString().split('T')[0] :""} />
- 
- <div ref={triggerRef} className="group relative flex h-12 w-full items-center  border border-gray-200 bg-gray-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
+
+ <div ref={triggerRef} className="group relative flex h-12 w-full items-center rounded-lg border border-gray-200 bg-gray-50 transition focus-within:border-blue-300 focus-within:bg-white hover:bg-white">
  <button
  type="button"
  onClick={() => setIsOpen(!isOpen)}
@@ -150,7 +155,7 @@ export function ModernDatePicker({
  )}
  >
  <span>
- {selectedDate 
+ {selectedDate
  ? selectedDate.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
  :"Select a date..."}
  </span>
@@ -165,15 +170,15 @@ export function ModernDatePicker({
  handleSelect(new Date());
  }}
  disabled={disabled}
- className="flex h-8 items-center rounded bg-blue-100 px-2 text-[11px] font-bold uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
+ className="flex h-8 items-center rounded-md bg-blue-100 px-2 text-[11px] font-bold uppercase tracking-wider text-blue-700 transition hover:bg-blue-200"
  >
  Today
  </button>
- <button 
+ <button
  type="button"
  onClick={() => setIsOpen(!isOpen)}
  disabled={disabled}
- className="flex h-8 w-8 items-center justify-center text-gray-500 hover:text-blue-600"
+ className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:text-blue-600"
  >
  <CalendarBlank size={18} />
  </button>
@@ -184,13 +189,13 @@ export function ModernDatePicker({
  <div
  ref={dropdownRef}
  style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 99999 }}
- className="w-72  border border-gray-200 bg-white p-4 shadow-md animate-in fade-in  duration-150"
+ className="w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl animate-in fade-in duration-150"
  >
  <div className="flex items-center justify-between mb-4">
  <button
  type="button"
  onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
- className="flex h-8 w-8 items-center justify-center  hover:bg-gray-100 text-gray-600 transition"
+ className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600 transition"
  >
  <CaretLeft size={16} weight="bold" />
  </button>
@@ -200,7 +205,7 @@ export function ModernDatePicker({
  <button
  type="button"
  onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
- className="flex h-8 w-8 items-center justify-center  hover:bg-gray-100 text-gray-600 transition"
+ className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600 transition"
  >
  <CaretRight size={16} weight="bold" />
  </button>
@@ -215,12 +220,12 @@ export function ModernDatePicker({
  <div className="grid grid-cols-7 gap-1">
  {days.map((day, idx) => {
  if (!day) return <div key={`empty-${idx}`} className="h-8" />;
- 
- const isSelected = selectedDate && 
- day.getDate() === selectedDate.getDate() && 
- day.getMonth() === selectedDate.getMonth() && 
+
+ const isSelected = selectedDate &&
+ day.getDate() === selectedDate.getDate() &&
+ day.getMonth() === selectedDate.getMonth() &&
  day.getFullYear() === selectedDate.getFullYear();
- 
+
  const isToday = new Date().toDateString() === day.toDateString();
 
  return (
@@ -229,7 +234,7 @@ export function ModernDatePicker({
  type="button"
  onClick={() => handleSelect(day)}
  className={cn(
-"flex h-8 w-8 items-center justify-center  text-sm transition-all hover:bg-blue-100",
+"flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all hover:bg-blue-100",
  isSelected ?"bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700" :"text-gray-700",
  isToday && !isSelected &&"text-blue-600 font-bold bg-blue-50"
  )}

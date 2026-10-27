@@ -99,7 +99,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
       }}
       tabIndex={0}
     >
-      <Link href={item.href} prefetch={false} className="flex flex-1 items-center gap-2.5 min-w-0">
+      <Link href={item.href} className="flex flex-1 items-center gap-2.5 min-w-0">
         <div className="shrink-0">
           {item.type === "bug" && <XCircle size={14} weight="fill" className="text-rose-500" />}
           {item.type === "task" && <Kanban size={14} weight="bold" className="text-blue-500" />}
@@ -118,7 +118,7 @@ function AttentionRow({ item, canQuickAction }: { item: AttentionItem; canQuickA
       ) : null}
       <AgeIndicator statusChangedAt={item.statusChangedAt ?? null} ageDays={item.ageDays ?? null} />
       <Badge value={item.badge} />
-      <Link href={item.href} prefetch={false} aria-label="Open">
+      <Link href={item.href} aria-label="Open">
         <CaretRight size={10} className="text-gray-300 group-hover:text-gray-500" />
       </Link>
     </div>

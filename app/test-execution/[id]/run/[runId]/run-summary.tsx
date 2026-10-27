@@ -170,7 +170,8 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
 
           {/* All cases table */}
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
                   <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Case</th>
@@ -201,6 +202,7 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

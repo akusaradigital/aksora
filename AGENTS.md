@@ -9,27 +9,6 @@
 ## Stack
 Next.js 16.2 (App Router, Turbopack) · Tailwind v4 · `@phosphor-icons/react` (bold) · PostgreSQL (Docker lokal + Neon prod) via `lib/db.ts` · Driver: `pg` (lokal) / `@neondatabase/serverless` (Neon) · Roles: superadmin admin fe be fullstack qa pm ai
 
-## Folder Structure
-
-```
-components/
-├── module/          → workspace table, kanban, forms, view-modal, actions hooks
-├── dashboard/       → dashboard widgets, stats, filters, standup
-├── test-management/ → test-case editor, detail page, suites
-├── activity/        → activity log, timeline, feed filter
-├── layout/          → sidebar, page-shell, breadcrumb, banners, onboarding
-├── shared/          → reusable UI (badge, date-picker, form-drawer, etc.)
-│   └── search/      → global search, command palette
-├── landing/         → marketing pages components
-├── ui/              → primitives (toast, skeleton, modal, alert)
-└── [new-feature]/   → create new folder for new features
-
-hooks/               → global hooks (use-fetch, use-keyboard-shortcuts, etc.)
-lib/                 → business logic, DB, auth, data queries, utils
-app/api/             → API routes
-app/[page]/          → page + co-located sub-components (gantt/, weekly-report/, etc.)
-```
-
 ## File Placement
 
 | Type | Location |

@@ -80,8 +80,14 @@ export async function POST(request: NextRequest) {
     scope = body.scope;
   }
 
-  const created = await createApiKeyForUser(user.id, name, expiresInDays, workspaceId, allowedModules, scope);
-  return NextResponse.json({ data: created }, { status: 201 });
+  try {
+    const created = await createApiKeyForUser(user.id, name, expiresInDays, workspaceId, allowedModules, scope);
+    return NextResponse.json({ data: created }, { status: 201 });
+  } catch (error) {
+    console.error("API Key POST error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to create API key.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {

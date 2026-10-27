@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: { id } }, { status: 201 });
   } catch (error) {
     console.error("Notes POST error:", error);
-    return NextResponse.json({ error: "Failed to create note." }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Failed to create note.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

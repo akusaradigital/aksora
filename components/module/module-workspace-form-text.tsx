@@ -81,7 +81,7 @@ export function ModuleWorkspaceFormText({
 
  if (isLocked) {
  return (
- <div className="flex min-h-10 w-full items-center  border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none">
+ <div className="flex min-h-10 w-full items-center rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-400 cursor-not-allowed select-none">
  {value || "-"}
  <input type="hidden" name={field.name} value={value} />
  </div>
@@ -130,7 +130,7 @@ export function ModuleWorkspaceFormText({
  className="group absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center  text-sky-600 outline-none"
  >
  <Info size={14} weight="bold" />
- <span className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-[240px] translate-y-1  border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 opacity-0 shadow-lg transition group-hover:translate-y-0 group-hover:opacity-100">
+ <span className="pointer-events-none absolute right-0 bottom-full z-20 mb-2 w-max max-w-[240px] translate-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 opacity-0 shadow-lg transition group-hover:translate-y-0 group-hover:opacity-100">
  {versionValue ? (
  <>
  Based on <span className="font-bold">{versionValue}</span>

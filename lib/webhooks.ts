@@ -47,6 +47,25 @@ function normalizeEvents(events?: string[] | null): string {
   return events.map((e) => e.trim()).filter(Boolean).join(",");
 }
 
+async function ensureWebhookTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS "Webhook" (
+      "id" SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL,
+      "workspaceId" INTEGER,
+      "company" TEXT NOT NULL DEFAULT '',
+      "url" TEXT NOT NULL,
+      "secret" TEXT NOT NULL,
+      "events" TEXT NOT NULL DEFAULT '*',
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastTriggeredAt" TIMESTAMP,
+      "lastStatus" INTEGER,
+      "failureCount" INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+}
+
 export async function createWebhookForUser(
   userId: number,
   company: string,
@@ -54,6 +73,7 @@ export async function createWebhookForUser(
   workspaceId?: number | null,
   events?: string[] | null,
 ) {
+  await ensureWebhookTable();
   const trimmedUrl = String(url ?? "").trim();
   const urlError = validateOutboundUrl(trimmedUrl);
   if (urlError) {
@@ -63,11 +83,16 @@ export async function createWebhookForUser(
   const secret = generateWebhookSecret();
   const eventsString = normalizeEvents(events);
 
+  const uid = Number(userId);
+  if (!Number.isFinite(uid) || uid <= 0) {
+    throw new Error("Invalid user ID.");
+  }
+
   const created = await db.get<{ id: number }>(
     `INSERT INTO "Webhook" ("userId", "workspaceId", "company", "url", "secret", "events")
-     VALUES (?, CAST(? AS INTEGER), ?, ?, ?, ?)
+     VALUES (CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?)
      RETURNING "id"`,
-    [userId, workspaceId ?? null, company, trimmedUrl, secret, eventsString],
+    [uid, workspaceId ?? null, company, trimmedUrl, secret, eventsString],
   );
 
   if (!created?.id) {
@@ -78,12 +103,13 @@ export async function createWebhookForUser(
 }
 
 export async function listWebhooksForUser(userId: number) {
+  await ensureWebhookTable();
   return db.query<WebhookRow>(
     `SELECT "id", "url", "events", "active", "workspaceId", "createdAt", "lastTriggeredAt", "lastStatus", "failureCount"
      FROM "Webhook"
-     WHERE "userId" = ?
+     WHERE "userId" = CAST(? AS INTEGER)
      ORDER BY "createdAt" DESC`,
-    [userId],
+    [Number(userId)],
   );
 }
 

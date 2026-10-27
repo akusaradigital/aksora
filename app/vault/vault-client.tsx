@@ -20,6 +20,15 @@ type VaultEntry = {
 
 const CATEGORIES = ["general", "work", "personal", "finance", "social", "dev"] as const;
 
+const CATEGORY_COLORS: Record<string, string> = {
+  general:  "bg-slate-100 text-slate-600",
+  work:     "bg-blue-100 text-blue-700",
+  personal: "bg-violet-100 text-violet-700",
+  finance:  "bg-emerald-100 text-emerald-700",
+  social:   "bg-orange-100 text-orange-700",
+  dev:      "bg-amber-100 text-amber-700",
+};
+
 const REVEAL_TIMEOUT_MS = 10000;
 
 // shortcut: fixed length/charset, no configurable options in v1 — upgrade if users ask for custom generator rules.
@@ -225,61 +234,75 @@ export function VaultClient() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Title / URL</th>
                 <th className="px-4 py-3">Username</th>
-                <th className="px-4 py-3">Password</th>
                 <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Password</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {entries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-slate-50/50">
+                  {/* Title + URL */}
                   <td className="px-4 py-3">
                     <p className="font-bold text-slate-900">{entry.title}</p>
                     {entry.url && (
                       isSafeHref(entry.url) ? (
-                        <a href={entry.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline">
+                        <a
+                          href={entry.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block max-w-[130px] sm:max-w-[220px] truncate text-[11px] text-blue-500 hover:underline"
+                          title={entry.url}
+                        >
                           {entry.url}
                         </a>
                       ) : (
-                        <span className="text-[11px] text-slate-400" title="Unsafe link blocked">{entry.url}</span>
+                        <span className="block max-w-[130px] sm:max-w-[220px] truncate text-[11px] text-slate-400" title="Unsafe link blocked">
+                          {entry.url}
+                        </span>
                       )
                     )}
                   </td>
+                  {/* Username */}
                   <td className="px-4 py-3 text-slate-600">{entry.username || "—"}</td>
+                  {/* Category */}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <code className="rounded border border-slate-200 bg-slate-100 px-2 py-1 font-mono text-[11px]">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${CATEGORY_COLORS[entry.category] ?? "bg-slate-100 text-slate-600"}`}>
+                      {entry.category}
+                    </span>
+                  </td>
+                  {/* Password */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <code className="max-w-[100px] sm:max-w-[160px] truncate rounded border border-slate-200 bg-slate-100 px-2 py-1 font-mono text-[11px]" title={revealed[entry.id]}>
                         {revealed[entry.id] !== undefined ? revealed[entry.id] : "••••••••"}
                       </code>
                       <button
                         onClick={() => toggleReveal(entry)}
                         disabled={revealing === entry.id}
                         aria-label={revealed[entry.id] !== undefined ? "Hide password" : "Reveal password"}
-                        className="text-slate-400 hover:text-slate-700"
+                        className="shrink-0 text-slate-400 hover:text-slate-700"
                       >
                         {revealed[entry.id] !== undefined ? <EyeSlash size={14} /> : <Eye size={14} />}
                       </button>
-                      <button onClick={() => copyPassword(entry)} aria-label="Copy password" className="text-slate-400 hover:text-slate-700">
+                      <button onClick={() => copyPassword(entry)} aria-label="Copy password" className="shrink-0 text-slate-400 hover:text-slate-700">
                         <Copy size={14} />
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold capitalize text-slate-700">
-                      {entry.category}
-                    </span>
-                  </td>
+                  {/* Actions */}
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => openEdit(entry)} aria-label="Edit entry" className="text-slate-400 hover:text-slate-700">
+                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                      <button onClick={() => openEdit(entry)} aria-label="Edit entry" className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                         <PencilSimple size={14} />
                       </button>
-                      <button onClick={() => setDeleteTarget(entry)} aria-label="Delete entry" className="text-rose-500 hover:text-rose-700">
+                      <button onClick={() => setDeleteTarget(entry)} aria-label="Delete entry" className="rounded p-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600">
                         <Trash size={14} />
                       </button>
                     </div>
@@ -289,31 +312,25 @@ export function VaultClient() {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       <FormDrawer
         open={drawerOpen}
         title={editing ? "Edit Entry" : "New Entry"}
         onClose={() => setDrawerOpen(false)}
+        size="md"
       >
         <div className="space-y-4 p-5">
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. GitHub"
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">Username</label>
+          {/* Row 1: Title (2/3) + Category (1/3) */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">Title</label>
               <input
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. GitHub"
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -330,13 +347,25 @@ export function VaultClient() {
               </select>
             </div>
           </div>
+          {/* Row 2: URL */}
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">URL</label>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">URL / Website</label>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+          {/* Row 3: Username */}
+          <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700">Username / Email</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. john@example.com"
               className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>

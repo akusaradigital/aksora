@@ -10,9 +10,18 @@ type FormDrawerProps = {
   subtitle?: string;
   onClose: () => void;
   children: ReactNode;
+  /** Tailwind max-width class. Default "max-w-2xl" suits most forms; pass "max-w-5xl" for wide module forms. */
+  size?: "sm" | "md" | "lg" | "xl";
 };
 
-export function FormDrawer({ open, title, subtitle, onClose, children }: FormDrawerProps) {
+const SIZE_MAP: Record<string, string> = {
+  sm: "max-w-sm",
+  md: "max-w-2xl",
+  lg: "max-w-3xl",
+  xl: "max-w-5xl",
+};
+
+export function FormDrawer({ open, title, subtitle, onClose, children, size = "xl" }: FormDrawerProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +45,7 @@ export function FormDrawer({ open, title, subtitle, onClose, children }: FormDra
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 animate-in fade-in duration-100"
@@ -46,7 +55,8 @@ export function FormDrawer({ open, title, subtitle, onClose, children }: FormDra
       <div
         ref={ref}
         className={cn(
-          "relative flex max-h-[90vh] w-full max-w-5xl flex-col bg-white border border-gray-200 shadow-md",
+          "relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-white border border-gray-200 shadow-lg",
+          SIZE_MAP[size] ?? "max-w-2xl",
           "animate-in fade-in duration-100",
         )}
       >

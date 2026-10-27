@@ -17,13 +17,19 @@ export async function POST(req: Request) {
       project?: string;
       category?: string;
       durationMinutes?: number | string;
+      ai?: {
+        ai_provider?: string;
+        ai_model?: string;
+        api_key?: string;
+        nine_router_public_url?: string;
+      };
     };
 
     if (!body || !body.title) {
       return NextResponse.json({ error: "Task title is required" }, { status: 400 });
     }
 
-    const formatted = await formatSicmundusTaskWithAI(body);
+    const formatted = await formatSicmundusTaskWithAI(body, body.ai);
     return NextResponse.json({ data: formatted });
   } catch (err) {
     return NextResponse.json(

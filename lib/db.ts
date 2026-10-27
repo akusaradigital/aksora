@@ -47,8 +47,8 @@ async function getPostgresPool() {
       const poolConfig = {
         connectionString,
         max: isNeon ? 5 : 10,
-        min: 0,
-        idleTimeoutMillis: isNeon ? 5000 : 15000,
+        min: isNeon ? 0 : 1,
+        idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 3000,
         allowExitOnIdle: true,
         statement_timeout: 5000,

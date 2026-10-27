@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useEffect } from "react";
 import {
   Bug,
@@ -25,6 +26,7 @@ import {
   ClockCounterClockwise,
   Headset,
   Key,
+  Robot,
   MicrophoneStage,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -96,6 +98,7 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
       title: t.groupSystemSettings,
       items: [
         { href: "/settings", label: t.settings, icon: Gear },
+        { href: "/settings/ai", label: t.aiSettings, icon: Robot },
         { href: "/settings/api-keys", label: t.apiKeys, icon: Key },
         { href: "/settings/support", label: t.support, icon: Headset },
       ],
@@ -106,13 +109,13 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/api-keys", "/settings/support", "/work-logs", "/notes", "/vault"],
-  fullstack: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  ai: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  qa: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  fe: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  be: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  pm: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  admin: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/ai", "/settings/api-keys", "/settings/support", "/work-logs", "/notes", "/vault"],
+  fullstack: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  ai: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  qa: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  fe: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  be: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  pm: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
 };
 
 function canSeeHref(role: string, href: string) {
@@ -133,19 +136,6 @@ export function filterGroups(role: string, t: Dictionary["sidebar"]) {
     .filter((group) => group.items.length > 0);
 }
 
-// ─── Prefetch config ─────────────────────────────────────────────────────────
-
-const PREFETCH_ROUTES = new Set([
-  "/dashboard",
-  "/bugs",
-  "/tasks",
-  "/test-cases",
-  "/sprints",
-  "/gantt",
-]);
-
-// ─── Nav Item ────────────────────────────────────────────────────────────────
-
 export function SidebarNavItem({
   item,
   pathname,
@@ -159,9 +149,9 @@ export function SidebarNavItem({
   showTooltip: (e: React.MouseEvent<HTMLElement>, label: string) => void;
   hideTooltip: () => void;
 }) {
+  const router = useRouter();
   const Icon = item.icon;
   const linkRef = useRef<HTMLAnchorElement | null>(null);
-  const shouldPrefetch = PREFETCH_ROUTES.has(item.href);
   const isSuiteExecutionRoute = pathname.startsWith("/test-execution");
   const active =
     pathname === item.href ||
@@ -181,12 +171,29 @@ export function SidebarNavItem({
     return () => window.clearTimeout(timer);
   }, [active, pathname]);
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLElement>) => {
+    showTooltip(e, item.label);
+    try {
+      router.prefetch(item.href);
+    } catch {
+      // noop
+    }
+  };
+
+  const handleFocus = () => {
+    try {
+      router.prefetch(item.href);
+    } catch {
+      // noop
+    }
+  };
+
   return (
     <Link
       ref={linkRef}
       href={item.href}
-      prefetch={shouldPrefetch ? undefined : false}
-      onMouseEnter={(e) => showTooltip(e, item.label)}
+      onMouseEnter={handleMouseEnter}
+      onFocus={handleFocus}
       onMouseLeave={hideTooltip}
       className={cn(
         "group relative flex h-10 items-center text-[13px] font-medium transition-colors duration-100 outline-none",

@@ -180,7 +180,8 @@ export function NotesClient() {
                   <span className={cn("h-2 w-2 shrink-0 rounded-full", COLOR_DOT[note.color] ?? COLOR_DOT.default)} />
                   <span className="truncate text-sm font-bold text-slate-900">{note.title || "Untitled"}</span>
                 </button>
-                <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                {/* Actions: always visible on mobile, hover-reveal only on md+ */}
+                <div className="flex shrink-0 items-center gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
                   <button
                     onClick={() => togglePin(note)}
                     aria-label={note.pinned ? "Unpin note" : "Pin note"}
@@ -212,6 +213,7 @@ export function NotesClient() {
         open={drawerOpen}
         title={editing ? "Edit Note" : "New Note"}
         onClose={() => setDrawerOpen(false)}
+        size="md"
       >
         <div className="space-y-4 p-5">
           <div>
@@ -244,7 +246,7 @@ export function NotesClient() {
                   onClick={() => setColor(c)}
                   aria-label={c}
                   className={cn(
-                    "h-7 w-7 rounded-full border-2",
+                    "h-9 w-9 rounded-full border-2",
                     COLOR_DOT[c],
                     color === c ? "border-slate-900" : "border-transparent",
                   )}

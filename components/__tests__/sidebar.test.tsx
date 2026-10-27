@@ -3,6 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/test-execution/session-1",
+  useRouter: () => ({
+    prefetch: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
 }));
 
 vi.mock("next/link", () => ({

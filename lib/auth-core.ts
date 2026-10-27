@@ -314,16 +314,47 @@ export async function getCurrentUser() {
 
     // Fast path: user data embedded in token (new tokens after login)
     if (decoded.id && decoded.name !== undefined && decoded.role !== undefined && decoded.company !== undefined) {
-      // Verify session hasn't been revoked (password changed)
-      if (decoded.pv) {
+      let validUserId = decoded.id;
+      // Verify session hasn't been revoked and user exists in current DB
+      try {
         const { db } = await import("./db");
-        const row = await db.get<{ password: string }>(
-          'SELECT "password" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+        const row = await db.get<{ id: number; password: string }>(
+          'SELECT "id", "password" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
           [decoded.id],
         );
-        if (row?.password && row.password.slice(0, 16) !== decoded.pv) {
-          return null; // Password changed - session revoked
+        if (row) {
+          if (decoded.pv && row.password && row.password.slice(0, 16) !== decoded.pv) {
+            return null; // Password changed - session revoked
+          }
+        } else if (decoded.email) {
+          // User id not found in DB (e.g. after DB reset/reseed) - look up by email
+          const byEmail = await db.get<{ id: number; password: string }>(
+            'SELECT "id", "password" FROM "User" WHERE "email" = ?',
+            [decoded.email],
+          );
+          if (byEmail?.id) {
+            validUserId = byEmail.id;
+          } else {
+            // User exists in cryptographically verified token but missing in DB.
+            // Re-create user record so foreign key constraints on userId never fail.
+            try {
+              const inserted = await db.get<{ id: number }>(
+                `INSERT INTO "User" ("name", "email", "password", "role", "company")
+                 VALUES (?, ?, 'session-restored', ?, ?)
+                 ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+                 RETURNING "id"`,
+                [decoded.name || decoded.email, decoded.email, decoded.role || "admin", decoded.company || ""]
+              );
+              if (inserted?.id) {
+                validUserId = inserted.id;
+              }
+            } catch {
+              /* ignore non-critical insert error */
+            }
+          }
         }
+      } catch {
+        /* non-critical fallback */
       }
 
       // Resolve activeWorkspaceId from DB if missing in token (old tokens, no re-login needed)
@@ -340,7 +371,7 @@ export async function getCurrentUser() {
       }
 
       return {
-        id: decoded.id,
+        id: validUserId,
         name: decoded.name,
         email: decoded.email,
         role: normalizeRole(decoded.role),

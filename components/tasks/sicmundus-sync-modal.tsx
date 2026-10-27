@@ -19,6 +19,7 @@ import {
   type SicmundusParentTask,
 } from "@/components/tasks/sicmundus-sync-parts";
 import { DurationInput } from "@/components/shared/duration-input";
+import { getAiRequestPayload } from "@/lib/ai-keys";
 
 export type { SicmundusTaskProp, SicmundusSyncResult };
 
@@ -109,6 +110,7 @@ export function SicmundusSyncModal({
     setErrorMsg(null);
 
     try {
+      const aiPayload = getAiRequestPayload();
       const res = await fetch("/api/integrations/sicmundus/ai-format", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,6 +120,7 @@ export function SicmundusSyncModal({
           project: task.project,
           category: task.category,
           durationMinutes,
+          ai: aiPayload,
         }),
       });
 
@@ -215,14 +218,14 @@ export function SicmundusSyncModal({
         if (e.target === e.currentTarget && !isSyncing) onClose();
       }}
     >
-      <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col border border-gray-200 bg-white shadow-xl animate-in slide-in-from-bottom-2 duration-150 sm:slide-in-from-bottom-0">
+      <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in slide-in-from-bottom-2 duration-150 sm:slide-in-from-bottom-0">
         {/* Header */}
         <SicmundusSyncHeader onClose={onClose} isSyncing={isSyncing} />
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-xs">
           {errorMsg && (
-            <div className="flex items-start gap-2 border border-rose-200 bg-rose-50 p-2.5 text-rose-700">
+            <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-rose-700">
               <WarningCircle size={15} weight="bold" className="mt-0.5 shrink-0" />
               <div className="flex-1 text-[11px] font-medium leading-relaxed">{errorMsg}</div>
             </div>
@@ -285,7 +288,8 @@ export function SicmundusSyncModal({
                     type="button"
                     onClick={handleAIFormat}
                     disabled={isFormattingAI || isSyncing}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-700 hover:text-violet-800 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded bg-violet-50 px-2 py-0.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100 disabled:opacity-50 transition"
+                    title="Format using active AI provider (Settings > AI & Models)"
                   >
                     <Sparkle size={12} weight="bold" className={isFormattingAI ? "animate-spin text-violet-600" : "text-violet-600"} />
                     {isFormattingAI ? "Formatting..." : "AI Format"}
@@ -358,7 +362,7 @@ export function SicmundusSyncModal({
               type="button"
               onClick={onClose}
               disabled={isSyncing}
-              className="h-8 border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+              className="h-8 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
             >
               Cancel
             </button>
@@ -366,7 +370,7 @@ export function SicmundusSyncModal({
               type="button"
               onClick={handleSync}
               disabled={isSyncing}
-              className="inline-flex h-8 items-center gap-1.5 bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-500 disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-sky-600 px-4 text-xs font-bold text-white transition hover:bg-sky-500 disabled:opacity-50"
             >
               {isSyncing ? (
                 <>

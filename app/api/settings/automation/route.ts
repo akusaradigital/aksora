@@ -29,13 +29,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing required rule fields" }, { status: 400 });
   }
 
-  await db.run(
-    `INSERT INTO "AutomationRule" ("workspaceId", "company", "name", "module", "triggerField", "triggerValue", "actionType", "actionValue", "active")
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [scope.workspaceId ?? user.activeWorkspaceId ?? null, scope.company, name, module, triggerField, triggerValue, actionType, actionValue]
-  );
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS "AutomationRule" (
+        "id" SERIAL PRIMARY KEY,
+        "workspaceId" INTEGER,
+        "company" TEXT NOT NULL DEFAULT '',
+        "name" TEXT NOT NULL,
+        "module" TEXT NOT NULL DEFAULT 'tasks',
+        "triggerField" TEXT NOT NULL,
+        "triggerValue" TEXT NOT NULL,
+        "actionType" TEXT NOT NULL,
+        "actionValue" TEXT NOT NULL,
+        "active" INTEGER NOT NULL DEFAULT 1,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  return NextResponse.json({ ok: true });
+    await db.run(
+      `INSERT INTO "AutomationRule" ("workspaceId", "company", "name", "module", "triggerField", "triggerValue", "actionType", "actionValue", "active")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      [scope.workspaceId ?? user.activeWorkspaceId ?? null, scope.company, name, module, triggerField, triggerValue, actionType, actionValue]
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Automation rule POST error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to create automation rule.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request) {
@@ -47,9 +70,15 @@ export async function DELETE(req: Request) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const scope = getAccessScope(user);
-  await db.run(
-    `DELETE FROM "AutomationRule" WHERE "id" = CAST(? AS INTEGER) AND ("company" = ? OR "company" = '')`,
-    [id, scope.company]
-  );
-  return NextResponse.json({ ok: true });
+  try {
+    await db.run(
+      `DELETE FROM "AutomationRule" WHERE "id" = CAST(? AS INTEGER) AND ("company" = ? OR "company" = '')`,
+      [id, scope.company]
+    );
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Automation rule DELETE error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to delete automation rule.";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

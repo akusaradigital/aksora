@@ -34,6 +34,25 @@ export function hashApiKey(rawKey: string) {
   return createHash("sha256").update(String(rawKey ?? "")).digest("hex");
 }
 
+async function ensureApiKeyTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS "ApiKey" (
+      "id" SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL,
+      "workspaceId" INTEGER,
+      "name" TEXT NOT NULL,
+      "keyHash" TEXT NOT NULL,
+      "keyPrefix" TEXT NOT NULL,
+      "allowedModules" TEXT NOT NULL DEFAULT '*',
+      "scope" TEXT NOT NULL DEFAULT 'write',
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastUsedAt" TIMESTAMP,
+      "revokedAt" TIMESTAMP,
+      "expiresAt" TIMESTAMP
+    )
+  `);
+}
+
 export async function createApiKeyForUser(
   userId: number,
   name: string,
@@ -42,6 +61,7 @@ export async function createApiKeyForUser(
   allowedModules?: string[] | null,
   scope?: ApiKeyScope | null,
 ) {
+  await ensureApiKeyTable();
   const normalizedName = normalizeName(name);
   if (!normalizedName) {
     throw new Error("API key name is required.");
@@ -54,11 +74,16 @@ export async function createApiKeyForUser(
     : allowedModules.map((m) => m.trim()).filter(Boolean).join(",");
   const normalizedScope = normalizeScope(scope);
 
+  const uid = Number(userId);
+  if (!Number.isFinite(uid) || uid <= 0) {
+    throw new Error("Invalid user ID.");
+  }
+
   const created = await db.get<{ id: number }>(
     `INSERT INTO "ApiKey" ("userId", "workspaceId", "name", "keyHash", "keyPrefix", "allowedModules", "scope", "expiresAt")
-     VALUES (?, CAST(? AS INTEGER), ?, ?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP + (? * INTERVAL '1 day') END)
+     VALUES (CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP + (? * INTERVAL '1 day') END)
      RETURNING "id"`,
-    [userId, workspaceId ?? null, normalizedName, keyHash, prefix, modulesString, normalizedScope, expiresInDays ?? null, expiresInDays ?? null],
+    [uid, workspaceId ?? null, normalizedName, keyHash, prefix, modulesString, normalizedScope, expiresInDays ?? null, expiresInDays ?? null],
   );
 
   if (!created?.id) {
@@ -69,13 +94,14 @@ export async function createApiKeyForUser(
 }
 
 export async function listApiKeysForUser(userId: number, workspaceId?: number | null) {
+  await ensureApiKeyTable();
   const whereWorkspace = workspaceId !== undefined && workspaceId !== null ? ' AND "workspaceId" = CAST(? AS INTEGER)' : "";
-  const params = workspaceId !== undefined && workspaceId !== null ? [userId, workspaceId] : [userId];
+  const params = workspaceId !== undefined && workspaceId !== null ? [Number(userId), workspaceId] : [Number(userId)];
 
   return db.query<ApiKeyRow>(
     `SELECT "id", "name", "keyPrefix", "workspaceId", "allowedModules", "scope", "createdAt", "lastUsedAt", "revokedAt", "expiresAt"
      FROM "ApiKey"
-     WHERE "userId" = ?${whereWorkspace}
+     WHERE "userId" = CAST(? AS INTEGER)${whereWorkspace}
      ORDER BY "createdAt" DESC`,
     params,
   );

@@ -99,7 +99,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="scroll-smooth" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon-light.png" media="(prefers-color-scheme: light)" type="image/png" />
         <link rel="icon" href="/icon-dark.png" media="(prefers-color-scheme: dark)" type="image/png" />

@@ -188,10 +188,10 @@ export function AppWrapper({ children }: AppWrapperProps) {
       <OnboardingTour />
       <InstallPromptBanner />
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-black/20 md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 transition-transform duration-150 ease-in-out md:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-150 ease-in-out md:translate-x-0",
         mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         <Sidebar
@@ -333,7 +333,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
                           onSwitched={() => setAccountOpen(false)}
                         />
                         <div className="mt-2 border-t border-gray-100 pt-2">
-                          <Link href="/settings/workspaces" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-sky-700 hover:text-sky-900">
+                          <Link href="/settings/workspaces" onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-sky-700 hover:text-sky-900">
                             <Buildings size={14} weight="bold" />
                             Manage Workspaces
                           </Link>
@@ -342,12 +342,12 @@ export function AppWrapper({ children }: AppWrapperProps) {
                     )}
 
                     <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3">
-                      <Link href="/settings/profile" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                      <Link href="/settings/profile" onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                         <UserCircle size={15} weight="bold" />
                         Profile
                       </Link>
                       {(String(user?.role || "").trim() === "admin" || String(user?.role || "").trim() === "superadmin") && (
-                        <Link href="/settings/users" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                        <Link href="/settings/users" onClick={() => setAccountOpen(false)} className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
                           <Gear size={15} weight="bold" />
                           Account settings
                         </Link>

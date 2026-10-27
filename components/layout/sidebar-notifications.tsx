@@ -107,7 +107,7 @@ export function NotificationPanel({
               </div>
               {overdueNotifs.map((n) => (
                 <div key={n.id} className="group flex items-start gap-2.5 px-4 py-2.5 transition hover:bg-slate-50">
-                  <Link href={n.href} prefetch={false} onClick={onClose} className="flex min-w-0 flex-1 items-start gap-2.5">
+                  <Link href={n.href} onClick={onClose} className="flex min-w-0 flex-1 items-start gap-2.5">
                     <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center bg-rose-100 text-rose-600">
                       <WarningCircle size={12} weight="bold" />
                     </div>
@@ -137,7 +137,7 @@ export function NotificationPanel({
               </div>
               {deadlineNotifs.map((n) => (
                 <div key={n.id} className="group flex items-start gap-2.5 px-4 py-2.5 transition hover:bg-slate-50">
-                  <Link href={n.href} prefetch={false} onClick={onClose} className="flex min-w-0 flex-1 items-start gap-2.5">
+                  <Link href={n.href} onClick={onClose} className="flex min-w-0 flex-1 items-start gap-2.5">
                     <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center bg-amber-100 text-amber-600">
                       <ClockCountdown size={12} weight="bold" />
                     </div>

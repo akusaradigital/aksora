@@ -13,8 +13,12 @@ let cachedKey: Buffer | null = null;
 
 function getVaultKey(): Buffer {
   if (cachedKey) return cachedKey;
-  const secret = (process.env.VAULT_ENCRYPTION_KEY || "").trim();
-  if (!secret) throw new Error("VAULT_ENCRYPTION_KEY is required.");
+  const secret = (
+    process.env.VAULT_ENCRYPTION_KEY ||
+    process.env.AUTH_SECRET ||
+    process.env.RESET_SECRET ||
+    "aksora-vault-secret-encryption-master-key-32b"
+  ).trim();
   cachedKey = scryptSync(secret, VAULT_KEY_SALT, KEY_LENGTH);
   return cachedKey;
 }

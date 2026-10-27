@@ -537,7 +537,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  ))}
  </div>
 
- <div className="hidden flex-1 overflow-y-auto md:block">
+ <div className="hidden flex-1 overflow-auto md:block">
  <TestCaseTable displayCases={displayCases} suiteAssignee={selected.suiteAssignee} />
  </div>
  </div>

@@ -101,7 +101,7 @@ export function DailyDigestCard() {
   if (dismissed) return null;
   if (loading) {
     return (
-      <div className=" border border-gray-200 bg-white p-5" data-testid="daily-digest-card-loading">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" data-testid="daily-digest-card-loading">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
           <SunHorizon size={14} weight="bold" /> {t.preparing}
         </div>
@@ -110,7 +110,7 @@ export function DailyDigestCard() {
   }
   if (error) {
     return (
-      <div className=" border border-amber-200 bg-amber-50 p-4" data-testid="daily-digest-card-error">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm" data-testid="daily-digest-card-error">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
             <Warning size={14} weight="bold" />
@@ -120,7 +120,7 @@ export function DailyDigestCard() {
             <button
               type="button"
               onClick={fetchDigest}
-              className="inline-flex h-7 items-center gap-1  bg-white px-3 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+              className="inline-flex h-7 items-center gap-1 rounded-lg bg-white px-3 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
             >
               <ArrowsClockwise size={11} weight="bold" /> {t.retry}
             </button>
@@ -141,7 +141,7 @@ export function DailyDigestCard() {
 
   return (
     <section
-      className="border border-slate-200 border-l-4 border-l-blue-600 bg-white p-5 shadow-sm animate-in fade-in duration-300"
+      className="rounded-xl border border-slate-200 border-l-4 border-l-blue-600 bg-white p-5 shadow-sm animate-in fade-in duration-300"
       data-testid="daily-digest-card"
     >
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
@@ -221,7 +221,6 @@ function DigestSection({
             <li key={`${title}-${item.id}`}>
               <Link
                 href={item.href}
-                prefetch={false}
                 className={cn(
                   "block  px-2 py-1.5 text-[11px] font-semibold text-gray-700 hover:bg-white hover:text-blue-700 transition truncate",
                 )}

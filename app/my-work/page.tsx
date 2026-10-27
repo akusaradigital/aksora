@@ -30,7 +30,7 @@ export default async function MyWorkPage() {
           </div>
         ) : (
           items.map((item: MyWorkItem) => (
-            <Link key={`${item.type}-${item.id}`} href={item.href} prefetch={false} className="flex items-center justify-between border border-gray-200 p-4 hover:bg-gray-50">
+            <Link key={`${item.type}-${item.id}`} href={item.href} className="flex items-center justify-between border border-gray-200 p-4 hover:bg-gray-50">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   {item.type === "Bug" ? <Bug size={16} weight="bold" className="text-rose-600" /> : <Kanban size={16} weight="bold" className="text-blue-600" />}

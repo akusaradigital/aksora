@@ -33,8 +33,8 @@ export function WorkspaceOnboardingModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md border border-gray-200 bg-white p-8 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-xl">
         <div className="flex flex-col items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
             <Buildings size={24} weight="bold" className="text-blue-600" />
@@ -54,7 +54,7 @@ export function WorkspaceOnboardingModal() {
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder="e.g. Acme Engineering"
               disabled={loading}
-              className="w-full border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50"
             />
             {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
           </div>
@@ -62,7 +62,7 @@ export function WorkspaceOnboardingModal() {
             type="button"
             onClick={handleCreate}
             disabled={loading || !name.trim()}
-            className="w-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Creating..." : "Create workspace"}
           </button>

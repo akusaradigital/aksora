@@ -12,11 +12,29 @@ export type VaultEntryMeta = {
   updatedAt: string;
 };
 
+async function ensureVaultTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS "VaultEntry" (
+      "id" SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL,
+      "title" TEXT NOT NULL DEFAULT '',
+      "username" TEXT NOT NULL DEFAULT '',
+      "url" TEXT NOT NULL DEFAULT '',
+      "category" TEXT NOT NULL DEFAULT 'general',
+      "passwordEncrypted" TEXT NOT NULL,
+      "notes" TEXT NOT NULL DEFAULT '',
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
 export async function listVaultEntriesForUser(userId: number) {
+  await ensureVaultTable();
   return db.query<VaultEntryMeta>(
     `SELECT "id", "title", "username", "url", "category", "notes", "createdAt", "updatedAt"
-     FROM "VaultEntry" WHERE "userId" = ? ORDER BY "updatedAt" DESC`,
-    [userId],
+     FROM "VaultEntry" WHERE "userId" = CAST(? AS INTEGER) ORDER BY "updatedAt" DESC`,
+    [Number(userId)],
   );
 }
 
@@ -24,11 +42,16 @@ export async function createVaultEntryForUser(
   userId: number,
   fields: { title: string; username: string; url: string; category: string; password: string; notes: string },
 ) {
+  await ensureVaultTable();
   const passwordEncrypted = encryptSecret(fields.password);
+  const uid = Number(userId);
+  if (!Number.isFinite(uid) || uid <= 0) {
+    throw new Error("Invalid user ID.");
+  }
   const created = await db.get<{ id: number }>(
     `INSERT INTO "VaultEntry" ("userId", "title", "username", "url", "category", "passwordEncrypted", "notes")
-     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING "id"`,
-    [userId, fields.title, fields.username, fields.url, fields.category, passwordEncrypted, fields.notes],
+     VALUES (CAST(? AS INTEGER), ?, ?, ?, ?, ?, ?) RETURNING "id"`,
+    [uid, fields.title, fields.username, fields.url, fields.category, passwordEncrypted, fields.notes],
   );
   if (!created?.id) {
     throw new Error("Failed to create vault entry.");
@@ -41,6 +64,7 @@ export async function updateVaultEntryForUser(
   entryId: number,
   fields: { title?: string; username?: string; url?: string; category?: string; password?: string; notes?: string },
 ) {
+  await ensureVaultTable();
   const passwordEncrypted = fields.password !== undefined ? encryptSecret(fields.password) : null;
   const updated = await db.get<{ id: number }>(
     `UPDATE "VaultEntry"
@@ -56,25 +80,27 @@ export async function updateVaultEntryForUser(
       fields.category ?? null,
       passwordEncrypted,
       fields.notes ?? null,
-      entryId,
-      userId,
+      Number(entryId),
+      Number(userId),
     ],
   );
   return Boolean(updated?.id);
 }
 
 export async function deleteVaultEntryForUser(userId: number, entryId: number) {
+  await ensureVaultTable();
   const deleted = await db.get<{ id: number }>(
     `DELETE FROM "VaultEntry" WHERE "id" = CAST(? AS INTEGER) AND "userId" = CAST(? AS INTEGER) RETURNING "id"`,
-    [entryId, userId],
+    [Number(entryId), Number(userId)],
   );
   return Boolean(deleted?.id);
 }
 
 export async function revealVaultEntryPassword(userId: number, entryId: number): Promise<string | null> {
+  await ensureVaultTable();
   const row = await db.get<{ passwordEncrypted: string }>(
     `SELECT "passwordEncrypted" FROM "VaultEntry" WHERE "id" = CAST(? AS INTEGER) AND "userId" = CAST(? AS INTEGER)`,
-    [entryId, userId],
+    [Number(entryId), Number(userId)],
   );
   if (!row) return null;
   return decryptSecret(row.passwordEncrypted);
