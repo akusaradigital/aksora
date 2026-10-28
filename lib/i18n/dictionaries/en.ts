@@ -83,7 +83,7 @@ const dict = {
       },
       {
         title: "Live Execution Runs",
-        text: "Execute test runs with step-by-step verdicts, real-time status recording, and 1-click defect filing.",
+        text: "Execute test runs with step-by-step verdicts, real-time status recording, and streamlined defect filing.",
         badge: "Execution",
       },
       {
@@ -118,7 +118,7 @@ const dict = {
     testimonialsSubtitle: "See how teams accelerate their testing cycles and eliminate release bottlenecks.",
     testimonials: [
       {
-        quote: "Aksora cut our regression testing cycle from 3 days to under 4 hours. The live execution runs and 1-click defect filing are game changers.",
+        quote: "Aksora cut our regression testing cycle from 3 days to under 4 hours. The live execution runs and integrated defect filing are game changers.",
         author: "Alex Morgan",
         role: "Lead QA Engineer",
         company: "FinScale Tech",

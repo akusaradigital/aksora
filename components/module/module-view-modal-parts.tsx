@@ -57,6 +57,29 @@ export function renderEvidence(
   displayValue: string,
   setLightboxSrc: (src: string) => void,
 ) {
+  if (displayValue.startsWith("data:image/")) {
+    return (
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setLightboxSrc(displayValue)}
+          className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-900 transition hover:border-blue-400"
+        >
+          <img
+            src={displayValue}
+            alt="Evidence"
+            className="max-h-72 w-full object-contain mx-auto"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
+            <div className="rounded-lg bg-white/95 px-3 py-1.5 opacity-0 shadow-lg transition group-hover:opacity-100 flex items-center gap-1.5 text-xs font-bold text-slate-800">
+              <ArrowSquareOut size={14} weight="bold" /> View Fullscreen
+            </div>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
   if (!displayValue.startsWith("http")) {
     return <p className="text-xs text-gray-800 font-semibold break-all">{displayValue}</p>;
   }

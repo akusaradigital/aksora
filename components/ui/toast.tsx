@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, WarningCircle, X, Info } from "@phosphor-icons/react";
 
-type ToastType = "success" | "error" | "info";
+type ToastType = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: string;
@@ -112,6 +112,7 @@ export function Toaster() {
         >
           {t.type === "success" && <CheckCircle size={18} className="text-emerald-500 shrink-0" weight="fill" />}
           {t.type === "error" && <WarningCircle size={18} className="text-rose-500 shrink-0" weight="fill" />}
+          {t.type === "warning" && <WarningCircle size={18} className="text-amber-500 shrink-0" weight="fill" />}
           {t.type === "info" && <Info size={18} className="text-blue-500 shrink-0" weight="fill" />}
 
           <p className="flex-1 text-xs font-medium text-gray-800">

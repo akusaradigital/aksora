@@ -232,8 +232,7 @@ export function NotesClient() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write something..."
-              rows={8}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-48 w-full resize-none overflow-y-auto rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
           <div>

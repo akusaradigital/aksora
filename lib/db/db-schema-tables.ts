@@ -248,6 +248,7 @@ export const tables = [
       "id" SERIAL_OR_PK,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
+      "activeWorkspaceId" INTEGER,
       "name" TEXT,
       "email" TEXT UNIQUE,
       "password" TEXT NOT NULL,

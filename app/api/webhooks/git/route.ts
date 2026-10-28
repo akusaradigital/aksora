@@ -29,6 +29,18 @@ function extractTaskIds(text: string): number[] {
   return Array.from(new Set(ids));
 }
 
+// ponytail: parses [BUG-123] or bug-123 from commit messages or PR titles
+function extractBugIds(text: string): number[] {
+  const matches = text.match(/\[?(?:BUG-|bug-)(\d+)\]?/gi) || [];
+  const ids = matches
+    .map((m) => {
+      const num = m.replace(/[^0-9]/g, "");
+      return parseInt(num, 10);
+    })
+    .filter((id) => !isNaN(id) && id > 0);
+  return Array.from(new Set(ids));
+}
+
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
@@ -42,6 +54,7 @@ export async function POST(req: Request) {
 
     const payload = JSON.parse(rawBody || "{}");
     const updatedTasks: number[] = [];
+    const updatedBugs: number[] = [];
 
     // 1. GitHub / GitLab Pull Request Event
     if (event === "pull_request" || payload.pull_request || payload.object_kind === "merge_request") {
@@ -61,6 +74,16 @@ export async function POST(req: Request) {
         );
         updatedTasks.push(taskId);
       }
+
+      const bugIds = extractBugIds(`${prTitle} ${branchName}`);
+      for (const bugId of bugIds) {
+        const targetStatus = isMerged ? "Ready to Retest" : "In Progress";
+        await db.run(
+          `UPDATE "Bug" SET "status" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`,
+          [targetStatus, bugId]
+        );
+        updatedBugs.push(bugId);
+      }
     }
 
     // 2. Push / Commit Event
@@ -79,6 +102,15 @@ export async function POST(req: Request) {
           );
           updatedTasks.push(taskId);
         }
+
+        const bugIds = extractBugIds(message);
+        for (const bugId of bugIds) {
+          await db.run(
+            `UPDATE "Bug" SET "status" = 'Ready to Retest', "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`,
+            [bugId]
+          );
+          updatedBugs.push(bugId);
+        }
       }
     }
 
@@ -86,6 +118,7 @@ export async function POST(req: Request) {
       ok: true,
       event,
       updatedTasks: Array.from(new Set(updatedTasks)),
+      updatedBugs: Array.from(new Set(updatedBugs)),
     });
   } catch (err) {
     return NextResponse.json(

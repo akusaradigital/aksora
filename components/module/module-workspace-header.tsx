@@ -5,6 +5,10 @@ import type { ReactNode } from "react";
 import { ModuleFilterBar, type FilterValue } from "@/components/module/module-filter-bar";
 import { ColumnVisibilityToggle } from "@/components/module/column-visibility-toggle";
 import { SavedViews } from "@/components/module/saved-views";
+import { QuickBugButton } from "@/components/bugs/quick-bug-button";
+import { QaCopilotButton } from "@/components/shared/qa-copilot-button";
+import { AiReleaseNotesButton } from "@/components/test-sessions/ai-release-notes-button";
+import { AiStandupDigestButton } from "@/components/dashboard/ai-standup-digest-button";
 
 type FilterOption = {
   key: string;
@@ -103,15 +107,27 @@ export function ModuleWorkspaceHeader({
                 />
               </div>
 
+              <QaCopilotButton />
+
+              {module === "test-sessions" && (
+                <>
+                  <AiStandupDigestButton />
+                  <AiReleaseNotesButton />
+                </>
+              )}
+
               {canAdd && (
-                <button
-                  type="button"
-                  onClick={onToggleForm}
-                  className="inline-flex h-8 items-center gap-1.5 bg-blue-600 px-3 text-[13px] font-medium text-white transition hover:bg-blue-700"
-                >
-                  <Plus size={14} weight="bold" className="shrink-0" />
-                  Add {shortTitle}
-                </button>
+                <>
+                  {module === "bugs" && <QuickBugButton />}
+                  <button
+                    type="button"
+                    onClick={onToggleForm}
+                    className="inline-flex h-8 items-center gap-1.5 bg-blue-600 px-3 text-[13px] font-medium text-white transition hover:bg-blue-700"
+                  >
+                    <Plus size={14} weight="bold" className="shrink-0" />
+                    Add {shortTitle}
+                  </button>
+                </>
               )}
               <a
                 href={`/api/export/${module}`}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   CheckCircle, XCircle, Warning, CaretLeft, CaretRight, Play, ArrowLeft,
-  Keyboard, Lightning, Timer
+  Keyboard, Lightning, Timer, Bug
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/shared/badge";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RunPlayMode } from "./run-play-mode";
+import { QuickBugModal } from "@/components/bugs/quick-bug-modal";
+import { EvidenceUploadField } from "@/components/shared/evidence-upload-field";
 
 type CaseItem = {
   verdictId: number;
@@ -64,6 +66,7 @@ export function RunExecutionView({
   const [finishing, setFinishing] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showBugModal, setShowBugModal] = useState(false);
   const [isPlayMode, setIsPlayMode] = useState(false);
   const [tester, setTester] = useState(run.tester);
   const [notes, setNotes] = useState(run.notes);
@@ -157,6 +160,34 @@ export function RunExecutionView({
       return updated;
     });
   }, [isCompleted, queueSave]);
+
+  const updateEvidence = useCallback((idx: number, evidence: string) => {
+    if (isCompleted) return;
+    setItems(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], evidence };
+      queueSave(updated[idx]);
+      return updated;
+    });
+  }, [isCompleted, queueSave]);
+
+  const handleMarkAllAsPassed = useCallback(() => {
+    if (isCompleted) return;
+    const pendingCases = items.filter(i => i.verdict === "Pending" || !i.verdict);
+    if (pendingCases.length === 0) {
+      toast("All cases are already evaluated", "info");
+      return;
+    }
+    setItems(prev => {
+      const updated = prev.map(item => ({
+        ...item,
+        verdict: item.verdict === "Pending" || !item.verdict ? "Passed" : item.verdict,
+      }));
+      updated.forEach(item => queueSave(item));
+      return updated;
+    });
+    toast(`Marked ${pendingCases.length} pending cases as Passed!`, "success");
+  }, [isCompleted, items, queueSave]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -269,7 +300,7 @@ export function RunExecutionView({
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Notes</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 resize-none" placeholder="Optional notes" />
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="h-16 w-full resize-none overflow-y-auto rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900" placeholder="Optional notes" />
               </div>
             </div>
             <div className="flex gap-2 px-4 py-3 border-t border-slate-100">
@@ -314,6 +345,18 @@ export function RunExecutionView({
             <button onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition">
               <Keyboard size={18} weight="bold" />
             </button>
+            {!isCompleted && (
+              <button
+                type="button"
+                onClick={handleMarkAllAsPassed}
+                disabled={total === 0}
+                title="Execution by exception: Mark all pending cases as Passed"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 hover:border-emerald-400 active:scale-95 disabled:opacity-30"
+              >
+                <CheckCircle size={16} weight="bold" className="text-emerald-600" />
+                Mark All Passed
+              </button>
+            )}
             {!isCompleted && (
               <button onClick={() => setIsPlayMode(true)} disabled={total === 0} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 active:scale-95 disabled:opacity-30">
                 <Play size={16} weight="fill" /> Focus Mode
@@ -465,13 +508,25 @@ export function RunExecutionView({
                         <div className="mb-3">
                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Actual Result</label>
                           <textarea
-                            rows={2}
                             value={selectedCase.actualResult}
                             onChange={e => updateActualResult(selectedIdx, e.target.value)}
                             placeholder="What actually happened?"
                             disabled={isCompleted}
-                            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 resize-none disabled:opacity-50"
+                            className="h-20 w-full resize-none overflow-y-auto rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 disabled:opacity-50"
                           />
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                            Failure Evidence / Screenshot (Ctrl+V)
+                          </label>
+                          <div className="bg-slate-800/80 rounded-xl p-2.5 border border-slate-700">
+                            <EvidenceUploadField
+                              value={selectedCase.evidence || ""}
+                              onChange={val => updateEvidence(selectedIdx, val)}
+                              disabled={isCompleted}
+                            />
+                          </div>
                         </div>
                         {!isCompleted && (
                           <div className="flex items-center gap-2">
@@ -489,6 +544,16 @@ export function RunExecutionView({
                             </button>
                           </div>
                         )}
+                        {selectedCase.verdict === "Failed" && (
+                          <button
+                            type="button"
+                            onClick={() => setShowBugModal(true)}
+                            className="mt-3 w-full h-9 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-2 border border-rose-500/50 transition-all active:scale-95 shadow-sm"
+                          >
+                            <Bug size={15} weight="bold" />
+                            Log Bug from this Failure
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -497,6 +562,19 @@ export function RunExecutionView({
             )}
           </div>
         </div>
+      )}
+
+      {selectedCase && (
+        <QuickBugModal
+          isOpen={showBugModal}
+          onClose={() => setShowBugModal(false)}
+          defaultProject={suite.project || ""}
+          initialTitle={`[${selectedCase.tcId}] Failure in ${selectedCase.caseName}`}
+          initialSteps={selectedCase.testStep}
+          initialExpected={selectedCase.expectedResult}
+          initialActual={selectedCase.actualResult || "Test failed during execution"}
+          initialEvidence={selectedCase.evidence}
+        />
       )}
     </div>
   );

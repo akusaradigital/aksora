@@ -334,11 +334,10 @@ export function SicmundusSyncModal({
                 </label>
                 <textarea
                   id={notesInputId}
-                  rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Additional work notes or bug references..."
-                  className="w-full border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-sky-600 focus:outline-none resize-none"
+                  className="h-20 w-full resize-none overflow-y-auto border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-sky-600 focus:outline-none"
                 />
               </div>
 

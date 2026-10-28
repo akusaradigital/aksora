@@ -5,6 +5,7 @@ import { cn } from"@/lib/utils";
 import { ModuleWorkspaceFormField, type FieldOption, type FormField } from"@/components/module/module-workspace-form-field";
 import type { ModuleKey } from"@/lib/modules";
 import { getRequiredFieldErrors } from"@/lib/form-validation";
+import { AiEnhanceBugButton } from "@/components/bugs/ai-enhance-bug-button";
 
 type Row = Record<string, unknown> & { id?: string | number };
 type DuplicateRow = { id: string | number; code: string; title: string; status: string };
@@ -134,7 +135,7 @@ export function ModuleWorkspaceForm({
  </div>
 
  <div className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-6 sm:pt-8 md:flex-row md:items-center md:justify-between">
- <div className="flex flex-wrap gap-3">
+ <div className="flex flex-wrap items-center gap-3">
  <button
  type="submit"
  disabled={pending}
@@ -152,6 +153,7 @@ export function ModuleWorkspaceForm({
  >
  Cancel
  </button>
+ {module === "bugs" && <AiEnhanceBugButton onFormChange={onFormChange} />}
  </div>
  </div>
  </form>

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CheckCircle, XCircle, Warning, Bug, ArrowUp, ArrowDown,
-  Timer, ArrowRight, Printer
+  Timer, ArrowRight, Printer, RocketLaunch
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
+import { AiSessionSummaryButton } from "@/components/test-sessions/ai-session-summary-button";
 
 type SummaryCase = {
   testCaseId: number;
@@ -47,9 +50,12 @@ type SummaryData = {
 };
 
 export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: string }) {
+  const router = useRouter();
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview" | "failed" | "comparison">("overview");
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [promoted, setPromoted] = useState(false);
   void suiteToken;
 
   useEffect(() => {
@@ -61,6 +67,48 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
 
   const exportPdf = () => {
     window.open(`/api/execution-runs/${runId}/export`, "_blank");
+  };
+
+  const handlePromoteToSession = async () => {
+    if (!data) return;
+    setIsPromoting(true);
+    try {
+      const fd = new FormData();
+      fd.append("date", new Date().toISOString().slice(0, 10));
+      fd.append("project", "General");
+      fd.append("sprint", "");
+      fd.append("tester", data.run.tester || "QA Tester");
+      fd.append("scope", `Run #${data.run.runNumber} (${data.stats.total} cases executed)`);
+      const verdictResult =
+        data.stats.failed > 0 ? "fail" : data.stats.blocked > 0 ? "blocked" : "pass";
+      fd.append("result", verdictResult);
+      fd.append("totalCases", String(data.stats.total));
+      fd.append("passed", String(data.stats.passed));
+      fd.append("failed", String(data.stats.failed));
+      fd.append("blocked", String(data.stats.blocked));
+      fd.append(
+        "notes",
+        `Promoted automatically from Execution Run #${data.run.runNumber}. Pass rate: ${data.stats.passRate}%.`
+      );
+
+      const res = await fetch("/api/items/test-sessions", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (res.ok) {
+        setPromoted(true);
+        toast("Run successfully promoted to Test Session!", "success");
+        router.refresh();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast(err.error || "Failed to promote to Test Session", "error");
+      }
+    } catch {
+      toast("Network error promoting to Test Session", "error");
+    } finally {
+      setIsPromoting(false);
+    }
   };
 
   if (loading) {
@@ -110,13 +158,35 @@ export function RunSummary({ runId, suiteToken }: { runId: number; suiteToken: s
           </div>
         </div>
 
-        {/* Export button */}
-        <div className="flex items-center gap-2 mb-4">
+        {/* Export & AI Summary buttons */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <button
             onClick={exportPdf}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition"
           >
             <Printer size={13} weight="bold" /> Export / Print
+          </button>
+          <AiSessionSummaryButton
+            sessionTitle={`Run #${run.runNumber}`}
+            totalCases={stats.total}
+            passed={stats.passed}
+            failed={stats.failed}
+            blocked={stats.blocked}
+            failedSummary={failedCases.map(f => `${f.tcId}: ${f.caseName} - ${f.actualResult || "failed"}`).join("\n")}
+          />
+          <button
+            type="button"
+            onClick={handlePromoteToSession}
+            disabled={isPromoting || promoted}
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[11px] font-bold transition",
+              promoted
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700 cursor-default"
+                : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 disabled:opacity-50"
+            )}
+          >
+            <RocketLaunch size={13} weight="bold" />
+            {promoted ? "Promoted to Session" : isPromoting ? "Promoting..." : "Promote to Test Session"}
           </button>
         </div>
 

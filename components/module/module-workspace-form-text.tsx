@@ -9,6 +9,7 @@ import { DurationInput } from "@/components/shared/duration-input";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { cn } from "@/lib/utils";
 import { Info } from "@phosphor-icons/react";
+import { EvidenceUploadField } from "@/components/shared/evidence-upload-field";
 import type { ModuleKey } from "@/lib/modules";
 import type { FormField } from "@/components/module/module-workspace-form-field";
 
@@ -86,6 +87,20 @@ export function ModuleWorkspaceFormText({
  <input type="hidden" name={field.name} value={value} />
  </div>
  );
+ }
+
+ if (field.name === "evidence") {
+   return (
+     <div className="space-y-1">
+       <EvidenceUploadField
+         name={field.name}
+         defaultValue={initialValue}
+         placeholder={field.placeholder}
+         disabled={isLocked}
+       />
+       <FormFieldError message={fieldError} />
+     </div>
+   );
  }
 
  return (

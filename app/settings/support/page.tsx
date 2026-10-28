@@ -115,8 +115,7 @@ export default function SupportPage() {
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               placeholder="Describe your issue or request..."
-              rows={4}
-              className="w-full border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none"
+              className="h-28 w-full border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-400 resize-none overflow-y-auto"
             />
             <div className="flex flex-wrap gap-2">
               <select

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { callLLM, DEFAULT_AI_MODELS, type SupportedProvider } from "@/lib/ai-service";
+import {
+  callLLM,
+  DEFAULT_AI_MODELS,
+  fetchProviderModels,
+  queryLocal9Router,
+  queryPublic9Router,
+  type SupportedProvider,
+} from "@/lib/ai-service";
 import { validateOutboundUrlAsync } from "@/lib/ssrf-guard";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +41,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // SSRF Check on public 9Router URL
+    // SSRF Check and discovery for public 9Router URL
     if (provider === "9router-public") {
       if (!publicUrl) {
         return NextResponse.json(
@@ -50,68 +57,36 @@ export async function POST(req: Request) {
         );
       }
 
-      // Discover models from public endpoint
-      const cleanUrl = publicUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
-      const modelsUrl = `${cleanUrl}/v1/models`;
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 10000);
-      try {
-        const headers: Record<string, string> = {};
-        if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-        const res = await fetch(modelsUrl, { headers, signal: ctrl.signal });
-        clearTimeout(tid);
-        if (!res.ok) {
-          throw new Error(`Endpoint returned status ${res.status}`);
-        }
-        const data = await res.json();
-        const models = Array.isArray(data?.data)
-          ? data.data.map((m: { id: string }) => m.id).filter(Boolean)
-          : [];
+      const result = await queryPublic9Router(publicUrl, apiKey, 10000);
+      if (result.connected) {
         return NextResponse.json({
           valid: true,
-          message: "Public 9Router URL connected successfully",
-          models,
-        });
-      } catch (err) {
-        clearTimeout(tid);
-        return NextResponse.json({
-          valid: false,
-          message: `Cannot reach 9Router endpoint: ${err instanceof Error ? err.message : "Network error"}`,
+          message: `Public 9Router connected successfully (${result.models.length} model${result.models.length === 1 ? "" : "s"} found)`,
+          models: result.models,
         });
       }
+
+      return NextResponse.json({
+        valid: false,
+        message: `Cannot reach 9Router endpoint: ${result.error || "Connection failed"}`,
+      });
     }
 
-    // For local 9Router: query models
+    // For local 9Router: query models across localhost / 127.0.0.1
     if (provider === "9router") {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 2000);
-      try {
-        const headers: Record<string, string> = {};
-        if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-        const res = await fetch("http://127.0.0.1:20128/v1/models", { headers, signal: ctrl.signal });
-        clearTimeout(tid);
-        if (!res.ok) {
-          return NextResponse.json({
-            valid: false,
-            message: `Local 9Router returned HTTP ${res.status}`,
-          });
-        }
-        const data = await res.json();
-        const models = Array.isArray(data?.data)
-          ? data.data.map((m: { id: string }) => m.id).filter(Boolean)
-          : [];
+      const result = await queryLocal9Router(apiKey, 3000);
+      if (result.connected) {
         return NextResponse.json({
           valid: true,
-          message: `Local 9Router reachable (${models.length} model${models.length === 1 ? "" : "s"} found)`,
-          models,
-        });
-      } catch {
-        clearTimeout(tid);
-        return NextResponse.json({
-          valid: false,
-          message: "Local 9Router is not running on http://127.0.0.1:20128. Start 9Router locally first.",
+          message: `Local 9Router reachable (${result.models.length} model${result.models.length === 1 ? "" : "s"} found)`,
+          models: result.models,
         });
       }
+
+      return NextResponse.json({
+        valid: false,
+        message: "Local 9Router is not running on port 20128. Start 9Router locally first.",
+      });
     }
 
     // For Google Gemini, OpenAI, Claude, Groq, DeepSeek: run test ping
@@ -130,13 +105,14 @@ export async function POST(req: Request) {
       maxTokens: 10,
     });
     const latencyMs = Date.now() - start;
+    const dynamicModels = await fetchProviderModels(provider, apiKey);
 
     return NextResponse.json({
       valid: true,
       message: `Verified and connected to ${provider} (${latencyMs}ms)`,
       latencyMs,
       model: testModel,
-      models: DEFAULT_AI_MODELS[provider as SupportedProvider] || [],
+      models: dynamicModels,
     });
   } catch (err) {
     return NextResponse.json({

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Image as ImageIcon } from "@phosphor-icons/react";
 import { Badge } from "@/components/shared/badge";
 import { HighlightText } from "@/components/shared/highlight-text";
 import { InlineStatusEditor } from "@/components/module/inline-status-editor";
@@ -94,6 +95,15 @@ export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onIn
         <Link href={column.internalLink(row)} className="break-all text-blue-700 font-semibold hover:underline">
           <HighlightText text={String(value)} query="" linkify={false} />
         </Link>
+      ) : column.link && value && String(value).startsWith("data:image/") ? (
+        <div className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50/70 p-1 text-xs font-bold text-blue-700">
+          <img
+            src={String(value)}
+            alt="Evidence"
+            className="h-6 w-8 rounded object-cover border border-blue-200"
+          />
+          <span className="text-[11px] font-semibold text-blue-900 pr-1">Image Evidence</span>
+        </div>
       ) : column.link && value ? (
         <a href={String(value)} target="_blank" rel="noreferrer" className="break-all text-blue-600 hover:underline">
           <HighlightText text={String(value)} query="" linkify={false} />

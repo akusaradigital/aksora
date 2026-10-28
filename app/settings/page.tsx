@@ -39,8 +39,8 @@ export default async function SettingsPage() {
           description: "Configure multi-provider AI keys (Gemini, Claude, OpenAI, Groq, DeepSeek, 9Router).",
           href: "/settings/ai",
           icon: Robot,
-          color: "text-purple-600",
-          bg: "bg-purple-50",
+          color: "text-blue-600",
+          bg: "bg-blue-50",
           disabled: false,
         },
         {

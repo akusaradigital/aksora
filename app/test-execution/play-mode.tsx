@@ -174,7 +174,7 @@ export function PlayModeView({
                   value={currentCase.actualResult || ""}
                   onChange={(e) => updateActual(e.target.value)}
                   placeholder="Type findings here..."
-                  className="w-full h-24  bg-white/5 border border-white/10 p-4 text-sm outline-none focus:border-blue-500/50 transition resize-none"
+                  className="w-full h-24 overflow-y-auto bg-white/5 border border-white/10 p-4 text-sm outline-none focus:border-blue-500/50 transition resize-none"
                 />
               </section>
             </div>

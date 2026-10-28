@@ -4,116 +4,25 @@
  * Designed for task formatting, QA generation, and intelligent assistant workflows.
  */
 
+import {
+  SUPPORTED_PROVIDERS,
+  DEFAULT_AI_MODELS,
+  AI_PROVIDER_LABELS,
+  type SupportedProvider,
+  type CallLLMOptions,
+  type CallLLMResult,
+} from "./ai-types";
+
+export {
+  SUPPORTED_PROVIDERS,
+  DEFAULT_AI_MODELS,
+  AI_PROVIDER_LABELS,
+  type SupportedProvider,
+  type CallLLMOptions,
+  type CallLLMResult,
+};
+
 const PROVIDER_TIMEOUT_MS = 45_000;
-
-export const SUPPORTED_PROVIDERS = [
-  "google",
-  "openai",
-  "anthropic",
-  "groq",
-  "deepseek",
-  "9router",
-  "9router-public",
-] as const;
-
-export type SupportedProvider = typeof SUPPORTED_PROVIDERS[number];
-
-export const DEFAULT_AI_MODELS: Record<SupportedProvider, string[]> = {
-  google: [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-  ],
-  openai: [
-    "gpt-4o-mini",
-    "gpt-4o",
-    "o3-mini",
-    "o1",
-    "o1-mini",
-  ],
-  anthropic: [
-    "claude-3-5-sonnet-20241022",
-    "claude-3-5-haiku-20241022",
-  ],
-  groq: [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "deepseek-r1-distill-llama-70b",
-  ],
-  deepseek: [
-    "deepseek-chat",
-    "deepseek-reasoner",
-  ],
-  "9router": [],
-  "9router-public": [],
-};
-
-export const AI_PROVIDER_LABELS: Record<
-  SupportedProvider,
-  { label: string; placeholder: string; docUrl: string; color: string }
-> = {
-  google: {
-    label: "Google Gemini",
-    placeholder: "AIzaSy...",
-    docUrl: "https://aistudio.google.com/app/apikey",
-    color: "bg-blue-600 text-white",
-  },
-  openai: {
-    label: "OpenAI",
-    placeholder: "sk-proj-...",
-    docUrl: "https://platform.openai.com/api-keys",
-    color: "bg-emerald-600 text-white",
-  },
-  anthropic: {
-    label: "Anthropic Claude",
-    placeholder: "sk-ant-...",
-    docUrl: "https://console.anthropic.com/settings/keys",
-    color: "bg-violet-600 text-white",
-  },
-  groq: {
-    label: "Groq",
-    placeholder: "gsk_...",
-    docUrl: "https://console.groq.com/keys",
-    color: "bg-orange-600 text-white",
-  },
-  deepseek: {
-    label: "DeepSeek",
-    placeholder: "sk-...",
-    docUrl: "https://platform.deepseek.com/api_keys",
-    color: "bg-cyan-600 text-white",
-  },
-  "9router": {
-    label: "9Router (Local)",
-    placeholder: "sk-... (Optional if local router has auth disabled)",
-    docUrl: "http://localhost:20128",
-    color: "bg-indigo-600 text-white",
-  },
-  "9router-public": {
-    label: "9Router (Public)",
-    placeholder: "https://your-domain.com/v1 sk-9router-...",
-    docUrl: "https://developers.cloudflare.com/cloudflare-one/",
-    color: "bg-purple-600 text-white",
-  },
-};
-
-export interface CallLLMOptions {
-  provider: string;
-  model?: string;
-  apiKey?: string;
-  systemPrompt: string;
-  userPrompt: string;
-  jsonMode?: boolean;
-  maxTokens?: number;
-  publicBaseUrl?: string;
-}
-
-export interface CallLLMResult {
-  content: string;
-  provider: string;
-  model: string;
-  totalTokens?: number;
-}
 
 function normalizeProvider(provider: string): SupportedProvider {
   const p = (provider || "").toLowerCase().trim();
@@ -139,6 +48,251 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = PROV
 }
 
 /**
+ * Resilient multi-format model extractor for OpenAI-compatible proxies (such as 9Router).
+ * Handles:
+ * - OpenAI standard format: { data: [{ id: "model-name" }] }
+ * - Array of strings in data: { data: ["model-name-1", "model-name-2"] }
+ * - Models key format: { models: [{ id: "..." }] } or { models: ["..."] }
+ * - Items key format: { items: [{ id: "..." }] }
+ * - Direct root array of objects: [{ id: "model-name" }]
+ * - Direct root array of strings: ["model-name-1", "model-name-2"]
+ */
+export function extractModelsFromPayload(data: unknown): string[] {
+  if (!data) return [];
+
+  // 1. Direct array at root
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => {
+        if (typeof item === "string") return item.trim();
+        if (item && typeof item === "object" && "id" in item) {
+          const id = (item as { id: unknown }).id;
+          return typeof id === "string" ? id.trim() : "";
+        }
+        return "";
+      })
+      .filter(Boolean);
+  }
+
+  // 2. Object with enveloped arrays (.data, .models, or .items)
+  if (typeof data === "object" && data !== null) {
+    const record = data as Record<string, unknown>;
+    const rawList = Array.isArray(record.data)
+      ? record.data
+      : Array.isArray(record.models)
+      ? record.models
+      : Array.isArray(record.items)
+      ? record.items
+      : null;
+
+    if (rawList) {
+      return rawList
+        .map((item) => {
+          if (typeof item === "string") return item.trim();
+          if (item && typeof item === "object" && "id" in item) {
+            const id = (item as { id: unknown }).id;
+            return typeof id === "string" ? id.trim() : "";
+          }
+          return "";
+        })
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Resilient discovery for local 9Router instance.
+ * Checks IPv4 (127.0.0.1) and localhost (IPv6/IPv4), /v1/models and /models.
+ */
+export async function queryLocal9Router(
+  apiKey?: string,
+  timeoutMs = 2500
+): Promise<{ connected: boolean; models: string[] }> {
+  const endpoints = [
+    "http://127.0.0.1:20128/v1/models",
+    "http://localhost:20128/v1/models",
+    "http://127.0.0.1:20128/models",
+    "http://localhost:20128/models",
+  ];
+
+  const headers: Record<string, string> = {};
+  if (apiKey?.trim()) {
+    headers.Authorization = `Bearer ${apiKey.trim()}`;
+  }
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetchWithTimeout(endpoint, { headers }, timeoutMs);
+      if (res.ok) {
+        const json = await res.json();
+        const models = extractModelsFromPayload(json);
+        return {
+          connected: true,
+          models: models.length > 0 ? models : DEFAULT_AI_MODELS["9router"],
+        };
+      }
+    } catch {
+      // Continue to next local candidate endpoint
+    }
+  }
+
+  return { connected: false, models: [] };
+}
+
+/**
+ * Resilient discovery for public/tunneled 9Router instances.
+ */
+export async function queryPublic9Router(
+  publicUrl: string,
+  apiKey?: string,
+  timeoutMs = 8000
+): Promise<{ connected: boolean; models: string[]; error?: string }> {
+  const cleanUrl = publicUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  const candidates = [
+    `${cleanUrl}/v1/models`,
+    `${cleanUrl}/models`,
+  ];
+
+  const headers: Record<string, string> = {};
+  if (apiKey?.trim()) {
+    headers.Authorization = `Bearer ${apiKey.trim()}`;
+  }
+
+  let lastError = "";
+  for (const endpoint of candidates) {
+    try {
+      const res = await fetchWithTimeout(endpoint, { headers }, timeoutMs);
+      if (res.ok) {
+        const json = await res.json();
+        const models = extractModelsFromPayload(json);
+        return {
+          connected: true,
+          models: models.length > 0 ? models : DEFAULT_AI_MODELS["9router-public"],
+        };
+      }
+      lastError = `Endpoint returned HTTP ${res.status}`;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : "Network error";
+    }
+  }
+
+  return { connected: false, models: [], error: lastError };
+}
+
+/**
+ * Dynamically fetch available models directly from provider API.
+ * Returns official models from provider if key is provided and valid, otherwise fallback list.
+ */
+export async function fetchProviderModels(
+  provider: string,
+  apiKey?: string,
+  publicUrl?: string
+): Promise<string[]> {
+  const p = normalizeProvider(provider);
+  const cleanKey = (apiKey || "").trim();
+
+  try {
+    if (p === "google") {
+      if (!cleanKey) return DEFAULT_AI_MODELS.google;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+      const res = await fetchWithTimeout(url, { method: "GET" }, 8_000);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.models)) {
+          const list = data.models
+            .filter((m: { supportedGenerationMethods?: string[] }) =>
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes("generateContent")
+            )
+            .map((m: { name?: string }) => (m.name || "").replace(/^models\//, ""))
+            .filter(Boolean);
+          if (list.length > 0) return list;
+        }
+      }
+    } else if (p === "openai") {
+      if (!cleanKey) return DEFAULT_AI_MODELS.openai;
+      const res = await fetchWithTimeout(
+        "https://api.openai.com/v1/models",
+        { headers: { Authorization: `Bearer ${cleanKey}` } },
+        8_000
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const models = extractModelsFromPayload(data);
+        if (models.length > 0) {
+          const chatRegex = /^(gpt-[34]|o[13]|chatgpt)/i;
+          const excludeRegex = /(audio|realtime|transcription|tts|embedding|moderation|dall-e|instruct)/i;
+          const filtered = models
+            .filter((id: string) => chatRegex.test(id) && !excludeRegex.test(id))
+            .sort();
+          if (filtered.length > 0) return filtered;
+        }
+      }
+    } else if (p === "anthropic") {
+      if (!cleanKey) return DEFAULT_AI_MODELS.anthropic;
+      const res = await fetchWithTimeout(
+        "https://api.anthropic.com/v1/models",
+        {
+          headers: {
+            "x-api-key": cleanKey,
+            "anthropic-version": "2023-06-01",
+          },
+        },
+        8_000
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const models = extractModelsFromPayload(data);
+        if (models.length > 0) return models;
+      }
+    } else if (p === "groq") {
+      if (!cleanKey) return DEFAULT_AI_MODELS.groq;
+      const res = await fetchWithTimeout(
+        "https://api.groq.com/openai/v1/models",
+        { headers: { Authorization: `Bearer ${cleanKey}` } },
+        8_000
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const models = extractModelsFromPayload(data);
+        if (models.length > 0) {
+          const filtered = models.filter((id) => !id.includes("whisper"));
+          if (filtered.length > 0) return filtered;
+        }
+      }
+    } else if (p === "deepseek") {
+      if (!cleanKey) return DEFAULT_AI_MODELS.deepseek;
+      const res = await fetchWithTimeout(
+        "https://api.deepseek.com/models",
+        { headers: { Authorization: `Bearer ${cleanKey}` } },
+        8_000
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const models = extractModelsFromPayload(data);
+        if (models.length > 0) return models;
+      }
+    } else if (p === "9router") {
+      const result = await queryLocal9Router(cleanKey, 3_000);
+      if (result.connected && result.models.length > 0) {
+        return result.models;
+      }
+    } else if (p === "9router-public" && publicUrl) {
+      const result = await queryPublic9Router(publicUrl, cleanKey, 8_000);
+      if (result.connected && result.models.length > 0) {
+        return result.models;
+      }
+    }
+  } catch {
+    // Return fallback on network error
+  }
+
+  return DEFAULT_AI_MODELS[p] || [];
+}
+
+/**
  * Execute universal LLM call across any configured provider.
  */
 export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
@@ -153,15 +307,19 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const fullText = opts.systemPrompt ? `${opts.systemPrompt}\n\n${opts.userPrompt}` : opts.userPrompt;
 
-    const payload: {
-      contents: Array<{ parts: Array<{ text: string }> }>;
-      generationConfig: {
-        temperature: number;
-        maxOutputTokens: number;
-        responseMimeType?: string;
-      };
-    } = {
-      contents: [{ parts: [{ text: fullText }] }],
+    const parts: Array<Record<string, unknown>> = [{ text: fullText }];
+    if (opts.imageBase64) {
+      const rawBase64 = opts.imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+      parts.push({
+        inline_data: {
+          mime_type: opts.mimeType || "image/png",
+          data: rawBase64,
+        },
+      });
+    }
+
+    const payload = {
+      contents: [{ parts }],
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: maxTokens,
@@ -204,11 +362,27 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
       systemText += " Output strictly valid JSON. Do not include markdown codeblocks or extra prose.";
     }
 
+    let userContent: unknown = opts.userPrompt;
+    if (opts.imageBase64) {
+      const rawBase64 = opts.imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+      userContent = [
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: opts.mimeType || "image/png",
+            data: rawBase64,
+          },
+        },
+        { type: "text", text: opts.userPrompt },
+      ];
+    }
+
     const payload = {
       model,
       max_tokens: maxTokens,
       system: systemText,
-      messages: [{ role: "user", content: opts.userPrompt }],
+      messages: [{ role: "user", content: userContent }],
       temperature: 0.2,
     };
 
@@ -271,11 +445,25 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
 
   const effectiveKey = p === "9router" && !apiKey ? "9router-local-key" : apiKey;
 
-  const messages: Array<{ role: "system" | "user"; content: string }> = [];
+  const messages: Array<{ role: "system" | "user"; content: unknown }> = [];
   if (opts.systemPrompt) {
     messages.push({ role: "system", content: opts.systemPrompt });
   }
-  messages.push({ role: "user", content: opts.userPrompt });
+
+  if (opts.imageBase64) {
+    const imgUrl = opts.imageBase64.startsWith("data:")
+      ? opts.imageBase64
+      : `data:${opts.mimeType || "image/png"};base64,${opts.imageBase64}`;
+    messages.push({
+      role: "user",
+      content: [
+        { type: "text", text: opts.userPrompt },
+        { type: "image_url", image_url: { url: imgUrl } },
+      ],
+    });
+  } else {
+    messages.push({ role: "user", content: opts.userPrompt });
+  }
 
   const payload: Record<string, unknown> = {
     model,
@@ -293,11 +481,25 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
     headers.Authorization = `Bearer ${effectiveKey}`;
   }
 
-  const res = await fetchWithTimeout(baseURL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(baseURL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    if (p === "9router" && baseURL.includes("127.0.0.1")) {
+      const fallbackUrl = baseURL.replace("127.0.0.1", "localhost");
+      res = await fetchWithTimeout(fallbackUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");

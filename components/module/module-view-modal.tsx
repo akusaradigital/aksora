@@ -11,6 +11,10 @@ import { CollaborationIndicator } from "@/components/shared/collaboration-indica
 import { useCollaborationPresence } from "@/hooks/use-collaboration-presence";
 import { ImageLightbox, ActivityTab, renderNotes, renderEvidence } from "@/components/module/module-view-modal-parts";
 import { SicmundusSyncModal } from "@/components/tasks/sicmundus-sync-modal";
+import { AiBugToCaseButton } from "@/components/bugs/ai-bug-to-case-button";
+import { AiRootCauseButton } from "@/components/bugs/ai-root-cause-button";
+import { AiExportAutomationButton } from "@/components/test-management/ai-export-automation-button";
+import { AiSessionSummaryButton } from "@/components/test-sessions/ai-session-summary-button";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
 
 type FieldConfig = {
@@ -311,7 +315,36 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-gray-200/60 px-5 py-3">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-200/60 px-5 py-3">
+          {module === "bugs" && (
+            <>
+              <AiRootCauseButton
+                title={String(row.title || "")}
+                steps={String(row.stepsToReproduce || row.preconditions || "")}
+                actualResult={String(row.actualResult || "")}
+                project={String(row.project || "")}
+              />
+              <AiBugToCaseButton bug={row} />
+            </>
+          )}
+          {module === "test-cases" && (
+            <AiExportAutomationButton
+              caseName={String(row.caseName || row.title || "Test Case")}
+              preCondition={String(row.preCondition || "")}
+              testStep={String(row.testStep || "")}
+              expectedResult={String(row.expectedResult || "")}
+            />
+          )}
+          {module === "test-sessions" && (
+            <AiSessionSummaryButton
+              sessionTitle={String(row.scope || row.project || row.title || "Test Session")}
+              totalCases={Number(row.totalCases || 0)}
+              passed={Number(row.passed || 0)}
+              failed={Number(row.failed || 0)}
+              blocked={Number(row.blocked || 0)}
+              failedSummary={String(row.notes || "")}
+            />
+          )}
           {module === "tasks" && (
             <button
               type="button"

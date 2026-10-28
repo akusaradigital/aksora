@@ -209,8 +209,7 @@ export function CommentThread({ entityType, entityId }: CommentThreadProps) {
               onKeyDown={handleKeyDown}
               placeholder="Add a comment..."
               disabled={submitting}
-              rows={2}
-              className="w-full resize-none  border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-16 w-full resize-none overflow-y-auto border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 placeholder:text-gray-400 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <div className="flex items-center justify-between mt-1.5">
               <span className={`text-[10px] font-medium ${charCount > MAX_CONTENT ? "text-rose-500" : "text-gray-400"}`}>

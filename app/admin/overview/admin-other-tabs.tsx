@@ -47,7 +47,7 @@ export function AnnouncementsTab() {
       {showForm && (
         <div className="border border-blue-200 bg-blue-50/50 p-4 space-y-3">
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-blue-400" />
-          <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Message..." rows={3} className="w-full border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-blue-400 resize-none" />
+          <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Message..." className="h-24 w-full border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-blue-400 resize-none overflow-y-auto" />
           <div className="flex flex-wrap gap-2">
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none"><option value="info">Info</option><option value="warning">Warning</option><option value="maintenance">Maintenance</option><option value="update">Update</option></select>
             <input value={form.targetCompany} onChange={(e) => setForm({ ...form, targetCompany: e.target.value })} placeholder="Target company (empty = all)" className="flex-1 border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none" />
@@ -159,7 +159,7 @@ export function TicketsTab() {
               {t.adminReply && (<div className="mt-2 border-t border-gray-100 pt-2 bg-emerald-50/50 -mx-4 px-4 py-2"><p className="text-[10px] font-semibold text-emerald-700">Your reply:</p><p className="text-[11px] text-gray-700">{t.adminReply}</p></div>)}
               {replyId === t.id && (
                 <div className="mt-2 border-t border-gray-100 pt-2 space-y-2">
-                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type your reply..." rows={2} className="w-full border border-gray-200 bg-white px-3 py-2 text-xs outline-none resize-none focus:border-blue-400" />
+                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Type your reply..." className="h-20 w-full border border-gray-200 bg-white px-3 py-2 text-xs outline-none resize-none overflow-y-auto focus:border-blue-400" />
                   <div className="flex gap-2">
                     <button onClick={() => handleAction(t.id, "reply", replyText)} disabled={!replyText.trim() || actionLoading === `reply-${t.id}`} className="h-7 bg-blue-600 px-3 text-[11px] font-bold text-white disabled:opacity-50">{actionLoading === `reply-${t.id}` ? "..." : "Send Reply"}</button>
                     <button onClick={() => { setReplyId(null); setReplyText(""); }} className="h-7 border border-gray-200 px-3 text-[11px] text-gray-600">Cancel</button>

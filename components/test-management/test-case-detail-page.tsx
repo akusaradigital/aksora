@@ -6,6 +6,9 @@ import { PlayCircle } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/page-shell";
 import { toast } from "@/components/ui/toast";
 import { TestCaseDetailEditor, type TestCaseRow } from "@/components/test-management/test-case-detail-editor";
+import { AiGenerateCasesButton } from "@/components/test-management/ai-generate-cases-button";
+import { AiSmokeSuiteButton } from "@/components/test-management/ai-smoke-suite-button";
+import { AiFlakyDetectorButton } from "@/components/test-management/ai-flaky-detector-button";
 import { useTranslation } from "@/hooks/use-translation";
 import { interpolate } from "@/lib/i18n/interpolate";
 
@@ -79,14 +82,23 @@ export function TestCaseDetailPage({
   }
 
   const actions = (
-    <button
-      onClick={handleSubmitExecution}
-      disabled={isPending || rows.length === 0}
-      className="flex h-10 items-center gap-2  bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
-    >
-      <PlayCircle size={18} weight="bold" />
-      {t.submitSessions}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <AiGenerateCasesButton suiteId={suiteId} suiteLabel={suiteLabel} />
+      <AiSmokeSuiteButton
+        suiteId={suiteId}
+        suiteTitle={suiteLabel}
+        availableCases={rows as unknown as Array<{ id: number; tcId?: string; caseName: string; typeCase?: string }>}
+      />
+      <AiFlakyDetectorButton suiteId={suiteId} />
+      <button
+        onClick={handleSubmitExecution}
+        disabled={isPending || rows.length === 0}
+        className="flex h-10 items-center gap-2 bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
+      >
+        <PlayCircle size={18} weight="bold" />
+        {t.submitSessions}
+      </button>
+    </div>
   );
 
   return (

@@ -1,0 +1,539 @@
+<title>Arsitektur AI dan API Keys</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+<style>
+/* Design Token Architecture */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-card: #ffffff;
+  --fg: #0f172a;
+  --fg-muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --accent-text: #1d4ed8;
+  --emerald: #059669;
+  --emerald-light: #ecfdf5;
+  --emerald-text: #047857;
+  --amber: #d97706;
+  --amber-light: #fffbeb;
+  --amber-text: #b45309;
+  --code-bg: #f1f5f9;
+  --code-fg: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #090d16;
+    --bg-subtle: #0f172a;
+    --bg-card: #131d31;
+    --fg: #f8fafc;
+    --fg-muted: #94a3b8;
+    --border: #1e293b;
+    --border-strong: #334155;
+    --accent: #3b82f6;
+    --accent-light: rgba(59, 130, 246, 0.12);
+    --accent-text: #60a5fa;
+    --emerald: #10b981;
+    --emerald-light: rgba(16, 185, 129, 0.12);
+    --emerald-text: #34d399;
+    --amber: #f59e0b;
+    --amber-light: rgba(245, 158, 11, 0.12);
+    --amber-text: #fbbf24;
+    --code-bg: #0d1527;
+    --code-fg: #e2e8f0;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #090d16;
+  --bg-subtle: #0f172a;
+  --bg-card: #131d31;
+  --fg: #f8fafc;
+  --fg-muted: #94a3b8;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --accent: #3b82f6;
+  --accent-light: rgba(59, 130, 246, 0.12);
+  --accent-text: #60a5fa;
+  --emerald: #10b981;
+  --emerald-light: rgba(16, 185, 129, 0.12);
+  --emerald-text: #34d399;
+  --amber: #f59e0b;
+  --amber-light: rgba(245, 158, 11, 0.12);
+  --amber-text: #fbbf24;
+  --code-bg: #0d1527;
+  --code-fg: #e2e8f0;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 2.5rem 5rem;
+}
+
+.container {
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+/* Typography */
+h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.5rem 0;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 2.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+}
+
+h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem 0;
+  color: var(--fg);
+}
+
+p, li {
+  font-size: 0.925rem;
+  color: var(--fg);
+}
+
+.lead {
+  font-size: 1.05rem;
+  color: var(--fg-muted);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.badge-blue {
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border: 1px solid var(--accent);
+}
+
+.badge-emerald {
+  background: var(--emerald-light);
+  color: var(--emerald-text);
+  border: 1px solid var(--emerald);
+}
+
+.badge-amber {
+  background: var(--amber-light);
+  color: var(--amber-text);
+  border: 1px solid var(--amber);
+}
+
+/* Cards & Containers */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-callout {
+  border-left: 4px solid var(--accent);
+  background: var(--bg-subtle);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+
+/* Tables */
+.table-wrapper {
+  overflow-x: auto;
+  margin-block: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+th {
+  background: var(--bg-subtle);
+  color: var(--fg);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Code & Pre */
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.825rem;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.825rem;
+  line-height: 1.45;
+}
+
+/* Mermaid Blocks */
+pre.mermaid {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-block: 1.5rem;
+  text-align: center;
+}
+
+/* Print Specific Rules */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    font-size: 10pt !important;
+  }
+  .container {
+    max-width: 100% !important;
+  }
+  .card, pre, table {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  h2 {
+    page-break-before: auto;
+    break-after: avoid;
+  }
+  .badge {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+}
+</style>
+
+<div class="container">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem;">
+    <span class="badge badge-blue">Aksora Technical Reference</span>
+    <span style="font-size: 0.8rem; color: var(--fg-muted);">Versi Sistem: v0.11.23 • Standar Tim</span>
+  </div>
+
+  <h1>Dokumentasi Arsitektur AI &amp; Manajemen API Keys</h1>
+  <p class="lead">
+    Panduan alur menyeluruh (end-to-end), spesifikasi teknis, mekanisme proteksi, dan rincian fungsi pada modul <strong>Manajemen API Keys</strong> dan <strong>AI &amp; Model Settings</strong> (termasuk integrasi adaptif 9Router).
+  </p>
+
+  <div class="card card-callout">
+    <h3 style="margin-top: 0;">Latar Belakang &amp; Perubahan Utama</h3>
+    <ul style="margin: 0; padding-left: 1.25rem;">
+      <li><strong>Redesain Layout Modal API Keys:</strong> Mengganti modal kaku dengan dialog fleksibel <code>ModalShell</code> berstandar visual Aksora (rounded-2xl, sentence case, segmented access level, permission selector).</li>
+      <li><strong>Eliminasi AI Purple Slop:</strong> Membersihkan palet warna ungu generik; mengadopsi standar biru Aksora (<code>#2563eb</code>), hijau status aktif (<code>#059669</code>), dan slate netral.</li>
+      <li><strong>Perbaikan Status Gemini False-Active:</strong> Indikator aktif kartu dan badge kini terikat penuh pada validasi koneksi riil (<code>isCardActive = isConnected && isActive</code>).</li>
+      <li><strong>Dynamic Model Catalog:</strong> Pengambilan katalog model langsung secara live via API provider, didukung caching lokal dan mode model custom.</li>
+      <li><strong>Universal 9Router Deserializer:</strong> Penanganan multi-format respon proxy (6 varian) dan dual-host fallback (<code>127.0.0.1</code> ↔ <code>localhost</code>).</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 1: ARSITEKTUR & FLOW -->
+  <h2>1. Diagram Alur Sistem (End-to-End)</h2>
+
+  <h3>A. Alur Pembuatan &amp; Hak Akses Aksora API Key</h3>
+  <p>Alur otentikasi token REST API yang digunakan untuk integrasi sistem luar (CI/CD, automated test runner, script eksternal):</p>
+  <pre class="mermaid">
+flowchart TD
+    A[Pengguna Akses /settings/api-keys] --> B[Klik 'Create New API Key']
+    B --> C[Buka Dialog ModalShell]
+    C --> D[Isi Nama, Workspace Scope, Masa Berlaku]
+    D --> E[Pilih Level Akses: Read-only vs Read &amp; Write]
+    E --> F[Pilih Modul yang Diizinkan / Select All]
+    F --> G[POST /api/settings/api-keys]
+    G --> H[Server: Generate Secret Key + SHA-256 Hash]
+    H --> I[Simpan Metadata &amp; Hash di Database]
+    I --> J[Tampilkan Modal Reveal Sekali-Lihat]
+    J --> K[Pengguna Menyimpan Secret Token]
+    K --> L[Modal Ditutup: Key Tidak Dapat Dilihat Ulang]
+  </pre>
+
+  <h3>B. Alur Konfigurasi &amp; Validasi AI Provider</h3>
+  <p>Alur penyimpanan kredensial client-side tanpa penyimpanan database, disertai pengujian konektivitas langsung:</p>
+  <pre class="mermaid">
+flowchart TD
+    A[Buka /settings/ai] --> B[Client Membaca localStorage: aksora_ai_keys]
+    B --> C[Status Awal: Not Connected / Key Saved]
+    C --> D[User Input API Key / URL 9Router]
+    D --> E[Klik 'Test &amp; Save']
+    E --> F[POST /api/ai/validate]
+    F --> G{Tipe Provider?}
+    G -->|9Router Public| H[SSRF Guard Check + Query /v1/models]
+    G -->|9Router Local| I[Query 127.0.0.1:20128 &amp; localhost Fallback]
+    G -->|Google/OpenAI/Claude/Groq/DeepSeek| J[Eksekusi Test Ping LLM Call]
+    H --> K[Terima Respon API]
+    I --> K
+    J --> K
+    K --> L[Ekstraksi Model Dinamis via extractModelsFromPayload]
+    L --> M[Simpan Key di Client Vault localStorage &amp; TTL 14 Hari]
+    M --> N[Update Status: Connected + Tampilkan Model Resmi]
+    N --> O[User Klik 'Use as Active']
+    O --> P[Aktifkan Provider di Aksora: Border Biru &amp; Badge Active Menyala]
+  </pre>
+
+  <h3>C. Alur Eksekusi Pemanggilan AI (callLLM) dengan 9Router Failover</h3>
+  <p>Mekanisme fallback otomatis saat modul fitur (Sicmundus task generator, QA test generation) memanggil engine LLM:</p>
+  <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant App as Aksora Feature (Task/QA/Report)
+    participant Lib as lib/ai-service (callLLM)
+    participant R1 as 9Router (127.0.0.1:20128)
+    participant R2 as 9Router (localhost:20128)
+    participant Ext as Cloud Provider (Google/OpenAI/etc)
+
+    App->>Lib: callLLM({ provider, model, prompt })
+    alt Provider = 9Router (Lokal)
+        Lib->>R1: POST http://127.0.0.1:20128/v1/chat/completions
+        alt Respon 200 OK
+            R1-->>Lib: Stream / Completion Result
+        else Connection Refused / Timeout
+            Lib->>R2: Failover POST http://localhost:20128/v1/chat/completions
+            R2-->>Lib: Stream / Completion Result
+        end
+    else Cloud Provider
+        Lib->>Ext: POST API Endpoint Provider Resmi
+        Ext-->>Lib: Completion Result
+    end
+    Lib-->>App: { content, totalTokens, provider, model }
+  </pre>
+
+  <!-- SECTION 2: RINCIAN FUNGSI -->
+  <h2>2. Inventaris &amp; Penjelasan Fungsi-Fungsi Sistem</h2>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Modul / Berkas</th>
+          <th>Nama Fungsi</th>
+          <th>Tipe &amp; Input</th>
+          <th>Deskripsi &amp; Logika Bisnis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>components/ui/modal-shell.tsx</code></td>
+          <td><code>ModalShell</code></td>
+          <td>React Component<br><code>ModalShellProps</code></td>
+          <td>Komponen modal dialog standar Aksora. Mengatur backdrop blur, penutupan dengan tombol ESC, transisi CSS halus, header berikon Phosphor, dan pembatasan lebar responsif.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-keys.ts</code></td>
+          <td><code>getActiveAiConfig()</code></td>
+          <td><code>() =&gt; { provider, model }</code></td>
+          <td>Mengambil provider dan model yang sedang aktif. <strong>Menghapus default hardcoded Google</strong> sehingga bernilai kosong <code>""</code> jika belum dikonfigurasi.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-keys.ts</code></td>
+          <td><code>setActiveAiConfig()</code></td>
+          <td><code>(provider, model) =&gt; void</code></td>
+          <td>Menyimpan pasangan provider dan model aktif ke <code>aksora_ai_active</code> di <code>localStorage</code> browser.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-keys.ts</code></td>
+          <td><code>setApiKey() / getApiKey()</code></td>
+          <td><code>(provider, key?) =&gt; string</code></td>
+          <td>Menyimpan dan membaca API key dari vault lokal dengan masa berlaku (TTL) 14 hari rolling expiration. Kredensial tidak pernah dikirim ke database backend.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-keys.ts</code></td>
+          <td><code>getStoredProviderModels()</code><br><code>setStoredProviderModels()</code></td>
+          <td><code>(provider, models?) =&gt; string[]</code></td>
+          <td>Menyimpan dan membaca cache daftar model yang berhasil didapatkan secara dinamis dari API provider ke <code>aksora_ai_models_cache</code>.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-service.ts</code></td>
+          <td><code>extractModelsFromPayload()</code></td>
+          <td><code>(data: unknown) =&gt; string[]</code></td>
+          <td>Parser fleksibel yang mampu mengekstrak array model dari 6 variasi format output proxy OpenAI / 9Router (data array objek, data array string, models envelope, items envelope, dan direct array).</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-service.ts</code></td>
+          <td><code>queryLocal9Router()</code></td>
+          <td><code>(apiKey?, timeoutMs?) =&gt; Promise</code></td>
+          <td>Pemeriksaan otomatis 9Router lokal dengan mencoba sekuensial: <code>127.0.0.1:20128/v1/models</code>, <code>localhost:20128/v1/models</code>, <code>127.0.0.1:20128/models</code>, dan <code>localhost:20128/models</code>.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-service.ts</code></td>
+          <td><code>queryPublic9Router()</code></td>
+          <td><code>(url, apiKey?, timeoutMs?) =&gt; Promise</code></td>
+          <td>Pemeriksaan 9Router publik/tunnel (Cloudflare Tunnel) dengan normalisasi URL dan pengecekan rute model <code>/v1/models</code> serta <code>/models</code>.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-service.ts</code></td>
+          <td><code>fetchProviderModels()</code></td>
+          <td><code>(provider, key?, url?) =&gt; Promise</code></td>
+          <td>Menghubungi endpoint resmi masing-masing provider (Google Gemini <code>v1beta/models</code>, OpenAI <code>/v1/models</code>, Anthropic, Groq, DeepSeek, 9Router) untuk mengambil daftar model live.</td>
+        </tr>
+        <tr>
+          <td><code>lib/ai-service.ts</code></td>
+          <td><code>callLLM()</code></td>
+          <td><code>(opts: CallLLMOptions) =&gt; Promise</code></td>
+          <td>Engine universal pemanggilan AI. Mendukung translasi format Gemini, Anthropic, dan OpenAI-compatible. Memiliki mekanisme otomatis failover ke <code>localhost</code> jika <code>127.0.0.1</code> 9Router mengalami network failure.</td>
+        </tr>
+        <tr>
+          <td><code>app/api/ai/models/route.ts</code></td>
+          <td><code>GET()</code> &amp; <code>POST()</code></td>
+          <td>Next.js Route Handlers</td>
+          <td><code>GET</code>: Menyajikan default bootstrap model dan live ping status 9Router cepat.<br><code>POST</code>: Endpoint aman bagi client untuk meminta refresh katalog model resmi via server-side fetch.</td>
+        </tr>
+        <tr>
+          <td><code>app/api/ai/validate/route.ts</code></td>
+          <td><code>POST()</code></td>
+          <td>Next.js Route Handler</td>
+          <td>Memvalidasi kredensial provider. Memverifikasi SSRF pada URL tunnel publik, menjalankan test ping konektivitas, dan mengembalikan katalog model aktif.</td>
+        </tr>
+        <tr>
+          <td><code>components/settings/ai-settings-client.tsx</code></td>
+          <td><code>isCardActive</code> (State Logic)</td>
+          <td>Boolean State Expression</td>
+          <td>Kondisi ketat aktivasi kartu: <code>activeProvider === provider &amp;&amp; (status === "connected" || status === "saved")</code>. Mencegah status aktif palsu pada provider yang belum terkonfigurasi.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECTION 3: KEAMANAN & PRIVASI -->
+  <h2>3. Arsitektur Keamanan &amp; Proteksi Data</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3 style="margin-top: 0; color: var(--emerald-text);">Client-Side Credential Vault</h3>
+      <p style="margin-bottom: 0;">
+        Semua token API pihak ketiga (Gemini, OpenAI, Anthropic, Groq, DeepSeek, 9Router) disimpan <strong>eksklusif di browser lokal pengguna</strong> melalui <code>localStorage</code> dengan enkripsi rolling TTL 14 hari. Kredensial tidak pernah disimpan di database Postgres server.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0; color: var(--accent-text);">Proteksi SSRF (Server-Side Request Forgery)</h3>
+      <p style="margin-bottom: 0;">
+        URL endpoint publik 9Router (misal Cloudflare Tunnel) wajib divalidasi oleh <code>validateOutboundUrlAsync()</code> di <code>lib/ssrf-guard.ts</code> untuk mencegah manipulasi loopback internal, private IP ranges (RFC 1918), atau port sniffing.
+      </p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: SPESIFIKASI PARSING 9ROUTER -->
+  <h2>4. Spesifikasi Resilient Parser 9Router</h2>
+  <p>
+    Fungsi <code>extractModelsFromPayload()</code> menangani secara transparan variasi respon JSON dari berbagai rilis 9Router / OpenAI reverse proxy:
+  </p>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Format Respon JSON</th>
+          <th>Contoh Payload</th>
+          <th>Hasil Ekstraksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OpenAI Standard Envelope</td>
+          <td><code>{"data": [{"id": "gpt-4o"}, {"id": "claude-3-5"}]}</code></td>
+          <td><code>["gpt-4o", "claude-3-5"]</code></td>
+        </tr>
+        <tr>
+          <td>Data String Array</td>
+          <td><code>{"data": ["qwen-2.5", "llama-3.3"]}</code></td>
+          <td><code>["qwen-2.5", "llama-3.3"]</code></td>
+        </tr>
+        <tr>
+          <td>Models Envelope (Object)</td>
+          <td><code>{"models": [{"id": "deepseek-chat"}]}</code></td>
+          <td><code>["deepseek-chat"]</code></td>
+        </tr>
+        <tr>
+          <td>Models Envelope (String)</td>
+          <td><code>{"models": ["mistral-large"]}</code></td>
+          <td><code>["mistral-large"]</code></td>
+        </tr>
+        <tr>
+          <td>Direct Array of Objects</td>
+          <td><code>[{"id": "router-model-1"}]</code></td>
+          <td><code>["router-model-1"]</code></td>
+        </tr>
+        <tr>
+          <td>Direct Array of Strings</td>
+          <td><code>["local-llama-8b"]</code></td>
+          <td><code>["local-llama-8b"]</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--fg-muted);">
+    <span>Dokumentasi Arsitektur Sistem Aksora</span>
+    <span>Dapat diekspor / dicetak sebagai PDF via browser (Ctrl + P / Cmd + P)</span>
+  </div>
+</div>

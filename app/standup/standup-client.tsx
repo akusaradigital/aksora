@@ -165,8 +165,7 @@ export function StandupClient() {
             <textarea
               value={yesterday}
               onChange={(e) => setYesterday(e.target.value)}
-              rows={3}
-              className="w-full glass-card p-3 text-sm text-slate-950 focus:border-slate-400 focus:outline-none font-mono text-xs"
+              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 leading-relaxed focus:border-slate-400 focus:outline-none"
               required
             />
           </div>
@@ -176,8 +175,7 @@ export function StandupClient() {
             <textarea
               value={today}
               onChange={(e) => setToday(e.target.value)}
-              rows={3}
-              className="w-full glass-card p-3 text-sm text-slate-950 focus:border-slate-400 focus:outline-none font-mono text-xs"
+              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 leading-relaxed focus:border-slate-400 focus:outline-none"
               required
             />
           </div>
@@ -200,8 +198,7 @@ export function StandupClient() {
                 value={blockers}
                 onChange={(e) => setBlockers(e.target.value)}
                 placeholder="Describe your blockers or assistance needed..."
-                rows={2}
-                className="w-full glass-card p-3 text-sm text-slate-950 focus:border-slate-400 focus:outline-none border-amber-300 bg-amber-50/20"
+                className="h-24 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 leading-relaxed focus:border-slate-400 focus:outline-none border-amber-300 bg-amber-50/20"
                 required
               />
             )}

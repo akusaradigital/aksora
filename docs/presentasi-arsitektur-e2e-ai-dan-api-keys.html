@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aksora - Arsitektur E2E AI &amp; API Keys</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --bg-surface: #11192e;
+      --bg-card: #16203a;
+      --bg-card-hover: #1c2a4d;
+      --border: #233154;
+      --border-accent: #3b82f6;
+      --fg-primary: #f8fafc;
+      --fg-secondary: #94a3b8;
+      --fg-muted: #64748b;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --blue-glow: rgba(37, 99, 235, 0.25);
+      --emerald: #10b981;
+      --emerald-light: rgba(16, 185, 129, 0.15);
+      --amber: #f59e0b;
+      --amber-light: rgba(245, 158, 11, 0.15);
+      --rose: #f43f5e;
+      --rose-light: rgba(244, 63, 94, 0.15);
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--fg-primary);
+      font-family: var(--sans);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* Top Presentation Bar (Screen Only) */
+    .deck-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 15, 29, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: white;
+      box-shadow: 0 0 15px var(--blue-glow);
+    }
+
+    .brand-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--fg-primary);
+    }
+
+    .brand-tag {
+      font-size: 0.7rem;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--blue-light);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--fg-primary);
+      font-family: var(--sans);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      border-color: var(--blue-light);
+      box-shadow: 0 0 12px var(--blue-glow);
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .slide-counter {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--fg-secondary);
+      padding: 0 0.5rem;
+    }
+
+    /* Presentation Layout */
+    .deck-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+
+    .slide {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3rem;
+      margin-bottom: 3.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #2563eb, #38bdf8, #10b981);
+    }
+
+    .slide-eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .slide-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--blue-light);
+      background: rgba(37, 99, 235, 0.1);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    .slide-category {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: var(--fg-muted);
+    }
+
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--fg-primary);
+      margin-bottom: 0.75rem;
+      line-height: 1.25;
+    }
+
+    .slide-desc {
+      font-size: 1rem;
+      color: var(--fg-secondary);
+      margin-bottom: 2rem;
+      max-width: 800px;
+      line-height: 1.6;
+    }
+
+    /* Grid & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      transition: border-color 0.15s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--fg-primary);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-desc {
+      font-size: 0.875rem;
+      color: var(--fg-secondary);
+      line-height: 1.55;
+    }
+
+    /* Status Pills & Tags */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.65rem;
+      border-radius: 9999px;
+    }
+
+    .pill-blue { background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .pill-emerald { background: var(--emerald-light); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill-amber { background: var(--amber-light); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill-rose { background: var(--rose-light); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* Visual Workflow Steps */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+    }
+
+    .flow-step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 10px var(--blue-glow);
+    }
+
+    .flow-step-content {
+      flex: 1;
+    }
+
+    .flow-step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+    }
+
+    .flow-step-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--fg-primary);
+    }
+
+    .flow-step-desc {
+      font-size: 0.85rem;
+      color: var(--fg-secondary);
+      line-height: 1.5;
+    }
+
+    /* Visual Mockups */
+    .mockup-box {
+      background: #0d1424;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mockup-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    /* Comparison Box (Before vs After) */
+    .compare-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .compare-card {
+      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid;
+    }
+
+    .compare-before {
+      background: rgba(244, 63, 94, 0.04);
+      border-color: rgba(244, 63, 94, 0.25);
+    }
+
+    .compare-after {
+      background: rgba(16, 185, 129, 0.04);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    /* Diagram Nodes */
+    .arch-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 2rem 1.5rem;
+      background: #0d1527;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-block: 1.5rem;
+    }
+
+    .arch-node {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      width: 200px;
+      text-align: center;
+      position: relative;
+    }
+
+    .arch-node.active-node {
+      border-color: var(--blue-light);
+      box-shadow: 0 0 20px var(--blue-glow);
+    }
+
+    .arch-arrow {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--border), var(--blue-light));
+      position: relative;
+    }
+
+    .arch-arrow::after {
+      content: "▶";
+      position: absolute;
+      right: -4px;
+      top: -7px;
+      font-size: 10px;
+      color: var(--blue-light);
+    }
+
+    /* Table Styles */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--fg-primary);
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--fg-secondary);
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.06);
+      color: #38bdf8;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    /* Print / PDF Styling */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .deck-header {
+        display: none !important;
+      }
+      .deck-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      .slide {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        padding: 2rem !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        color: #0f172a !important;
+        margin-bottom: 0 !important;
+      }
+      .slide::before {
+        display: none !important;
+      }
+      .slide-title, .card-title, .flow-step-title {
+        color: #0f172a !important;
+      }
+      .slide-desc, .card-desc, .flow-step-desc {
+        color: #475569 !important;
+      }
+      .card, .flow-step, .mockup-box, .arch-diagram, .table-container {
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+      }
+      th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      td {
+        color: #334155 !important;
+      }
+      code {
+        background: #e2e8f0 !important;
+        color: #0369a1 !important;
+      }
+      .pill {
+        border: 1px solid #94a3b8 !important;
+        background: transparent !important;
+        color: #0f172a !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation & Print Controls -->
+  <header class="deck-header">
+    <div class="brand">
+      <div class="brand-logo">A</div>
+      <div>
+        <div class="brand-title">Aksora Technical Presentation</div>
+      </div>
+      <span class="brand-tag">v0.11.23</span>
+    </div>
+
+    <div class="deck-controls">
+      <span class="slide-counter" id="slideIndicator">Slide 1 dari 7</span>
+      <button class="btn" onclick="scrollToSlide('prev')">◀ Prev</button>
+      <button class="btn" onclick="scrollToSlide('next')">Next ▶</button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+        Simpan PDF / Cetak
+      </button>
+    </div>
+  </header>
+
+  <main class="deck-container">
+
+    <!-- SLIDE 1: COVER -->
+    <section class="slide" id="slide-1">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 01</span>
+        <span class="slide-category">Executive Architecture Showcase</span>
+      </div>
+      <h1 class="slide-title" style="font-size: 2.5rem; margin-top: 0.5rem;">
+        Arsitektur End-to-End:<br>
+        <span style="background: linear-gradient(90deg, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          Modern API Keys &amp; Adaptive AI Engine
+        </span>
+      </h1>
+      <p class="slide-desc" style="font-size: 1.15rem; max-width: 850px;">
+        Dokumentasi visual menyeluruh tentang perbaikan layout modal, pembersihan visual anti-slop, sistem discovery model AI dinamis, serta integrasi tahan banting (resilient) untuk 9Router lokal dan publik.
+      </p>
+
+      <div class="grid-3" style="margin-top: 2rem;">
+        <div class="card" style="border-left: 3px solid var(--blue-light);">
+          <div class="pill pill-blue" style="margin-bottom: 0.75rem;">Modul 01: UI Primitive</div>
+          <div class="card-title">ModalShell Standard</div>
+          <div class="card-desc">Dialog terpadu berstandar Aksora: rounded-2xl, backdrop blur, segmented permissions, dan sentence-case UX.</div>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--emerald);">
+          <div class="pill pill-emerald" style="margin-bottom: 0.75rem;">Modul 02: AI Integrity</div>
+          <div class="card-title">Live Model Discovery</div>
+          <div class="card-desc">Menghapus model hardcoded; query live ke official provider API dengan state machine aktif terverifikasi.</div>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <div class="pill pill-amber" style="margin-bottom: 0.75rem;">Modul 03: 9Router Ready</div>
+          <div class="card-title">Dual Failover &amp; Parser</div>
+          <div class="card-desc">Multi-format payload deserializer (6 varian) + failover otomatis 127.0.0.1 ↔ localhost untuk daemon lokal.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--fg-muted);">
+        <span>Presented by: Akusara Engineering</span>
+        <span>Aksora — One Team. One Flow.</span>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: BEFORE VS AFTER -->
+    <section class="slide" id="slide-2">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 02</span>
+        <span class="slide-category">Problem &amp; Resolution</span>
+      </div>
+      <h2 class="slide-title">Sebelum vs. Sesudah (Before &amp; After)</h2>
+      <p class="slide-desc">Perbandingan visual antara arsitektur lama yang mengalami bug visual/status dengan implementasi baru.</p>
+
+      <div class="compare-container">
+        <!-- Before -->
+        <div class="compare-card compare-before">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div class="pill pill-rose">Sebelumnya (Isu yang Ditemukan)</div>
+            <span style="font-size: 0.75rem; color: var(--rose);">Legacy Defect</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(244,63,94,0.2);">
+              <div style="font-weight: 700; color: #fb7185; font-size: 0.85rem;">❌ Modal Boxy &amp; Kaku (Image #1)</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Label ALL-CAPS kaku, border kotak tajam tanpa rounded, checkbox mentah, layout sempit tidak nyaman dipandang.
+              </div>
+            </div>
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(244,63,94,0.2);">
+              <div style="font-weight: 700; color: #fb7185; font-size: 0.85rem;">❌ Gemini False Active Ungu (Image #2)</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Google Gemini otomatis diberi badge "Active" dan border ungu tebal padahal statusnya "Not Connected" tanpa API key.
+              </div>
+            </div>
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(244,63,94,0.2);">
+              <div style="font-weight: 700; color: #fb7185; font-size: 0.85rem;">❌ Model Terbatas &amp; Hardcoded</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Daftar model AI dipatok statis di kode sumber. Model baru dari 9Router atau OpenAI tidak dapat terbaca otomatis.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- After -->
+        <div class="compare-card compare-after">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div class="pill pill-emerald">Sesudah (Implementasi Baru)</div>
+            <span style="font-size: 0.75rem; color: var(--emerald);">Clean &amp; Dynamic</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(16,185,129,0.2);">
+              <div style="font-weight: 700; color: #34d399; font-size: 0.85rem;">✔ ModalShell Modern &amp; Responsif</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Rounded-2xl, backdrop blur, selector segmented Read/Write, toggle Select/Deselect All, sentence case UX.
+              </div>
+            </div>
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(16,185,129,0.2);">
+              <div style="font-weight: 700; color: #34d399; font-size: 0.85rem;">✔ True State Machine &amp; Brand Blue</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Semua aksen ungu dibersihkan. Warna biru Aksora (<code>blue-600</code>) dan badge Active HANYA menyala jika provider benar-benar terhubung.
+              </div>
+            </div>
+            <div class="card" style="background: rgba(0,0,0,0.2); border-color: rgba(16,185,129,0.2);">
+              <div style="font-weight: 700; color: #34d399; font-size: 0.85rem;">✔ Live Dynamic Fetch &amp; 9Router Resilient</div>
+              <div style="font-size: 0.8rem; color: var(--fg-muted); margin-top: 0.25rem;">
+                Model langsung di-query live dari API. 9Router mendukung 6 format payload dan failover otomatis port lokal.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: FLOW API KEYS -->
+    <section class="slide" id="slide-3">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 03</span>
+        <span class="slide-category">Alur REST API Key Management</span>
+      </div>
+      <h2 class="slide-title">Flow E2E: Pembuatan Aksora API Key</h2>
+      <p class="slide-desc">Alur pembuatan personal access token untuk integrasi eksternal (CI/CD, automated test, dan script).</p>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Trigger &amp; Pembukaan Modal Dialog</span>
+              <span class="pill pill-blue">UI: components/ui/modal-shell.tsx</span>
+            </div>
+            <p class="flow-step-desc">Pengguna mengklik tombol <strong>Create New API Key</strong> di <code>/settings/api-keys</code>. Dialog <code>ModalShell</code> muncul dengan animasi zoom-in 95% dan backdrop blur halus.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Konfigurasi Hak Akses Granular</span>
+              <span class="pill pill-blue">app/settings/api-keys/api-keys-client.tsx</span>
+            </div>
+            <p class="flow-step-desc">
+              Pengguna menentukan nama key, masa kedaluwarsa (30, 90, 365 hari, atau unlimited), memilih <strong>Read &amp; Write</strong> vs <strong>Read-only</strong> secara visual, serta memilih modul yang diizinkan (Tasks, Bugs, Test Cases, dll) dengan tombol pintas <em>Select All / Deselect All</em>.
+            </p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Hashing &amp; Penyimpanan Aman Server</span>
+              <span class="pill pill-emerald">Backend: POST /api/settings/api-keys</span>
+            </div>
+            <p class="flow-step-desc">Server men-generate token dengan format <code>aksora_live_...</code>. Token di-hash menggunakan algoritma SHA-256 sebelum disimpan ke PostgreSQL. Hanya prefix (contoh <code>aksora_live_a1b2...</code>) yang disimpan sebagai identifikasi publik.</p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">One-Time Secret Reveal Modal</span>
+              <span class="pill pill-amber">Security Principle</span>
+            </div>
+            <p class="flow-step-desc">Modal kedua terbuka menampilkan raw secret key sekali-lihat lengkap dengan tombol <strong>Copy</strong> instan. Setelah jendela ditutup, raw key tidak dapat dipulihkan kembali.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: FLOW AI & CREDENTIAL VAULT -->
+    <section class="slide" id="slide-4">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 04</span>
+        <span class="slide-category">Arsitektur Kredensial &amp; AI Setup</span>
+      </div>
+      <h2 class="slide-title">Flow E2E: Client-Side AI Vault &amp; Live Validation</h2>
+      <p class="slide-desc">Bagaimana kredensial AI disimpan secara privat dan divalidasi secara real-time tanpa database backend.</p>
+
+      <!-- Architecture Visual Diagram -->
+      <div class="arch-diagram">
+        <div class="arch-node">
+          <div style="font-size: 0.75rem; color: var(--blue-light); font-weight: 700;">USER BROWSER</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">Client-Side Vault</div>
+          <div style="font-size: 0.7rem; color: var(--fg-muted); margin-top: 0.25rem;">localStorage (TTL 14 Hari)</div>
+        </div>
+        <div class="arch-arrow"></div>
+        <div class="arch-node active-node">
+          <div style="font-size: 0.75rem; color: var(--emerald); font-weight: 700;">NEXT.JS API ROUTE</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">/api/ai/validate</div>
+          <div style="font-size: 0.7rem; color: var(--fg-muted); margin-top: 0.25rem;">SSRF Guard &amp; Ping Test</div>
+        </div>
+        <div class="arch-arrow"></div>
+        <div class="arch-node">
+          <div style="font-size: 0.75rem; color: var(--amber); font-weight: 700;">AI PROVIDERS</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">9Router / Gemini / OpenAI</div>
+          <div style="font-size: 0.7rem; color: var(--fg-muted); margin-top: 0.25rem;">Official Endpoint / Tunnel</div>
+        </div>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-num">A</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Inisialisasi Bersih (Zero False-Active)</span>
+              <span class="pill pill-blue">lib/ai-keys.ts: getActiveAiConfig()</span>
+            </div>
+            <p class="flow-step-desc">
+              Ketika browser membuka halaman <code>/settings/ai</code>, sistem mengecek <code>getActiveAiConfig()</code>. Jika pengguna belum pernah mengaktifkan provider, fungsi mengembalikan <code>{ provider: "", model: "" }</code>. <strong>Tidak ada provider yang otomatis di-highlight ungu / aktif secara sepihak.</strong>
+            </p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">B</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Validasi Real-time &amp; SSRF Inspection</span>
+              <span class="pill pill-emerald">app/api/ai/validate/route.ts</span>
+            </div>
+            <p class="flow-step-desc">
+              Saat user memasukkan kredensial dan klik <em>Test &amp; Save</em>, route server melakukan healthcheck langsung ke endpoint API provider. Khusus 9Router Public, <code>validateOutboundUrlAsync()</code> mencegah injeksi loopback atau private subnet internal.
+            </p>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">C</div>
+          <div class="flow-step-content">
+            <div class="flow-step-header">
+              <span class="flow-step-title">Aktivasi Terverifikasi (Strict State Machine)</span>
+              <span class="pill pill-emerald">components/settings/ai-settings-client.tsx</span>
+            </div>
+            <p class="flow-step-desc">
+              Hanya setelah status menjadi <code>connected</code> atau <code>saved</code>, tombol <em>Use as Active</em> dapat ditekan. Kartu yang aktif ditandai border biru resmi Aksora (<code>border-blue-500 ring-2 ring-blue-500/10</code>) dan badge <strong>Active</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: 9ROUTER RESILIENCE -->
+    <section class="slide" id="slide-5">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 05</span>
+        <span class="slide-category">Deep-Dive: 9Router Ecosystem</span>
+      </div>
+      <h2 class="slide-title">9Router Resilient Parsing &amp; Dual-Host Failover</h2>
+      <p class="slide-desc">Menjamin semua jenis model dari 9Router dapat terbaca mulus baik pada port daemon lokal maupun Cloudflare tunnel.</p>
+
+      <div class="grid-2">
+        <!-- Multi-format Parser -->
+        <div class="card">
+          <div class="card-title">
+            <span class="pill pill-blue">Parser</span>
+            extractModelsFromPayload()
+          </div>
+          <p class="card-desc" style="margin-bottom: 1rem;">
+            Fungsi universal di <code>lib/ai-service.ts</code> yang menangani 6 format respon varian 9Router:
+          </p>
+          <div class="mockup-box">
+            <div style="color: #60a5fa; font-weight: 700; margin-bottom: 0.5rem;">Format yang Didukung:</div>
+            <div style="color: #94a3b8;">1. OpenAI standard: <code>{"data": [{"id": "..."}]}</code></div>
+            <div style="color: #94a3b8;">2. String data array: <code>{"data": ["model-1"]}</code></div>
+            <div style="color: #94a3b8;">3. Models envelope: <code>{"models": [{"id": "..."}]}</code></div>
+            <div style="color: #94a3b8;">4. Models string array: <code>{"models": ["model-1"]}</code></div>
+            <div style="color: #94a3b8;">5. Items envelope: <code>{"items": [{"id": "..."}]}</code></div>
+            <div style="color: #94a3b8;">6. Direct root array: <code>[{"id": "..."}]</code> / <code>["..."]</code></div>
+          </div>
+        </div>
+
+        <!-- Dual Host Failover -->
+        <div class="card">
+          <div class="card-title">
+            <span class="pill pill-emerald">Network Failover</span>
+            queryLocal9Router() &amp; callLLM()
+          </div>
+          <p class="card-desc" style="margin-bottom: 1rem;">
+            Menyelesaikan masalah socket binding pada Windows / Linux (IPv4 vs IPv6 <code>::1</code>):
+          </p>
+          <div class="mockup-box">
+            <div style="color: #34d399; font-weight: 700; margin-bottom: 0.5rem;">Urutan Discovery Sekuensial:</div>
+            <div style="color: #94a3b8;">1. <code>http://127.0.0.1:20128/v1/models</code></div>
+            <div style="color: #94a3b8;">2. <code>http://localhost:20128/v1/models</code></div>
+            <div style="color: #94a3b8;">3. <code>http://127.0.0.1:20128/models</code></div>
+            <div style="color: #94a3b8;">4. <code>http://localhost:20128/models</code></div>
+            <div style="color: #fbbf24; margin-top: 0.5rem; font-size: 0.75rem;">
+              ⚡ Chat completions di <code>callLLM()</code> otomatis retry ke localhost jika 127.0.0.1 ditolak!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: FUNCTION DIRECTORY -->
+    <section class="slide" id="slide-6">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 06</span>
+        <span class="slide-category">Technical Reference</span>
+      </div>
+      <h2 class="slide-title">Kamus Lengkap Fungsi &amp; Komponen</h2>
+      <p class="slide-desc">Daftar fungsi inti yang dibangun dan dioptimalkan beserta perannya dalam arsitektur sistem.</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Berkas</th>
+              <th>Nama Fungsi</th>
+              <th>Input &amp; Return</th>
+              <th>Logika Bisnis &amp; Edge Cases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>components/ui/modal-shell.tsx</code></td>
+              <td><code>ModalShell</code></td>
+              <td>Props: <code>isOpen, onClose, title, ...</code></td>
+              <td>Komponen dialog serbaguna: backdrop blur, ESC keydown listener, CSS transition 150ms, header Phosphor icon.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-keys.ts</code></td>
+              <td><code>getActiveAiConfig()</code></td>
+              <td><code>() =&gt; { provider, model }</code></td>
+              <td>Mengembalikan provider &amp; model aktif. Zero-default (menghilangkan default paksa Google Gemini).</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-keys.ts</code></td>
+              <td><code>getApiKey() / setApiKey()</code></td>
+              <td><code>(p, key?) =&gt; string / void</code></td>
+              <td>Penyimpanan browser local vault dengan masa aktif TTL 14 hari rolling expiration. Kredensial tidak menyentuh database.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-keys.ts</code></td>
+              <td><code>getStoredProviderModels()</code></td>
+              <td><code>(provider) =&gt; string[]</code></td>
+              <td>Membaca cache model yang berhasil di-fetch secara dinamis dari API resmi provider.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-service.ts</code></td>
+              <td><code>extractModelsFromPayload()</code></td>
+              <td><code>(data: unknown) =&gt; string[]</code></td>
+              <td>Deserializer 6 varian respon 9Router &amp; OpenAI proxies. Mengabaikan ID kosong dan me-normalize whitespace.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-service.ts</code></td>
+              <td><code>queryLocal9Router()</code></td>
+              <td><code>(key?, timeout?) =&gt; Promise</code></td>
+              <td>Pemeriksaan otomatis port 20128: mencoba IPv4 (127.0.0.1) dan localhost (IPv6/IPv4) pada rute /v1/models dan /models.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-service.ts</code></td>
+              <td><code>queryPublic9Router()</code></td>
+              <td><code>(url, key?, timeout?) =&gt; Promise</code></td>
+              <td>Pemeriksaan endpoint Cloudflare Tunnel publik dengan normalisasi URL dan rute model.</td>
+            </tr>
+            <tr>
+              <td><code>lib/ai-service.ts</code></td>
+              <td><code>callLLM()</code></td>
+              <td><code>(opts: CallLLMOptions) =&gt; Promise</code></td>
+              <td>Universal LLM executor (Gemini, Claude, OpenAI-compatible). Memiliki automatic localhost retry untuk 9Router.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: SUMMARY & ACTION ITEMS -->
+    <section class="slide" id="slide-7">
+      <div class="slide-eyebrow">
+        <span class="slide-num">SLIDE 07</span>
+        <span class="slide-category">Kesimpulan &amp; Standar Tim</span>
+      </div>
+      <h2 class="slide-title">Rangkuman &amp; Panduan Pengujian Tim</h2>
+      <p class="slide-desc">Hal-hal yang perlu diketahui tim engineering untuk memverifikasi dan menggunakan fitur ini.</p>
+
+      <div class="grid-2">
+        <div class="card" style="border-top: 3px solid var(--emerald);">
+          <div class="card-title">
+            <span class="pill pill-emerald">QA Checklist</span>
+            Pengujian Fitur
+          </div>
+          <ul style="font-size: 0.85rem; color: var(--fg-secondary); padding-left: 1.25rem; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <li>Buka <code>/settings/api-keys</code>: Buat key baru, pastikan modal tampil rounded-2xl dan sentence-case.</li>
+            <li>Buka <code>/settings/ai</code>: Pastikan saat pertama kali dibuka, Google Gemini <strong>TIDAK</strong> menyala aktif.</li>
+            <li>Klik tombol <em>Fetch Models</em>: Pastikan model terbaru di-query langsung dari endpoint provider resmi.</li>
+            <li>Jalankan 9Router lokal di port 20128: Pastikan Aksora langsung mendeteksi model lokal tanpa konfigurasi manual.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--blue-light);">
+          <div class="card-title">
+            <span class="pill pill-blue">Security Standard</span>
+            Keamanan Data &amp; Privasi
+          </div>
+          <ul style="font-size: 0.85rem; color: var(--fg-secondary); padding-left: 1.25rem; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <li>Zero-DB Vault: Kredensial AI tidak pernah dicatat dalam log server maupun disimpan di database Postgres.</li>
+            <li>SSRF Hardening: Semua URL tunnel publik diuji melalui <code>validateOutboundUrlAsync()</code>.</li>
+            <li>API Key Hashing: Kredensial Aksora API Key di-hash dengan SHA-256; token rahasia hanya tampil 1 kali.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top: 2.5rem; text-align: center;">
+        <button class="btn btn-primary" onclick="window.print()" style="padding: 0.75rem 1.5rem; font-size: 0.9rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+          Cetak atau Simpan sebagai PDF Presentasi
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 7;
+
+    function updateIndicator() {
+      const el = document.getElementById('slideIndicator');
+      if (el) el.textContent = `Slide ${currentSlide} dari ${totalSlides}`;
+    }
+
+    function scrollToSlide(direction) {
+      if (direction === 'next' && currentSlide < totalSlides) {
+        currentSlide++;
+      } else if (direction === 'prev' && currentSlide > 1) {
+        currentSlide--;
+      }
+      const target = document.getElementById(`slide-${currentSlide}`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        updateIndicator();
+      }
+    }
+
+    // Keyboard navigation (Left / Right Arrow)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        scrollToSlide('next');
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        scrollToSlide('prev');
+      }
+    });
+
+    // Intersection Observer to update slide counter on manual scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const match = id.match(/slide-(\d+)/);
+          if (match) {
+            currentSlide = parseInt(match[1], 10);
+            updateIndicator();
+          }
+        }
+      });
+    }, { threshold: 0.4 });
+
+    document.querySelectorAll('.slide').forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>

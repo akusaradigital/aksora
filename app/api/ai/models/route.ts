@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { DEFAULT_AI_MODELS, AI_PROVIDER_LABELS } from "@/lib/ai-service";
+import { DEFAULT_AI_MODELS, AI_PROVIDER_LABELS, fetchProviderModels, queryLocal9Router } from "@/lib/ai-service";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +19,14 @@ export async function GET() {
     "9router-public": "disconnected",
   };
 
-  // Live ping local 9Router with short timeout to avoid blocking page loads
+  // Live ping local 9Router with fast timeout to avoid blocking initial load
   try {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 300);
-    const res = await fetch("http://127.0.0.1:20128/v1/models", { signal: ctrl.signal });
-    clearTimeout(tid);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data?.data)) {
-        providers["9router"] = data.data.map((m: { id: string }) => m.id).filter(Boolean);
-      }
+    const local9Router = await queryLocal9Router(undefined, 400);
+    if (local9Router.connected) {
       status["9router"] = "connected";
+      if (local9Router.models.length > 0) {
+        providers["9router"] = local9Router.models;
+      }
     }
   } catch {
     status["9router"] = "disconnected";
@@ -49,4 +46,37 @@ export async function GET() {
       },
     }
   );
+}
+
+export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = (await req.json()) as {
+      provider?: string;
+      api_key?: string;
+      public_url?: string;
+    };
+
+    const provider = (body.provider || "").trim().toLowerCase();
+    if (!provider) {
+      return NextResponse.json({ error: "Provider is required" }, { status: 400 });
+    }
+
+    const models = await fetchProviderModels(provider, body.api_key, body.public_url);
+    return NextResponse.json({
+      data: {
+        provider,
+        models,
+      },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to fetch models" },
+      { status: 500 }
+    );
+  }
 }

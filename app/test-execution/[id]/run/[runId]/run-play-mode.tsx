@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  CheckCircle, XCircle, Warning, CaretLeft, CaretRight, Play, X,
-  Timer
+  CheckCircle, Play, X,
+  Timer, Bug, Image as ImageIcon, Trash
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { QuickBugModal } from "@/components/bugs/quick-bug-modal";
+import { compressImageToWebp } from "@/lib/image-compress";
+import { RunPlayModeFooter } from "./run-play-mode-footer";
 
 type CaseItem = {
   verdictId: number;
@@ -44,7 +47,23 @@ export function RunPlayMode({
     return firstPending >= 0 ? firstPending : 0;
   });
   const [caseStart, setCaseStart] = useState(() => Date.now());
+  const [showBugModal, setShowBugModal] = useState(false);
   const currentCase = items[index];
+
+  const handleMarkAllPassed = useCallback(() => {
+    const pendingCases = items.filter(i => i.verdict === "Pending" || !i.verdict);
+    if (pendingCases.length === 0) return;
+    setItems(prev => {
+      const updated = prev.map(item => ({
+        ...item,
+        verdict: item.verdict === "Pending" || !item.verdict ? "Passed" : item.verdict,
+      }));
+      updated.forEach(item => {
+        if (item.verdict === "Passed") onSaveVerdict(item);
+      });
+      return updated;
+    });
+  }, [items, onSaveVerdict]);
 
   const formatTime = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -82,6 +101,24 @@ export function RunPlayMode({
     });
   }, [index]);
 
+  const updateEvidence = useCallback((val: string) => {
+    setItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], evidence: val };
+      onSaveVerdict(updated[index]);
+      return updated;
+    });
+  }, [index, onSaveVerdict]);
+
+  const handleEvidenceFile = useCallback(async (file: File | Blob) => {
+    try {
+      const res = await compressImageToWebp(file, { maxDimension: 1440, quality: 0.8 });
+      updateEvidence(res.dataUrl);
+    } catch {
+      // ignore compression failure
+    }
+  }, [updateEvidence]);
+
   const handleActualBlur = () => {
     onSaveVerdict(items[index]);
   };
@@ -105,31 +142,34 @@ export function RunPlayMode({
   const progress = Math.round((completed / items.length) * 100);
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", flexDirection: "column", height: "100vh", width: "100vw" }}
-      className="bg-gradient-to-b from-slate-900 via-[#0f172a] to-[#020617] text-white"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col h-screen w-screen bg-gradient-to-b from-slate-900 via-[#0f172a] to-[#020617] text-white">
       {/* ===== HEADER ===== */}
-      <div
-        style={{ height: "60px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px" }}
-        className="border-b border-white/5"
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      <div className="h-[60px] shrink-0 flex items-center justify-between px-6 border-b border-white/5">
+        <div className="flex items-center gap-3.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 shadow-lg shadow-blue-600/25">
             <Play size={18} weight="fill" />
           </div>
           <div>
-            <h2 style={{ fontSize: "15px", fontWeight: 900, lineHeight: 1.1 }}>{suiteTitle}</h2>
-            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", marginTop: "2px" }} className="uppercase text-slate-500">
+            <h2 className="text-[15px] font-black leading-tight">{suiteTitle}</h2>
+            <p className="text-[10px] font-bold tracking-widest mt-0.5 uppercase text-slate-500">
               Focus Mode · {index + 1} of {items.length} · {completed} done
             </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleMarkAllPassed}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition active:scale-95"
+            title="Mark remaining pending cases as Passed"
+          >
+            <CheckCircle size={14} weight="bold" />
+            Mark Pending as Passed
+          </button>
           <div className="hidden md:flex items-center gap-2 text-slate-400">
             <Timer size={15} />
-            <span style={{ fontSize: "13px", fontFamily: "monospace", fontWeight: 700 }}>{formatTime(elapsedSeconds)}</span>
+            <span className="text-[13px] font-mono font-bold">{formatTime(elapsedSeconds)}</span>
           </div>
           <button onClick={() => onClose(items)} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-rose-500/20 transition text-rose-400 hover:text-rose-300">
             <X size={18} weight="bold" />
@@ -138,29 +178,24 @@ export function RunPlayMode({
       </div>
 
       {/* ===== PROGRESS BAR ===== */}
-      <div style={{ flexShrink: 0, padding: "12px 24px 0" }}>
-        <div style={{ height: "4px", borderRadius: "4px", overflow: "hidden" }} className="bg-white/5">
+      <div className="shrink-0 px-6 pt-3">
+        <div className="h-1 rounded-full overflow-hidden bg-white/5">
           <div
-            style={{ height: "100%", width: `${progress}%`, transition: "width 0.4s ease" }}
-            className="bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
+            style={{ width: `${progress}%` }}
+            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-300"
           />
         </div>
       </div>
 
       {/* ===== DOTS ===== */}
-      <div style={{ flexShrink: 0, display: "flex", flexWrap: "wrap", gap: "6px", justifyContent: "center", padding: "12px 24px 8px" }}>
+      <div className="shrink-0 flex flex-wrap gap-1.5 justify-center px-6 py-2">
         {items.map((item, i) => (
           <button
             key={item.testCaseId}
             onClick={() => { setIndex(i); setCaseStart(Date.now()); }}
-            style={{
-              height: i === index ? "12px" : "8px",
-              width: i === index ? "12px" : "8px",
-              borderRadius: "50%",
-              border: i === index ? "2px solid rgba(255,255,255,0.5)" : "none",
-              transition: "all 0.2s",
-            }}
             className={cn(
+              "rounded-full transition-all",
+              i === index ? "h-3 w-3 border-2 border-white/50" : "h-2 w-2",
               item.verdict === "Passed" ? "bg-emerald-500"
               : item.verdict === "Failed" ? "bg-rose-500"
               : item.verdict === "Blocked" ? "bg-amber-500"
@@ -171,31 +206,16 @@ export function RunPlayMode({
         ))}
       </div>
 
-      {/* ===== CARD CONTENT (fills all remaining space) ===== */}
-      <div style={{ flex: 1, overflow: "hidden", padding: "0 24px", display: "flex", flexDirection: "column" }}>
-        <div
-          style={{
-            flex: 1,
-            overflow: "auto",
-            borderRadius: "20px",
-            border: "1px solid rgba(255,255,255,0.08)",
-            padding: "28px 32px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "24px",
-          }}
-          className="bg-white/[0.03]"
-        >
+      {/* ===== CARD CONTENT ===== */}
+      <div className="flex-1 overflow-hidden px-6 flex flex-col">
+        <div className="flex-1 overflow-auto rounded-2xl border border-white/10 p-7 flex flex-col gap-6 bg-white/[0.03]">
           {/* Case Header */}
-          <div style={{ flexShrink: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <span
-                style={{ display: "inline-block", padding: "4px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em" }}
-                className="bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase"
-              >
+          <div className="shrink-0 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <span className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-black tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase">
                 {currentCase.tcId}
               </span>
-              <h1 style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 900, marginTop: "12px", lineHeight: 1.2 }}>
+              <h1 className="text-xl md:text-2xl font-black mt-3 leading-tight">
                 {currentCase.caseName}
               </h1>
             </div>
@@ -245,17 +265,85 @@ export function RunPlayMode({
               </section>
 
               <section>
-                <h5 style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.2em", marginBottom: "8px" }} className="uppercase text-slate-500">
-                  Actual Result / Notes
-                </h5>
+                <div className="flex items-center justify-between mb-2">
+                  <h5 style={{ fontSize: "11px", fontWeight: 900, letterSpacing: "0.2em" }} className="uppercase text-slate-500">
+                    Actual Result / Notes
+                  </h5>
+                  <div className="flex items-center gap-2">
+                    <label
+                      title="Attach or paste screenshot evidence"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:bg-white/10 transition active:scale-95"
+                    >
+                      <ImageIcon size={13} weight="bold" className="text-blue-400" />
+                      <span>{currentCase.evidence ? "Change Image" : "Paste / Upload"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleEvidenceFile(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {currentCase.verdict === "Failed" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowBugModal(true)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/20 px-2.5 py-1 text-[11px] font-bold text-rose-300 hover:bg-rose-500/30 transition border border-rose-500/40 active:scale-95"
+                      >
+                        <Bug size={13} weight="bold" /> Log Bug
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <textarea
                   value={currentCase.actualResult || ""}
                   onChange={(e) => updateActual(e.target.value)}
                   onBlur={handleActualBlur}
-                  placeholder="Type findings here..."
-                  style={{ width: "100%", height: "100px", borderRadius: "14px", padding: "14px", fontSize: "13px", resize: "none", outline: "none" }}
-                  className="bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500/50"
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (let i = 0; i < items.length; i++) {
+                      if (items[i].type.startsWith("image/")) {
+                        const blob = items[i].getAsFile();
+                        if (blob) {
+                          e.preventDefault();
+                          handleEvidenceFile(blob);
+                          break;
+                        }
+                      }
+                    }
+                  }}
+                  placeholder="Type findings here or paste screenshot directly with Ctrl+V..."
+                  style={{ width: "100%", height: "80px", borderRadius: "14px", padding: "14px", fontSize: "13px", resize: "none", outline: "none" }}
+                  className="bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500/50 overflow-y-auto"
                 />
+
+                {currentCase.evidence && (
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img
+                        src={currentCase.evidence}
+                        alt="Evidence"
+                        className="h-10 w-14 rounded-md object-cover border border-white/15 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-bold text-white block">Screenshot Attached</span>
+                        <span className="text-[9px] text-emerald-400 font-semibold">WebP Compressed (&lt;70 KB)</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateEvidence("")}
+                      className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-rose-400 transition"
+                      title="Remove screenshot"
+                    >
+                      <Trash size={14} weight="bold" />
+                    </button>
+                  </div>
+                )}
               </section>
             </div>
           </div>
@@ -264,89 +352,35 @@ export function RunPlayMode({
         </div>
       </div>
 
-      {/* ===== FOOTER ACTIONS (fixed height, always visible) ===== */}
-      <div
-        style={{ height: "80px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", gap: "16px" }}
-        className="border-t border-white/5"
-      >
-        {/* Nav arrows */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button
-            onClick={() => { setIndex(Math.max(0, index - 1)); setCaseStart(Date.now()); }}
-            disabled={index === 0}
-            style={{ height: "48px", width: "48px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "14px" }}
-            className="bg-white/5 border border-white/10 hover:bg-white/10 transition disabled:opacity-20"
-          >
-            <CaretLeft size={20} />
-          </button>
-          <button
-            onClick={() => { setIndex(Math.min(items.length - 1, index + 1)); setCaseStart(Date.now()); }}
-            disabled={index === items.length - 1}
-            style={{ height: "48px", width: "48px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "14px" }}
-            className="bg-white/5 border border-white/10 hover:bg-white/10 transition disabled:opacity-20"
-          >
-            <CaretRight size={20} />
-          </button>
-        </div>
+      {/* ===== FOOTER ACTIONS ===== */}
+      <RunPlayModeFooter
+        index={index}
+        totalItems={items.length}
+        currentVerdict={currentCase.verdict}
+        onPrev={() => {
+          setIndex(Math.max(0, index - 1));
+          setCaseStart(Date.now());
+        }}
+        onNext={() => {
+          setIndex(Math.min(items.length - 1, index + 1));
+          setCaseStart(Date.now());
+        }}
+        onStatus={updateStatus}
+        onFinish={() => onClose(items)}
+      />
 
-        {/* Verdict buttons */}
-        <div style={{ flex: 1, maxWidth: "560px", display: "flex", gap: "12px" }}>
-          <button
-            onClick={() => updateStatus("Passed")}
-            style={{ flex: 1, height: "52px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "14px", fontWeight: 900 }}
-            className={cn(
-              "transition-all active:scale-95",
-              currentCase.verdict === "Passed"
-                ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
-            )}
-          >
-            <CheckCircle size={20} weight="bold" /> PASS
-          </button>
-          <button
-            onClick={() => updateStatus("Failed")}
-            style={{ flex: 1, height: "52px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "14px", fontWeight: 900 }}
-            className={cn(
-              "transition-all active:scale-95",
-              currentCase.verdict === "Failed"
-                ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
-                : "bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20"
-            )}
-          >
-            <XCircle size={20} weight="bold" /> FAIL
-          </button>
-          <button
-            onClick={() => updateStatus("Blocked")}
-            style={{ flex: 1, height: "52px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "14px", fontWeight: 900 }}
-            className={cn(
-              "transition-all active:scale-95",
-              currentCase.verdict === "Blocked"
-                ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
-                : "bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
-            )}
-          >
-            <Warning size={20} weight="bold" /> BLOCK
-          </button>
-        </div>
-
-        {/* Finish button + keyboard hints */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div className="hidden lg:flex items-center gap-3 text-slate-600 text-[10px] font-bold">
-            <div className="flex items-center gap-1"><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-slate-400">P</kbd> Pass</div>
-            <div className="flex items-center gap-1"><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-slate-400">F</kbd> Fail</div>
-            <div className="flex items-center gap-1"><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-slate-400">B</kbd> Block</div>
-            <div className="flex items-center gap-1"><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-slate-400">J / →</kbd> Next</div>
-            <div className="flex items-center gap-1"><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-slate-400">K / ←</kbd> Prev</div>
-          </div>
-          <button
-            onClick={() => onClose(items)}
-            style={{ height: "48px", borderRadius: "14px", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "13px", fontWeight: 800 }}
-            className="bg-blue-600 text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
-          >
-            <CheckCircle size={18} weight="bold" /> Finish
-          </button>
-        </div>
-      </div>
+      {currentCase && (
+        <QuickBugModal
+          isOpen={showBugModal}
+          onClose={() => setShowBugModal(false)}
+          defaultProject={suiteTitle}
+          initialTitle={`[${currentCase.tcId}] Failure in ${currentCase.caseName}`}
+          initialSteps={currentCase.testStep}
+          initialExpected={currentCase.expectedResult}
+          initialActual={currentCase.actualResult || "Test failed during focus mode execution"}
+          initialEvidence={currentCase.evidence}
+        />
+      )}
     </div>
   );
 }

@@ -24,10 +24,33 @@ vi.mock("@phosphor-icons/react", () => {
     "DotsThree", "DotsSixVertical", "CopySimple", "EnvelopeSimple", "Eye", "EyeSlash",
     "Lock", "PaperPlaneTilt", "Rows", "SlidersHorizontal", "Warning", "WarningCircle",
     "Bug", "CalendarBlank", "Clock", "Compass", "Gear", "Info", "List", "PlayCircle",
-    "ShieldCheck", "SignOut", "Sparkle", "Wrench",
+    "ShieldCheck", "SignOut", "Sparkle", "Wrench", "Cpu", "GearSix", "ArrowRight", "FileCode",
   ];
-  return Object.fromEntries(icons.map((name) => [name, (props: Record<string, unknown>) => <IconStub name={name} {...props} />]));
+  return Object.fromEntries(
+    icons.map((name) => [name, (props: Record<string, unknown>) => <IconStub name={name} {...props} />])
+  );
 });
+
+// Mock next/navigation & next/link
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/bugs",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 // Mock CopyLinkButton
 vi.mock("@/components/copy-link-button", () => ({

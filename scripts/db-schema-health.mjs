@@ -33,7 +33,7 @@ while ((match = tableRegex.exec(schemaText)) !== null) {
     .filter(Boolean)
     .map((def) => def.split(" ")[0]?.replace(/"/g, ""))
     .filter(Boolean)
-    .filter((name) => name !== "PRIMARY" && name !== "FOREIGN");
+    .filter((name) => name !== "PRIMARY" && name !== "FOREIGN" && name !== "UNIQUE" && name !== "CONSTRAINT");
   expectedByTable.set(table, columns);
 }
 

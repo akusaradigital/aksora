@@ -29,6 +29,7 @@ CREATE INDEX IF NOT EXISTS "idx_testcase_workspace_active_suite" ON "TestCase"("
 CREATE INDEX IF NOT EXISTS "idx_testcase_assignee" ON "TestCase"("assignee");
 CREATE INDEX IF NOT EXISTS "idx_testcase_status" ON "TestCase"("status");
 CREATE INDEX IF NOT EXISTS "idx_testcase_suite" ON "TestCase"("testSuiteId");
+CREATE INDEX IF NOT EXISTS "idx_testcase_quarantined" ON "TestCase"("workspaceId", "quarantined") WHERE "quarantined" = 1;
 CREATE INDEX IF NOT EXISTS "idx_testplan_workspace" ON "TestPlan"("workspaceId");
 CREATE INDEX IF NOT EXISTS "idx_testplan_workspace_updated" ON "TestPlan"("workspaceId", "updatedAt");
 CREATE INDEX IF NOT EXISTS "idx_testplan_workspace_project" ON "TestPlan"("workspaceId", "project");
