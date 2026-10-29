@@ -76,8 +76,8 @@ export function ModuleWorkspaceHeader({
 }: WorkspaceHeaderProps) {
   return (
     <>
-      <div className="border-b border-gray-200 bg-white px-5 py-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="border-b border-gray-200 bg-white px-4 sm:px-5 py-3 sm:py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
             <div className="flex items-center gap-2.5">
               {icon ? (
@@ -93,8 +93,8 @@ export function ModuleWorkspaceHeader({
           </div>
 
           {!showForm ? (
-            <div className="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto xl:flex-1 xl:justify-end">
-              <div className="relative w-full min-w-0 md:w-56 xl:max-w-56">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:gap-2.5 lg:w-auto lg:flex-1 lg:justify-end">
+              <div className="relative w-full min-w-0 md:w-56 lg:max-w-56">
                 <div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none text-gray-400">
                   <MagnifyingGlass size={14} weight="bold" />
                 </div>
@@ -182,8 +182,8 @@ export function ModuleWorkspaceHeader({
         </div>
       </div>
       {!showForm && (
-        <div className="sticky top-0 z-[var(--z-sticky)] border-b border-gray-200 bg-white px-5 py-2.5 text-sm text-gray-600">
-          <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="sticky top-0 z-[var(--z-sticky)] border-b border-gray-200 bg-white px-4 sm:px-5 py-2.5 text-sm text-gray-600">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               {hasKanban ? (
                 <div className="flex h-8 items-center border border-gray-200 overflow-hidden">
@@ -226,7 +226,7 @@ export function ModuleWorkspaceHeader({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 xl:ml-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:ml-auto">
               {filterOptions && filterOptions.length > 0 && activeFilters && onFilterChange && (
                 <SavedViews
                   module={module}

@@ -154,7 +154,7 @@ export function SicmundusSyncSuccess({
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Duration Logged</div>
             <div className="text-xs font-semibold text-gray-900 mt-0.5">
-              {data.durationMinutes} menit ({formatDuration(data.durationMinutes)})
+              {data.durationMinutes} min ({formatDuration(data.durationMinutes)})
             </div>
           </div>
         </div>

@@ -69,18 +69,18 @@ export function AIStatusCard({
             <p className="mt-1 text-xs text-slate-500 leading-relaxed max-w-xl">
               {isConfigured ? (
                 <>
-                  Mesin AI siap digunakan di seluruh workspace. Sedang ditenagai oleh{" "}
+                  AI engine is active across your workspace. Currently powered by{" "}
                   <strong className="text-slate-900 font-semibold">
                     {AI_PROVIDER_LABELS[activeProvider as SupportedProvider]?.label || activeProvider}
                   </strong>{" "}
-                  dengan model{" "}
+                  with model{" "}
                   <code className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-mono font-semibold">
                     {activeModel}
                   </code>
                   .
                 </>
               ) : (
-                "AI Agents belum aktif. Hubungkan salah satu provider di bawah (misal 9Router atau Gemini), lalu klik 'Use as Active' untuk mengaktifkan AI di menu Test Cases, Bugs, dan Test Sessions."
+                "AI engine is not yet active. Connect a provider below (e.g. Gemini, OpenAI, or 9Router), then click 'Use as Active' to enable AI features across Test Cases, Bugs, and Test Sessions."
               )}
             </p>
           </div>
@@ -123,7 +123,7 @@ export function AIStatusCard({
       {/* Feature Capabilities Indicator */}
       <div className="pt-4">
         <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-          Status Kapabilitas Fitur QA
+          QA Feature Capabilities
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {QA_CAPABILITIES.map((cap, i) => (

@@ -120,7 +120,7 @@ describe("SicmundusSyncModal", () => {
 
     expect(screen.getByDisplayValue("1")).toBeDefined();
     expect(screen.getByDisplayValue("0")).toBeDefined();
-    expect(screen.getByText("60 menit")).toBeDefined();
+    expect(screen.getByText("60 min")).toBeDefined();
   });
 
   it("allows toggling custom task ID input", () => {

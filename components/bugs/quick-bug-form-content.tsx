@@ -126,7 +126,7 @@ export function QuickBugFormContent({
               }
             }
           }}
-          placeholder="e.g., Tombol bayar di checkout Safari iOS muter terus gak submit. Ada error 504 Gateway Timeout di network tab setelah 30 detik. (Bisa juga paste screenshot langsung Ctrl+V!)"
+          placeholder="e.g., Pay button on Safari iOS checkout keeps spinning and won't submit. Got error 504 Gateway Timeout in network tab after 30s. (You can also paste a screenshot directly with Ctrl+V!)"
           className="h-28 w-full resize-none overflow-y-auto rounded-lg border border-slate-200 p-3 text-xs font-medium text-slate-900 outline-none transition focus:border-blue-500 leading-relaxed"
         />
       </div>

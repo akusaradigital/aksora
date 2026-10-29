@@ -55,11 +55,31 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
 
   switch (module) {
     case "test-plans": {
+      const projectName = textOrEmpty(data.project);
+      if (!projectName) {
+        throw new Error("A valid project is required to create a Test Plan. Please select or create a project first.");
+      }
+      // Ensure the project is registered in Project table
+      const existingProj = await db.get<{ id: number }>(
+        `SELECT "id" FROM "Project" WHERE "name" = ? AND "deletedAt" IS NULL${company ? ' AND "company" = ?' : ''} LIMIT 1`,
+        company ? [projectName, company] : [projectName],
+      );
+      if (!existingProj) {
+        const words = projectName.replace(/[^a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+        let key = words.length >= 2 ? words.map((w) => w[0]).join("").slice(0, 4).toUpperCase() : (words[0]?.slice(0, 4).toUpperCase() || "PRJ");
+        if (key.length < 2) key = "PRJ";
+        await db.run(
+          `INSERT INTO "Project" ("name", "key", "company", "workspaceId", "status", "publicToken")
+           VALUES (?, ?, ?, ?, 'active', md5(random()::text || clock_timestamp()::text))`,
+          [projectName, key, company, workspaceId],
+        );
+      }
+
       const publicToken = textOrEmpty(data.publicToken) || makePublicToken();
       const notesInput = textOrEmpty(data.notes);
       const notes = notesInput ? notesInput : generateTestPlanNotes({
         title: text(data.title),
-        project: text(data.project),
+        project: projectName,
         sprint: text(data.sprint),
         status: text(data.status),
         startDate: text(data.startDate),
@@ -70,7 +90,7 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const res = await runInsert(
         `INSERT INTO "TestPlan" ("company", "workspaceId", "publicToken", "title", "project", "sprint", "scope", "status", "startDate", "endDate", "notes", "assignee")
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.title, data.project, data.sprint ?? "", data.scope ?? "", data.status, data.startDate ?? "", data.endDate ?? "", notes, data.assignee ?? ""]
+        [company, workspaceId, publicToken, data.title, projectName, data.sprint ?? "", data.scope ?? "", data.status, data.startDate ?? "", data.endDate ?? "", notes, data.assignee ?? ""]
       );
       await logActivity(company, "TestPlan", String(data.title), "Created", `New test plan: ${data.title}`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);

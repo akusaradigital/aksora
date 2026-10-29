@@ -68,7 +68,7 @@ export function ModalShell({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto transition-opacity duration-150",
+        "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 transition-opacity duration-150",
         isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
     >
@@ -83,7 +83,7 @@ export function ModalShell({
       {/* Modal Dialog Box */}
       <div
         className={cn(
-          "relative w-full rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl transition-all duration-150",
+          "relative my-auto w-full max-h-[calc(100vh-3rem)] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl transition-all duration-150",
           MAX_WIDTH_MAP[maxWidth],
           isOpen ? "scale-100" : "scale-95",
           className

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "@/components/ui/toast";
 import {
   getAllKeys,
@@ -27,6 +27,7 @@ export function useAISettings() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [fetchingModels, setFetchingModels] = useState<Record<string, boolean>>({});
   const [customModelMode, setCustomModelMode] = useState<Record<string, boolean>>({});
+  const keyDebounce = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const [providerStates, setProviderStates] = useState<Record<string, ProviderCardState>>(() => {
     const initial: Record<string, ProviderCardState> = {};
@@ -36,8 +37,8 @@ export function useAISettings() {
         keyInput: "",
         urlInput: p === "9router-public" ? "" : undefined,
         validating: false,
-        selectedModel: DEFAULT_AI_MODELS[p]?.[0] || "",
-        models: DEFAULT_AI_MODELS[p] || [],
+        selectedModel: "",
+        models: [],
         showSecret: false,
       };
     }
@@ -81,13 +82,15 @@ export function useAISettings() {
           const next = { ...prev };
           for (const p of SUPPORTED_PROVIDERS) {
             const savedKey = p === "9router-public" ? public9r.key : savedKeys[p] || "";
+            const isConnected = p === "9router" && localStatus === "connected";
+            const hasKey = isConnected || Boolean(savedKey);
+            // Only use cached/catalog models when the provider has a key — no hardcoded defaults for keyless providers
             const modelsList =
               storedCachedModels[p]?.length
                 ? storedCachedModels[p]
-                : catalogModels[p]?.length
+                : hasKey && catalogModels[p]?.length
                 ? catalogModels[p]
-                : DEFAULT_AI_MODELS[p] || [];
-            const isConnectedLocal = p === "9router" && localStatus === "connected";
+                : [];
 
             const defaultForP =
               p === resolvedActive && resolvedModel
@@ -97,7 +100,7 @@ export function useAISettings() {
                 : modelsList[0] || "";
 
             next[p] = {
-              status: isConnectedLocal ? "connected" : savedKey ? "saved" : "disconnected",
+              status: isConnected ? "connected" : savedKey ? "saved" : "disconnected",
               keyInput: savedKey,
               urlInput: p === "9router-public" ? public9r.url : undefined,
               validating: false,
@@ -135,7 +138,48 @@ export function useAISettings() {
     };
 
     fetchCatalog();
+    const timers = keyDebounce.current;
+    return () => { Object.values(timers).forEach(clearTimeout); };
   }, []);
+
+  const doFetchModels = async (provider: string, apiKey: string, urlInput?: string, silent = false) => {
+    setFetchingModels((prev) => ({ ...prev, [provider]: true }));
+    try {
+      const res = await fetch("/api/ai/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, api_key: apiKey, public_url: urlInput }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error || "Failed to fetch models from provider");
+
+      const liveModels: string[] = json?.data?.models || [];
+      if (liveModels.length > 0) {
+        setStoredProviderModels(provider, liveModels);
+        setProviderStates((prev) => ({
+          ...prev,
+          [provider]: {
+            ...prev[provider],
+            models: liveModels,
+            selectedModel: liveModels.includes(prev[provider].selectedModel)
+              ? prev[provider].selectedModel
+              : liveModels[0] || prev[provider].selectedModel,
+          },
+        }));
+        if (provider === activeProvider && !liveModels.includes(activeModel)) {
+          setActiveModel(liveModels[0] || "");
+          setActiveAiConfig(provider, liveModels[0] || "");
+        }
+        if (!silent) toast(`Fetched ${liveModels.length} models from ${AI_PROVIDER_LABELS[provider as SupportedProvider]?.label}`, "success");
+      } else {
+        if (!silent) toast("No models returned by provider API", "info");
+      }
+    } catch (err) {
+      if (!silent) toast(err instanceof Error ? err.message : "Failed to fetch models", "error");
+    } finally {
+      setFetchingModels((prev) => ({ ...prev, [provider]: false }));
+    }
+  };
 
   const handleKeyChange = (provider: string, val: string) => {
     setProviderStates((prev) => ({
@@ -144,8 +188,20 @@ export function useAISettings() {
         ...prev[provider],
         keyInput: val,
         status: val.trim() ? prev[provider].status : "disconnected",
+        // Clear models when key is removed so no stale hardcoded list shows
+        models: val.trim() ? prev[provider].models : [],
+        selectedModel: val.trim() ? prev[provider].selectedModel : "",
       },
     }));
+
+    // Auto-fetch models when key is long enough (debounced, silent)
+    if (keyDebounce.current[provider]) clearTimeout(keyDebounce.current[provider]);
+    if (val.trim().length >= 10) {
+      const urlInput = providerStates[provider]?.urlInput;
+      keyDebounce.current[provider] = setTimeout(() => {
+        doFetchModels(provider, val.trim(), urlInput, true);
+      }, 700);
+    }
   };
 
   const handleUrlChange = (val: string) => {
@@ -240,6 +296,8 @@ export function useAISettings() {
         urlInput: provider === "9router-public" ? "" : undefined,
         status: "disconnected",
         latencyMs: undefined,
+        models: [],
+        selectedModel: "",
       },
     }));
     toast(`Cleared credentials for ${AI_PROVIDER_LABELS[provider as SupportedProvider]?.label || provider}`, "info");
@@ -248,55 +306,7 @@ export function useAISettings() {
   const handleFetchModels = async (provider: string) => {
     const state = providerStates[provider];
     if (!state) return;
-
-    setFetchingModels((prev) => ({ ...prev, [provider]: true }));
-    try {
-      const res = await fetch("/api/ai/models", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider,
-          api_key: state.keyInput,
-          public_url: state.urlInput,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        throw new Error(json.error || "Failed to fetch models from provider");
-      }
-
-      const liveModels: string[] = json?.data?.models || [];
-      if (liveModels.length > 0) {
-        setStoredProviderModels(provider, liveModels);
-        setProviderStates((prev) => ({
-          ...prev,
-          [provider]: {
-            ...prev[provider],
-            models: liveModels,
-            selectedModel: liveModels.includes(prev[provider].selectedModel)
-              ? prev[provider].selectedModel
-              : liveModels[0] || prev[provider].selectedModel,
-          },
-        }));
-
-        if (provider === activeProvider && !liveModels.includes(activeModel)) {
-          setActiveModel(liveModels[0] || "");
-          setActiveAiConfig(provider, liveModels[0] || "");
-        }
-
-        toast(
-          `Fetched ${liveModels.length} models from ${AI_PROVIDER_LABELS[provider as SupportedProvider]?.label}`,
-          "success"
-        );
-      } else {
-        toast("No models returned by provider API", "info");
-      }
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to fetch models", "error");
-    } finally {
-      setFetchingModels((prev) => ({ ...prev, [provider]: false }));
-    }
+    await doFetchModels(provider, state.keyInput, state.urlInput, false);
   };
 
   const handleTestConnection = async (provider: string) => {

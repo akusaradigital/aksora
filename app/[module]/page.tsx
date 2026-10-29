@@ -8,6 +8,8 @@ import { PAGE_SIZE } from "@/lib/pagination";
 import { db } from "@/lib/db";
 import { getTableName, getAccessScope } from "@/lib/data-helpers";
 import { getItemTitleField, buildOgDescription } from "@/lib/og-helpers";
+import { ProjectRequirementBanner } from "@/components/test-management/project-requirement-banner";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,10 @@ type RowData = Record<string, unknown> & {
   testPlanLabel?: string;
   testPlanRowSpan?: number;
   projectRowSpan?: number;
+  dateRowSpan?: number;
+  date?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   version?: string;
 };
 type PlanRow = {
@@ -300,7 +306,57 @@ export default async function ModulePage({
       });
     }
 
-    if (["meeting-notes", "tasks", "bugs", "deployments", "work-logs"].includes(moduleKey)) {
+    if (moduleKey === "tasks") {
+      const isCustomSort = Boolean(sortBy && sortBy !== "date" && sortBy !== "startDate");
+      if (!isCustomSort) {
+        rows.sort((a, b) => {
+          const dateA = String(a.startDate || a.date || "");
+          const dateB = String(b.startDate || b.date || "");
+          if (dateA !== dateB) return dateB.localeCompare(dateA);
+          return String(a.title ?? "").localeCompare(String(b.title ?? ""));
+        });
+      }
+
+      const groupedDate = new Map<string, { start: number; count: number }>();
+      if (!isCustomSort) {
+        rows.forEach((row, index) => {
+          const rawDate = String(row.startDate || row.date || "");
+          const endKey = row.endDate ? String(row.endDate).slice(0, 10) : "";
+          const key = rawDate
+            ? endKey && endKey !== rawDate.slice(0, 10)
+              ? `${rawDate.slice(0, 10)}_${endKey}`
+              : rawDate.slice(0, 10)
+            : "no-date";
+          const current = groupedDate.get(key);
+          if (!current) groupedDate.set(key, { start: index, count: 1 });
+          else current.count += 1;
+        });
+      }
+
+      rows = rows.map((row, index) => {
+        const rawDate = String(row.startDate || row.date || "");
+        const endKey = row.endDate ? String(row.endDate).slice(0, 10) : "";
+        const key = rawDate
+          ? endKey && endKey !== rawDate.slice(0, 10)
+            ? `${rawDate.slice(0, 10)}_${endKey}`
+            : rawDate.slice(0, 10)
+          : "no-date";
+        const group = !isCustomSort ? groupedDate.get(key) : null;
+        const displayDate = rawDate
+          ? endKey && endKey !== rawDate.slice(0, 10)
+            ? `${formatDate(rawDate.slice(0, 10))} – ${formatDate(endKey)}`
+            : formatDate(rawDate.slice(0, 10))
+          : "-";
+
+        return {
+          ...row,
+          date: displayDate,
+          dateRowSpan: isCustomSort ? 1 : group && group.start === index ? group.count : 0,
+        };
+      });
+    }
+
+    if (["test-plans", "test-sessions", "meeting-notes", "tasks", "bugs", "deployments", "work-logs"].includes(moduleKey)) {
       relatedOptions.project = await getProjectOptions();
     }
 
@@ -372,6 +428,7 @@ export default async function ModulePage({
 
   const plainRows = JSON.parse(JSON.stringify(rows));
   const plainRelatedOptions = JSON.parse(JSON.stringify(relatedOptions));
+  const hasNoProjects = moduleKey === "test-plans" && (!plainRelatedOptions.project || plainRelatedOptions.project.length === 0);
 
   return (
     <ModuleWorkspace
@@ -388,6 +445,7 @@ export default async function ModulePage({
       hiddenFields={hiddenFields}
       user={JSON.parse(JSON.stringify(currentUser))}
       viewId={viewId}
+      topContent={hasNoProjects ? <ProjectRequirementBanner /> : null}
     />
   );
 }

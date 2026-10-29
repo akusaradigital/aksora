@@ -3,6 +3,22 @@ export const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL 
 // Core QA Tables Definition
 export const tables = [
   {
+    name: "Project",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
+      "publicToken" TEXT NOT NULL DEFAULT '',
+      "name" TEXT NOT NULL,
+      "key" TEXT NOT NULL DEFAULT '',
+      "description" TEXT NOT NULL DEFAULT '',
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
     name: "Sprint",
     schema: `
       "id" SERIAL_OR_PK,
@@ -436,6 +452,8 @@ export const tables = [
       "testSuiteId" INTEGER NOT NULL,
       "testPlanId" TEXT NOT NULL DEFAULT '',
       "runNumber" INTEGER NOT NULL DEFAULT 1,
+      "runType" TEXT NOT NULL DEFAULT 'manual',
+      "viewports" TEXT DEFAULT '',
       "status" TEXT NOT NULL DEFAULT 'in-progress',
       "tester" TEXT NOT NULL DEFAULT '',
       "totalCases" INTEGER NOT NULL DEFAULT 0,
@@ -462,6 +480,8 @@ export const tables = [
       "actualResult" TEXT DEFAULT '',
       "evidence" TEXT DEFAULT '',
       "duration" INTEGER NOT NULL DEFAULT 0,
+      "matrix" TEXT DEFAULT '',
+      "aiAnalysis" TEXT DEFAULT '',
       "executedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -684,6 +704,54 @@ export const tables = [
       "expiresAt" DATE_TYPE NOT NULL,
       "usedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "ExploratorySession",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
+      "publicToken" TEXT NOT NULL DEFAULT '',
+      "title" TEXT NOT NULL,
+      "charter" TEXT NOT NULL DEFAULT '',
+      "project" TEXT NOT NULL DEFAULT '',
+      "environment" TEXT NOT NULL DEFAULT 'staging',
+      "tester" TEXT NOT NULL DEFAULT '',
+      "targetDurationMinutes" INTEGER NOT NULL DEFAULT 45,
+      "actualDurationMinutes" INTEGER NOT NULL DEFAULT 0,
+      "status" TEXT NOT NULL DEFAULT 'in_progress',
+      "notes" TEXT DEFAULT '',
+      "bugsFound" INTEGER NOT NULL DEFAULT 0,
+      "startedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "completedAt" DATE_TYPE,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "EnvironmentCanary",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "company" TEXT NOT NULL DEFAULT '',
+      "workspaceId" INTEGER,
+      "name" TEXT NOT NULL,
+      "project" TEXT NOT NULL DEFAULT '',
+      "environment" TEXT NOT NULL DEFAULT 'staging',
+      "url" TEXT NOT NULL,
+      "method" TEXT NOT NULL DEFAULT 'GET',
+      "expectedStatus" INTEGER NOT NULL DEFAULT 200,
+      "headers" TEXT DEFAULT '',
+      "lastStatus" INTEGER,
+      "lastLatencyMs" INTEGER,
+      "lastCheckedAt" DATE_TYPE,
+      "isHealthy" INTEGER NOT NULL DEFAULT 1,
+      "lastError" TEXT DEFAULT '',
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
   }
 ];

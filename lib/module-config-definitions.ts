@@ -49,6 +49,11 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     },
     toRow: (item) => ({
       ID: codeFromId("TASK", Number(item.id)),
+      Date: item.startDate
+        ? (item.endDate && item.endDate !== item.startDate
+            ? `${new Date(String(item.startDate)).toISOString().slice(0, 10)} - ${new Date(String(item.endDate)).toISOString().slice(0, 10)}`
+            : new Date(String(item.startDate)).toISOString().slice(0, 10))
+        : "",
       Title: String(item.title),
       Project: String(item.project),
       Feature: String(item.relatedFeature),
@@ -70,7 +75,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "category", label: "Type", kind: "select", options: taskCategoryOptions, required: true },
       { name: "status", label: "Status", kind: "select", options: taskStatusOptions, required: true },
       { name: "priority", label: "Priority", kind: "select", options: priorityOptions, required: true },
-      { name: "durationMinutes", label: "Duration", kind: "text", placeholder: "Jam / Menit" },
+      { name: "durationMinutes", label: "Duration", kind: "text", placeholder: "Hours / Minutes" },
       { name: "startDate", label: "Start Date", kind: "date" },
       { name: "endDate", label: "End Date", kind: "date" },
       { name: "description", label: "Description", kind: "textarea", placeholder: "What and why.", required: true },
@@ -79,6 +84,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "evidence", label: "Evidence", kind: "url", placeholder: "Link or screenshot" },
     ],
     columns: [
+      { key: "date", label: "Date" },
       { key: "title", label: "Title" },
       { key: "project", label: "Project Name", internalLink: (row: Record<string, unknown>) => `/test-plans/projects/${encodeURIComponent(String(row.project))}` },
       { key: "relatedFeature", label: "Feature" },
@@ -86,8 +92,6 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "status", label: "Status", tone: "status" },
       { key: "priority", label: "Priority", tone: "priority" },
       { key: "durationMinutes", label: "Duration" },
-      { key: "startDate", label: "Start Date" },
-      { key: "endDate", label: "End Date" },
       { key: "description", label: "Description", multiline: true },
       { key: "acceptanceCriteria", label: "Acceptance Criteria", multiline: true },
       { key: "assignee", label: "Assignee" },
@@ -120,7 +124,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Evidence: String(item.evidence),
     }),
     fields: [
-      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Mobile App", required: true },
+      { name: "project", label: "Project Name", kind: "select", options: [], placeholder: "Select Project", required: true },
       { name: "module", label: "Module", kind: "text", placeholder: "e.g. Checkout" },
       { name: "bugType", label: "Bug Type", kind: "select", options: bugTypeOptions, required: true },
       { name: "title", label: "Title", kind: "text", placeholder: "Title of the bug", required: true },
@@ -213,7 +217,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       Scope: String(item.scope),
     }),
     fields: [
-      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. CRM System", required: true },
+      { name: "project", label: "Project Name", kind: "select", options: [], placeholder: "Select Project", required: true },
       { name: "title", label: "Test Plan Name", kind: "text", placeholder: "e.g. Sprint 12 Regression", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. Sprint 12" },
       { name: "assignee", label: "Assignee", kind: "select", options: [] },
@@ -260,7 +264,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     }),
     fields: [
       { name: "date", label: "Session Date", kind: "date", required: true },
-      { name: "project", label: "Project Name", kind: "text", placeholder: "e.g. Web Dashboard", required: true },
+      { name: "project", label: "Project Name", kind: "select", options: [], placeholder: "Select Project", required: true },
       { name: "sprint", label: "Sprint", kind: "text", placeholder: "e.g. W42" },
       { name: "tester", label: "Tester", kind: "select", options: [], required: true },
       { name: "scope", label: "Modules Tested", kind: "textarea", rows: 3, placeholder: "e.g. Login, Profile, Settings" },

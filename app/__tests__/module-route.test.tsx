@@ -326,6 +326,53 @@ describe("module route", () => {
       }),
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
+
+  it("groups task rows by date and calculates dateRowSpan for daily tracking", async () => {
+    mocks.getModuleRowsPage.mockResolvedValueOnce({
+      rows: [
+        { id: 1, title: "Task 1", startDate: "2026-04-29", endDate: "2026-04-29", project: "Alpha" },
+        { id: 2, title: "Task 2", startDate: "2026-04-29", endDate: "2026-04-29", project: "Alpha" },
+        { id: 3, title: "Task 3", startDate: "2026-04-28", endDate: "2026-04-28", project: "Beta" },
+      ],
+      total: 3,
+    });
+
+    const element = await ModulePage({
+      params: Promise.resolve({ module: "tasks" }),
+      searchParams: Promise.resolve({ page: "1" }),
+    });
+
+    renderToStaticMarkup(element);
+
+    const props = getModuleWorkspaceProps();
+    expect(props.rows).toHaveLength(3);
+    expect(props.rows[0].dateRowSpan).toBe(2);
+    expect(props.rows[1].dateRowSpan).toBe(0);
+    expect(props.rows[2].dateRowSpan).toBe(1);
+    expect(props.rows[0].date).toBe("29 Apr 2026");
+  });
+
+  it("sets dateRowSpan to 1 when tasks are sorted by non-date columns", async () => {
+    mocks.getModuleRowsPage.mockResolvedValueOnce({
+      rows: [
+        { id: 1, title: "Task 1", priority: "High", startDate: "2026-04-29", endDate: "2026-04-29" },
+        { id: 2, title: "Task 2", priority: "Low", startDate: "2026-04-29", endDate: "2026-04-29" },
+      ],
+      total: 2,
+    });
+
+    const element = await ModulePage({
+      params: Promise.resolve({ module: "tasks" }),
+      searchParams: Promise.resolve({ sortBy: "priority", sortDir: "desc" }),
+    });
+
+    renderToStaticMarkup(element);
+
+    const props = getModuleWorkspaceProps();
+    expect(props.rows).toHaveLength(2);
+    expect(props.rows[0].dateRowSpan).toBe(1);
+    expect(props.rows[1].dateRowSpan).toBe(1);
+  });
 });
 
 

@@ -347,6 +347,7 @@ describe("module data access", () => {
   });
 
   it("creates test plans and syncs sprint rows", async () => {
+    mocks.db.get.mockResolvedValueOnce({ id: 99 });
     mocks.db.get.mockResolvedValueOnce({ id: 5 });
 
     await createModuleRecord("test-plans", {

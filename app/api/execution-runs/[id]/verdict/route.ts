@@ -15,7 +15,7 @@ export async function PATCH(
   const { company, workspaceId, andWhere, params: qParams } = getAccessScope(user);
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
-  const { testCaseId, verdict, actualResult, evidence, duration } = body;
+  const { testCaseId, verdict, actualResult, evidence, duration, viewport, matrix, aiAnalysis } = body;
 
   if (!testCaseId || !verdict) {
     return NextResponse.json({ error: "testCaseId and verdict are required" }, { status: 400 });
@@ -42,20 +42,55 @@ export async function PATCH(
     }
 
     // Upsert verdict
-    const existing = await db.get<{ id: number }>(
-      `SELECT "id" FROM "CaseVerdict"
+    const existing = await db.get<{ id: number; matrix?: string; aiAnalysis?: string }>(
+      `SELECT "id", "matrix", "aiAnalysis" FROM "CaseVerdict"
        WHERE "executionRunId" = CAST(? AS INTEGER) AND "testCaseId" = CAST(? AS INTEGER)`,
       [runId, testCaseId]
     );
 
+    // Compute updated matrix if viewport or matrix is specified
+    let updatedMatrixStr: string | undefined = undefined;
+    let effectiveVerdict = String(verdict);
+
+    if (viewport && typeof viewport === "string") {
+      let matrixMap: Record<string, { verdict: string; actualResult?: unknown; evidence?: unknown }> = {};
+      try {
+        if (existing?.matrix) matrixMap = JSON.parse(existing.matrix);
+      } catch {
+        matrixMap = {};
+      }
+      matrixMap[viewport] = {
+        verdict: String(verdict),
+        actualResult: actualResult !== undefined ? actualResult : matrixMap[viewport]?.actualResult,
+        evidence: evidence !== undefined ? evidence : matrixMap[viewport]?.evidence,
+      };
+      updatedMatrixStr = JSON.stringify(matrixMap);
+
+      // Derive aggregate verdict: if any viewport failed -> Failed; if any blocked -> Blocked; if all passed -> Passed
+      const values = Object.values(matrixMap).map((m) => m.verdict);
+      if (values.includes("Failed")) {
+        effectiveVerdict = "Failed";
+      } else if (values.includes("Blocked")) {
+        effectiveVerdict = "Blocked";
+      } else if (values.length > 0 && values.every((v) => v === "Passed")) {
+        effectiveVerdict = "Passed";
+      }
+    } else if (matrix && typeof matrix === "object") {
+      updatedMatrixStr = JSON.stringify(matrix);
+    }
+
+    const aiAnalysisStr = aiAnalysis ? (typeof aiAnalysis === "string" ? aiAnalysis : JSON.stringify(aiAnalysis)) : undefined;
+
     if (existing) {
       const sets: string[] = ['"verdict" = ?', '"updatedAt" = CURRENT_TIMESTAMP'];
-      const vals: unknown[] = [verdict];
+      const vals: unknown[] = [effectiveVerdict];
 
       if (actualResult !== undefined) { sets.push('"actualResult" = ?'); vals.push(actualResult); }
       if (evidence !== undefined) { sets.push('"evidence" = ?'); vals.push(evidence); }
       if (duration !== undefined) { sets.push('"duration" = ?'); vals.push(duration); }
-      if (verdict !== "Pending") { sets.push('"executedAt" = CURRENT_TIMESTAMP'); }
+      if (updatedMatrixStr !== undefined) { sets.push('"matrix" = ?'); vals.push(updatedMatrixStr); }
+      if (aiAnalysisStr !== undefined) { sets.push('"aiAnalysis" = ?'); vals.push(aiAnalysisStr); }
+      if (effectiveVerdict !== "Pending") { sets.push('"executedAt" = CURRENT_TIMESTAMP'); }
 
       await db.run(
         `UPDATE "CaseVerdict" SET ${sets.join(", ")}
@@ -64,9 +99,9 @@ export async function PATCH(
       );
     } else {
       await db.run(
-        `INSERT INTO "CaseVerdict" ("company", "workspaceId", "executionRunId", "testCaseId", "verdict", "actualResult", "evidence", "duration", "executedAt")
-         VALUES (?, ?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?, ${verdict !== "Pending" ? "CURRENT_TIMESTAMP" : "NULL"})`,
-        [company, workspaceId, runId, testCaseId, verdict, actualResult || "", evidence || "", duration || 0]
+        `INSERT INTO "CaseVerdict" ("company", "workspaceId", "executionRunId", "testCaseId", "verdict", "actualResult", "evidence", "duration", "matrix", "aiAnalysis", "executedAt")
+         VALUES (?, ?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?, ?, ?, ${effectiveVerdict !== "Pending" ? "CURRENT_TIMESTAMP" : "NULL"})`,
+        [company, workspaceId, runId, testCaseId, effectiveVerdict, actualResult || "", evidence || "", duration || 0, updatedMatrixStr || "", aiAnalysisStr || ""]
       );
     }
 

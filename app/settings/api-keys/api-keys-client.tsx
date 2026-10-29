@@ -490,7 +490,7 @@ export function ApiKeysClient() {
             <GitBranch size={20} weight="bold" className="text-emerald-600" />
             <h3 className="text-sm font-bold">Bi-directional Git Webhook Integration</h3>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
             Active Endpoint
           </span>
         </div>

@@ -146,13 +146,15 @@ export async function getDashboardProjects() {
   }
 
   const rows = await db.query(
-    `SELECT DISTINCT project FROM "TestPlan" WHERE COALESCE(project, '') != '' AND "deletedAt" IS NULL${andWhere}
+    `SELECT DISTINCT name as project FROM "Project" WHERE "deletedAt" IS NULL AND "status" = 'active'${andWhere}
+     UNION
+     SELECT DISTINCT project FROM "TestPlan" WHERE COALESCE(project, '') != '' AND "deletedAt" IS NULL${andWhere}
      UNION
      SELECT DISTINCT project FROM "Bug" WHERE COALESCE(project, '') != ''${andWhere}
      UNION
      SELECT DISTINCT project FROM "Task" WHERE COALESCE(project, '') != ''${andWhere}
      ORDER BY project ASC`,
-    [...params, ...params, ...params],
+    [...params, ...params, ...params, ...params],
   ) as Array<{ project: string }>;
 
   const projects = rows.map((row) => String(row.project));
@@ -162,6 +164,19 @@ export async function getDashboardProjects() {
 
 export async function getProjectOptions() {
   const { andWhere, params } = getAccessScope(await getCurrentUser());
+  const projectRows = await selectAll(
+    `SELECT "name" as value, "name" as label, "key"
+     FROM "Project"
+     WHERE "deletedAt" IS NULL AND "status" = 'active'${andWhere}
+     ORDER BY "name" ASC`,
+    params,
+  );
+  if (projectRows.length > 0) {
+    return projectRows.map((r) => ({
+      value: String(r.value ?? ""),
+      label: r.key ? `[${String(r.key)}] ${String(r.label ?? "")}` : String(r.label ?? ""),
+    }));
+  }
   const rows = await selectAll(
     `SELECT DISTINCT "project" as value FROM "TestPlan"
      WHERE COALESCE("project", '') != '' AND "deletedAt" IS NULL${andWhere}

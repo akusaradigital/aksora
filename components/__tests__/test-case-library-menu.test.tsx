@@ -31,6 +31,8 @@ vi.mock("@phosphor-icons/react", () => ({
   DotsSixVertical: (props: Record<string, unknown>) => <svg data-testid="dots-six" {...props} />,
   PencilSimple: (props: Record<string, unknown>) => <svg data-testid="pencil" {...props} />,
   Table: (props: Record<string, unknown>) => <svg data-testid="table" {...props} />,
+  Funnel: (props: Record<string, unknown>) => <svg data-testid="funnel" {...props} />,
+  X: (props: Record<string, unknown>) => <svg data-testid="x" {...props} />,
 }));
 
 import { TestCaseLibrary } from "@/app/test-cases/test-case-library";
@@ -72,5 +74,69 @@ describe("TestCaseLibrary menu", () => {
 
     fireEvent.pointerDown(document.body);
     expect(screen.queryByText("Edit Test Case")).toBeNull();
+  });
+
+  it("filters test cases by project and status", () => {
+    render(
+      <TestCaseLibrary
+        cases={[
+          {
+            id: 1,
+            tcId: "TS-001",
+            caseName: "Registration Flow",
+            typeCase: "Positive",
+            preCondition: "",
+            testStep: "",
+            expectedResult: "",
+            actualResult: "",
+            evidence: "",
+            status: "Passed",
+            priority: "High",
+            suiteTitle: "User Registration",
+            suiteToken: "suite-1",
+            suiteStatus: "active",
+            planTitle: "Sprint 1",
+            planProject: "ECOSHOP WEB",
+            testSuiteId: 1,
+          },
+          {
+            id: 2,
+            tcId: "TS-002",
+            caseName: "Payment Gateway",
+            typeCase: "Positive",
+            preCondition: "",
+            testStep: "",
+            expectedResult: "",
+            actualResult: "",
+            evidence: "",
+            status: "Failed",
+            priority: "Critical",
+            suiteTitle: "Checkout",
+            suiteToken: "suite-2",
+            suiteStatus: "active",
+            planTitle: "Sprint 2",
+            planProject: "FINTECH MOBILE",
+            testSuiteId: 2,
+          },
+        ]}
+      />,
+    );
+
+    // Initial render displays both suites
+    expect(screen.getAllByText("User Registration").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Checkout").length).toBeGreaterThan(0);
+
+    // Filter by project ECOSHOP WEB
+    const selects = screen.getAllByRole("combobox");
+    const projSelect = selects[0];
+    fireEvent.change(projSelect, { target: { value: "ECOSHOP WEB" } });
+
+    expect(screen.getAllByText("User Registration").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Checkout")).toBeNull();
+
+    // Clear filters
+    const clearButton = screen.getByRole("button", { name: /clear/i });
+    fireEvent.click(clearButton);
+    expect(screen.getAllByText("Checkout").length).toBeGreaterThan(0);
   });
 });

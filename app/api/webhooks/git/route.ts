@@ -17,9 +17,9 @@ function verifySignature(payload: string, signature: string | null, secret: stri
   }
 }
 
-// ponytail: parses [TASK-123] or #123 or task-123 from commit messages or PR titles
+// ponytail: parses [TASK-123], [PRJ-123], #123, task-123 from commit messages or PR titles across all branches
 function extractTaskIds(text: string): number[] {
-  const matches = text.match(/\[?(?:TASK-|task-|#)(\d+)\]?/g) || [];
+  const matches = text.match(/\[?(?:TASK-|task-|[A-Z0-9]+-task-|#)(\d+)\]?/gi) || [];
   const ids = matches
     .map((m) => {
       const num = m.replace(/[^0-9]/g, "");

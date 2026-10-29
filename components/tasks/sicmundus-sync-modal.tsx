@@ -319,7 +319,7 @@ export function SicmundusSyncModal({
                 />
               </div>
 
-              {/* Duration with Jam & Menit Dual Input and Live Conversion */}
+              {/* Duration with Hours & Minutes dual input and live conversion */}
               <div>
                 <DurationInput
                   value={durationMinutes}

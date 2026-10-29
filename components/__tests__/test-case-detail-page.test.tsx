@@ -78,7 +78,7 @@ describe("TestCaseDetailPage", () => {
     expect(props.crumbs?.map((crumb) => crumb.label)).toEqual([
       "Dashboard",
       "Test Cases",
-      "Detail Test Cases",
+      "Test Case Detail",
     ]);
   });
 });

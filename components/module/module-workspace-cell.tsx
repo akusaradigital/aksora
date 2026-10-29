@@ -72,12 +72,28 @@ function renderNotesValue(text: string) {
 export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onInlineUpdate, statusOptions, priorityOptions, canEdit }: ModuleWorkspaceCellProps) {
   // Sanitize "undefined"/"null" string values from bad data
   const value = (rawValue === "undefined" || rawValue === "UNDEFINED" || rawValue === "null") ? "" : rawValue;
-  if (((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") || (module === "test-plans" && column.key === "project")) {
-    const rowSpanKey = module === "test-plans" ? "projectRowSpan" : "testPlanRowSpan";
+  if (
+    ((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") ||
+    (module === "test-plans" && column.key === "project") ||
+    (module === "tasks" && column.key === "date")
+  ) {
+    const rowSpanKey =
+      module === "test-plans"
+        ? "projectRowSpan"
+        : module === "tasks"
+        ? "dateRowSpan"
+        : "testPlanRowSpan";
     const rowSpan = Number(row[rowSpanKey] ?? 1);
     if (rowSpan === 0) return null;
     return (
-      <td key={column.key} rowSpan={rowSpan} className="max-w-64 border-b border-gray-200/60 px-4 py-3 text-sm text-gray-700 align-top whitespace-pre-wrap break-words">
+      <td
+        key={column.key}
+        rowSpan={rowSpan}
+        className={cn(
+          "max-w-64 border-b border-gray-200/60 px-4 py-3 text-sm text-gray-700 align-top whitespace-pre-wrap break-words",
+          module === "tasks" && column.key === "date" && "font-medium text-slate-800 bg-slate-50/60 border-r border-gray-200/70",
+        )}
+      >
         {column.internalLink && value ? (
           <Link href={column.internalLink(row)} className="break-all font-semibold text-blue-700 hover:underline">
             <HighlightText text={String(value)} query="" linkify={false} />

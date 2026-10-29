@@ -13,7 +13,6 @@ import {
   ChartLine,
   Bug,
   Checks,
-  Sparkle,
   Users
 } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
@@ -261,70 +260,104 @@ export function LoginContent() {
         </div>
 
         {/* Value Proposition & Visual Mockup */}
-        <div className="relative my-auto py-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-xs font-semibold tracking-wider text-blue-700 uppercase mb-6">
-            <Sparkle size={12} weight="fill" />
-            {t.login.leftBadge}
-          </div>
-          <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight text-slate-950 max-w-lg">
-            {t.login.leftHeadingLine1} <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600">
-              {t.login.leftHeadingLine2}
-            </span>
-          </h2>
-          <p className="mt-4 text-slate-600 text-base max-w-md leading-relaxed">
-            {t.login.leftParagraph}
-          </p>
+        <div className="relative my-auto py-8 w-full max-w-5xl">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 2xl:gap-12 items-center">
+            {/* Left Column: Heading + Value Proposition + Feature Points */}
+            <div className="xl:col-span-6 space-y-6">
+              <h2 className="text-3xl lg:text-4xl 2xl:text-5xl font-bold leading-tight tracking-tight text-slate-950">
+                {t.login.leftHeadingLine1} <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-600 to-indigo-600">
+                  {t.login.leftHeadingLine2}
+                </span>
+              </h2>
+              <p className="text-slate-600 text-sm lg:text-base leading-relaxed max-w-xl">
+                {t.login.leftParagraph}
+              </p>
 
-          {/* Premium CSS-based UI mockup */}
-          <div className="mt-12 max-w-md rounded-2xl border border-slate-200 bg-white p-5 backdrop-blur-md shadow-2xl shadow-slate-200/60">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              {/* Key Workflow Capabilities */}
+              <div className="pt-2 space-y-3">
+                <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
+                  <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                    <Checks size={14} weight="bold" />
+                  </div>
+                  <span>Structured Test Suites &amp; Step-by-Step Runs</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
+                  <div className="w-6 h-6 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <Bug size={14} weight="bold" />
+                  </div>
+                  <span>End-to-End Defect Lifecycle &amp; Dev Assignment</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                    <ChartLine size={14} weight="bold" />
+                  </div>
+                  <span>Live Quality Health Metrics &amp; Auto Standups</span>
+                </div>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono tracking-wider">Aksora Dashboard v0.12.0</span>
             </div>
 
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
-                    <Checks size={16} weight="bold" />
+            {/* Right Column (fills the previous empty space): Premium CSS-based UI mockup */}
+            <div className="xl:col-span-6">
+              <div className="w-full rounded-2xl border border-slate-200 bg-white p-5 backdrop-blur-md shadow-2xl shadow-slate-200/60">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">Execution Run #182</p>
-                    <p className="text-[10px] text-slate-500">Workspace: QA-Daily-Hub</p>
-                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono tracking-wider">Aksora Dashboard v0.12.0</span>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-semibold border border-emerald-200">Passed</span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600">
-                    <Bug size={16} weight="bold" />
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <Checks size={16} weight="bold" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">Execution Run #182</p>
+                        <p className="text-[10px] text-slate-500">Workspace: QA-Daily-Hub</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-semibold border border-emerald-200">Passed</span>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">Bug #401: Auth token crash</p>
-                    <p className="text-[10px] text-slate-500">Reported by PM Admin</p>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 font-semibold border border-rose-200">High</span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
-                    <ChartLine size={16} weight="bold" />
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600">
+                        <Bug size={16} weight="bold" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">Bug #401: Auth token crash</p>
+                        <p className="text-[10px] text-slate-500">Reported by PM Admin</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 font-semibold border border-rose-200">High</span>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">Active Sprint 12</p>
-                    <p className="text-[10px] text-slate-500">Sprint Goal: Core APIs stability</p>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                        <ChartLine size={16} weight="bold" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">Active Sprint 12</p>
+                        <p className="text-[10px] text-slate-500">Sprint Goal: Core APIs stability</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-semibold border border-blue-200">Active</span>
                   </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-semibold border border-blue-200">Active</span>
+
+                {/* Quality Health Metrics Bar */}
+                <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-slate-600 font-medium">Sprint 12 Health</span>
+                  </div>
+                  <span className="font-bold text-emerald-600">94.8% Pass Rate</span>
+                </div>
               </div>
             </div>
           </div>
@@ -342,8 +375,8 @@ export function LoginContent() {
 
       {/* Right panel - Auth Form */}
       <section className="flex-1 bg-white flex flex-col justify-between p-6 sm:p-12 lg:p-16 text-slate-900 min-h-screen md:min-h-0">
-        {/* Navigation & Access Info */}
-        <div className="flex items-center justify-between gap-4 text-xs font-semibold tracking-wider text-slate-500 mb-8 md:mb-0">
+        {/* Navigation */}
+        <div className="flex items-center text-xs font-semibold tracking-wider text-slate-500 mb-8 md:mb-0">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-slate-600 transition hover:text-blue-600"
@@ -351,10 +384,6 @@ export function LoginContent() {
             <ArrowLeft size={14} weight="bold" />
             <span>{t.common.backToHome}</span>
           </Link>
-          <span className="inline-flex items-center gap-1.5 border border-slate-100 bg-slate-50/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-600 font-bold uppercase tracking-wider">
-            <ShieldCheck size={14} weight="bold" className="text-blue-600" />
-            {t.login.workspaceAccess}
-          </span>
         </div>
 
         {/* Form Container */}

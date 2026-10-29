@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Warning,
 } from "@phosphor-icons/react/dist/ssr";
+import { SecurityArchitectureGraphic } from "@/components/landing/security-architecture-graphic";
 
 export const metadata: Metadata = {
   title: "Security — Enterprise-Grade Protection for Your QA Data",
@@ -27,15 +28,21 @@ export default function SecurityPage() {
     <>
       {/* Hero */}
       <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24">
-          <div className="max-w-3xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Security</p>
-            <h1 className="text-3xl font-bold sm:text-4xl">
-              Your QA data deserves enterprise-grade security
-            </h1>
-            <p className="mt-5 text-[15px] text-gray-400 leading-relaxed max-w-2xl">
-              Test plans, bug reports, and quality metrics are sensitive intellectual property. We protect them with the same rigor that enterprise organizations expect — encryption, isolation, access controls, and full auditability.
-            </p>
+        <div className="mx-auto max-w-6xl px-5 py-20 lg:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Security</p>
+              <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl leading-tight">
+                Your QA data deserves enterprise-grade security
+              </h1>
+              <p className="mt-5 text-[15px] text-gray-400 leading-relaxed max-w-xl">
+                Test plans, bug reports, and quality metrics are sensitive intellectual property. We protect them with the same rigor that enterprise organizations expect — encryption, isolation, access controls, and full auditability.
+              </p>
+            </div>
+
+            <div className="lg:col-span-5">
+              <SecurityArchitectureGraphic />
+            </div>
           </div>
         </div>
       </section>

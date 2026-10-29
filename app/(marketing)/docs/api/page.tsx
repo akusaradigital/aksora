@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Key,
-  Code,
   ShieldCheck,
   Lightning,
   FileCode,
@@ -18,11 +17,7 @@ export default function ApiDocsPage() {
     <div className="mx-auto max-w-6xl px-5 py-12">
       {/* Header */}
       <div className="border-b border-slate-200 pb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          <Code size={14} weight="bold" />
-          Aksora Developer Platform
-        </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           REST API &amp; Webhooks Reference
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">

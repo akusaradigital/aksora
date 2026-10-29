@@ -79,6 +79,8 @@ async function backfillPublicTokens(deps: DbBootstrapDeps) {
     { table: "Deployment", column: "publicToken" },
     { table: "WorkLog", column: "publicToken" },
     { table: "ModuleView", column: "publicToken" },
+    { table: "Project", column: "publicToken" },
+    { table: "ExploratorySession", column: "publicToken" },
   ];
 
   const pool = await deps.getPostgresPool();
@@ -141,7 +143,7 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 11;
+const CURRENT_MIGRATION_VERSION = 12;
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
@@ -161,10 +163,95 @@ async function setMigrationVersion(deps: DbBootstrapDeps, version: number): Prom
   await pool.query(insertSql, [version]);
 }
 
+async function backfillProjectsFromExistingData(deps: DbBootstrapDeps) {
+  const pool = await deps.getPostgresPool();
+  try {
+    const sourceTables = ["TestPlan", "Task", "Bug", "TestSession", "Deployment", "MeetingNote"];
+    for (const table of sourceTables) {
+      try {
+        const { rows } = await pool.query(
+          `SELECT DISTINCT "project", "company", "workspaceId"
+           FROM "${table}"
+           WHERE COALESCE("project", '') != '' AND "project" != '-' AND "project" != 'undefined' AND "project" != 'null'`,
+        );
+        for (const r of rows as Array<{ project: string; company: string; workspaceId: number | null }>) {
+          const name = String(r.project || "").trim();
+          if (!name) continue;
+          const company = String(r.company || "").trim();
+          const workspaceId = r.workspaceId ? Number(r.workspaceId) : null;
+
+          const words = name.replace(/[^a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+          let key = "";
+          if (words.length >= 2) {
+            key = words.map((w) => w[0]).join("").slice(0, 4).toUpperCase();
+          } else if (words.length === 1) {
+            key = words[0].slice(0, 4).toUpperCase();
+          }
+          if (key.length < 2) key = "PRJ";
+
+          const existing = await pool.query(
+            `SELECT "id" FROM "Project" WHERE "name" = $1 AND "company" = $2 AND "deletedAt" IS NULL LIMIT 1`,
+            [name, company],
+          );
+          if (existing.rows.length === 0) {
+            await pool.query(
+              `INSERT INTO "Project" ("name", "key", "company", "workspaceId", "status", "publicToken")
+               VALUES ($1, $2, $3, $4, 'active', md5(random()::text || clock_timestamp()::text))`,
+              [name, key, company, workspaceId],
+            );
+          }
+        }
+      } catch {
+        // Source table might not exist yet
+      }
+    }
+
+    // Ensure entities with missing/empty project are backfilled to a default "General" project
+    for (const table of sourceTables) {
+      try {
+        const { rows: emptyRows } = await pool.query(
+          `SELECT DISTINCT "company", "workspaceId"
+           FROM "${table}"
+           WHERE COALESCE("project", '') = '' OR "project" = '-' OR "project" = 'undefined' OR "project" = 'null'`,
+        );
+        for (const er of emptyRows as Array<{ company: string; workspaceId: number | null }>) {
+          const company = String(er.company || "").trim();
+          const workspaceId = er.workspaceId ? Number(er.workspaceId) : null;
+          if (!company) continue;
+
+          const existingGen = await pool.query(
+            `SELECT "id" FROM "Project" WHERE "name" = 'General' AND "company" = $1 AND "deletedAt" IS NULL LIMIT 1`,
+            [company],
+          );
+          if (existingGen.rows.length === 0) {
+            await pool.query(
+              `INSERT INTO "Project" ("name", "key", "company", "workspaceId", "description", "status", "publicToken")
+               VALUES ('General', 'GEN', $1, $2, 'Default workspace project for unassigned items.', 'active', md5(random()::text || clock_timestamp()::text))`,
+              [company, workspaceId],
+            );
+          }
+
+          await pool.query(
+            `UPDATE "${table}"
+             SET "project" = 'General'
+             WHERE (COALESCE("project", '') = '' OR "project" = '-' OR "project" = 'undefined' OR "project" = 'null')
+               AND "company" = $1`,
+            [company],
+          );
+        }
+      } catch {
+        // Source table might not exist yet
+      }
+    }
+  } catch (err) {
+    console.warn("backfillProjectsFromExistingData error (non-fatal):", err);
+  }
+}
+
 async function backfillWorkspaceIds(deps: DbBootstrapDeps) {
   const pool = await deps.getPostgresPool();
   const tablesToBackfill = [
-    "Task", "Bug", "TestCase", "TestPlan", "TestSession", "TestSuite", "Sprint",
+    "Project", "Task", "Bug", "TestCase", "TestPlan", "TestSession", "TestSuite", "Sprint",
     "MeetingNote", "Assignee", "User", "Deployment", "ExecutionRun", "CaseVerdict",
     "DashboardComment", "PresenceHeartbeat", "DashboardFilter", "WorkLog", "ModuleView",
     "NotificationPreference", "CollaborationPresence", "ActivityLog", "SearchToken", "ApiKey",
@@ -283,6 +370,7 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
             await migrateTaskDueDateToStartEnd(deps);
             await backfillWorkspaceIds(deps);
             await pruneOrphanWorkspaceMemberships(deps);
+            await backfillProjectsFromExistingData(deps);
             await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
           }
           globalBootstrap.__schemaBootstrapDone = true;

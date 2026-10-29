@@ -50,6 +50,8 @@ CREATE INDEX IF NOT EXISTS "idx_testsuite_plan_active_updated" ON "TestSuite"("t
 CREATE INDEX IF NOT EXISTS "idx_testsuite_workspace_active_plan_updated" ON "TestSuite"("workspaceId", "testPlanId", "updatedAt" DESC) WHERE "deletedAt" IS NULL;
 CREATE INDEX IF NOT EXISTS "idx_activitylog_workspace" ON "ActivityLog"("workspaceId");
 CREATE INDEX IF NOT EXISTS "idx_activitylog_workspace_created" ON "ActivityLog"("workspaceId", "createdAt");
+CREATE INDEX IF NOT EXISTS "idx_activitylog_company_created" ON "ActivityLog"("company", "createdAt" DESC);
+CREATE INDEX IF NOT EXISTS "idx_activitylog_entity" ON "ActivityLog"("entityType", "entityId");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_unique" ON "SearchToken"("company", "entityType", "entityId", "token");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_searchtoken_lookup" ON "SearchToken"("company", "entityType", "entityIdInt", "token");
 CREATE INDEX IF NOT EXISTS "idx_searchtoken_workspace_token" ON "SearchToken"("workspaceId", "entityType", "token");
@@ -75,6 +77,10 @@ CREATE INDEX IF NOT EXISTS "idx_meetingnote_workspace_active_date" ON "MeetingNo
 CREATE INDEX IF NOT EXISTS "idx_invite_workspace" ON "Invite"("workspaceId");
 CREATE INDEX IF NOT EXISTS "idx_invite_token" ON "Invite"("token");
 CREATE INDEX IF NOT EXISTS "idx_invite_company_status" ON "Invite"("company", "status");
+CREATE INDEX IF NOT EXISTS "idx_project_workspace" ON "Project"("workspaceId");
+CREATE INDEX IF NOT EXISTS "idx_project_workspace_updated" ON "Project"("workspaceId", "updatedAt");
+CREATE INDEX IF NOT EXISTS "idx_project_company_name" ON "Project"("company", "name");
+CREATE INDEX IF NOT EXISTS "idx_project_workspace_active" ON "Project"("workspaceId", "name") WHERE "deletedAt" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_workspace_name" ON "Workspace"("name");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_workspace_slug" ON "Workspace"("slug");
 CREATE INDEX IF NOT EXISTS "idx_workspace_createdby" ON "Workspace"("createdByUserId");
@@ -138,4 +144,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS "idx_notifpref_user" ON "NotificationPreferenc
 CREATE INDEX IF NOT EXISTS "idx_notifpref_workspace" ON "NotificationPreference"("workspaceId");
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_passwordreset_token" ON "PasswordResetToken"("token");
 CREATE INDEX IF NOT EXISTS "idx_passwordreset_user" ON "PasswordResetToken"("userId");
+CREATE INDEX IF NOT EXISTS "idx_exploratory_workspace" ON "ExploratorySession"("workspaceId");
+CREATE INDEX IF NOT EXISTS "idx_exploratory_workspace_status" ON "ExploratorySession"("workspaceId", "status");
+CREATE INDEX IF NOT EXISTS "idx_exploratory_workspace_active" ON "ExploratorySession"("workspaceId", "startedAt" DESC) WHERE "deletedAt" IS NULL;
+CREATE INDEX IF NOT EXISTS "idx_exploratory_token" ON "ExploratorySession"("publicToken");
+CREATE INDEX IF NOT EXISTS "idx_canary_workspace" ON "EnvironmentCanary"("workspaceId");
+CREATE INDEX IF NOT EXISTS "idx_canary_workspace_env" ON "EnvironmentCanary"("workspaceId", "environment");
+CREATE INDEX IF NOT EXISTS "idx_canary_workspace_active" ON "EnvironmentCanary"("workspaceId", "active") WHERE "deletedAt" IS NULL;
 `;

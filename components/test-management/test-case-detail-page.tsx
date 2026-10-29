@@ -37,7 +37,7 @@ export function TestCaseDetailPage({
     { label: "Test Cases", href: "/test-cases" },
   ] as { label: string; href?: string }[];
 
-  crumbs.push({ label: "Detail Test Cases" });
+  crumbs.push({ label: t.defaultTitle });
 
   async function handleSubmitExecution() {
     if (rows.length === 0 || isPending) return;

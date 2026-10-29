@@ -43,30 +43,6 @@ export function StandupClient() {
       .then((res) => res.json())
       .then((json) => {
         setData(json);
-        if (json.tasks?.length > 0) {
-          setProject(json.tasks[0].project);
-        } else if (json.bugs?.length > 0) {
-          setProject(json.bugs[0].project);
-        } else {
-          setProject("General");
-        }
-
-        // Prefill Today's focus with In Progress or active tasks
-        const activeTasks = json.tasks?.filter((t: Task) => t.status.toLowerCase() === "in progress" || t.status.toLowerCase() === "active") || [];
-        const activeBugs = json.bugs?.filter((b: BugItem) => b.status.toLowerCase() === "active" || b.status.toLowerCase() === "open") || [];
-
-        const focusItems = [
-          ...activeTasks.map((t: Task) => `Task: ${t.title}`),
-          ...activeBugs.map((b: BugItem) => `Bug: ${b.title}`)
-        ];
-
-        if (focusItems.length > 0) {
-          setToday(focusItems.map((item) => `- ${item}`).join("\n"));
-        } else {
-          setToday("- Focus on pending backlog tasks\n- Review QA pipeline");
-        }
-
-        setYesterday("- Worked on general QA & test tasks");
         setLoading(false);
       })
       .catch((err) => {
@@ -78,8 +54,8 @@ export function StandupClient() {
 
   const handleAutoSuggest = () => {
     if (!data) return;
-    const completedTasks = data.tasks.filter((t) => t.status.toLowerCase() === "done" || t.status.toLowerCase() === "completed");
-    const resolvedBugs = data.bugs.filter((b) => b.status.toLowerCase() === "resolved" || b.status.toLowerCase() === "closed");
+    const completedTasks = data.tasks?.filter((t) => t.status.toLowerCase() === "done" || t.status.toLowerCase() === "completed") || [];
+    const resolvedBugs = data.bugs?.filter((b) => b.status.toLowerCase() === "resolved" || b.status.toLowerCase() === "closed") || [];
 
     const doneList = [
       ...completedTasks.map((t) => `Task: [Done] ${t.title}`),
@@ -88,10 +64,10 @@ export function StandupClient() {
 
     if (doneList.length > 0) {
       setYesterday(doneList.map((item) => `- ${item}`).join("\n"));
+      toast("Yesterday filled with completed items!", "success");
     } else {
-      setYesterday("- Worked on various task validations");
+      toast("No completed tasks or bugs found for yesterday", "info");
     }
-    toast("Yesterday prefilled with completed items!", "success");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,8 +130,8 @@ export function StandupClient() {
               type="text"
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              className="h-10 w-full glass-card px-3 text-sm text-slate-950 focus:border-slate-400 focus:outline-none"
-              placeholder="e.g. Website Revamp"
+              className="h-10 w-full glass-card px-3 text-sm text-slate-950 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
+              placeholder="e.g. Mobile App, E-Commerce QA, Core Platform"
               required
             />
           </div>
@@ -165,7 +141,8 @@ export function StandupClient() {
             <textarea
               value={yesterday}
               onChange={(e) => setYesterday(e.target.value)}
-              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 leading-relaxed focus:border-slate-400 focus:outline-none"
+              placeholder="- Worked on...\n- Executed test suite for login flow\n- Verified resolved bug #42"
+              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 placeholder:text-slate-400 leading-relaxed focus:border-slate-400 focus:outline-none"
               required
             />
           </div>
@@ -175,7 +152,8 @@ export function StandupClient() {
             <textarea
               value={today}
               onChange={(e) => setToday(e.target.value)}
-              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 leading-relaxed focus:border-slate-400 focus:outline-none"
+              placeholder="- Focus on...\n- Run regression test on staging\n- Review test cases with team"
+              className="h-28 w-full resize-none overflow-y-auto glass-card p-3 font-mono text-xs text-slate-950 placeholder:text-slate-400 leading-relaxed focus:border-slate-400 focus:outline-none"
               required
             />
           </div>

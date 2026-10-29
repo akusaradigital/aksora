@@ -1,6 +1,6 @@
 import { callLLM } from "@/lib/ai-service";
 
-interface ActionAiContext {
+export interface ActionAiContext {
   provider: string;
   model: string;
   apiKey: string;

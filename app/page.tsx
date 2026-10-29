@@ -10,7 +10,6 @@ import {
   Play,
   CheckCircle,
   Clock,
-  Sparkle,
   Stack,
   CaretRight,
   Quotes,
@@ -59,14 +58,8 @@ export default async function LandingPage() {
 
           <div className="relative mx-auto max-w-6xl px-5">
             <div className="mx-auto max-w-3xl text-center">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1 text-xs font-semibold text-blue-700 backdrop-blur-md">
-                <Sparkle size={14} weight="bold" />
-                <span>{t.badge}</span>
-              </div>
-
               {/* Title */}
-              <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-950 sm:text-6xl sm:leading-[1.15]">
+              <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 sm:text-6xl sm:leading-[1.15]">
                 <HeroHeadline
                   variantA={
                     <>

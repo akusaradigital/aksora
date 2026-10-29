@@ -37,7 +37,7 @@ async function syncSearchIndex(module: ModuleKey, company: string, entityId: str
 export async function updateModuleRecord(module: ModuleKey, id: string | number, data: ModuleData) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
-  const { company, andWhere: companyFilter, params: companyParam } = scope;
+  const { company, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
   // Sanitize: prevent literal "undefined"/"null" strings (from String(undefined)) being
@@ -57,7 +57,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.relatedFeature ?? "", data.category, data.status, data.priority, data.durationMinutes !== undefined ? (Number(data.durationMinutes) || 0) : 0, data.startDate ?? "", data.endDate ?? "", data.description, data.acceptanceCriteria ?? "", data.notes ?? "", data.evidence ?? "", data.relatedItems ?? "", data.assignee ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`, actor);
+      await logActivity(company, "Task", String(data.title), "Updated", `Task ${data.title} updated to ${data.status}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Task" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -73,7 +73,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.project, data.module ?? "", data.bugType, data.title, data.preconditions ?? "", data.stepsToReproduce, data.expectedResult, data.actualResult, data.severity, data.priority, data.status, data.suggestedDev ?? "", data.relatedItems ?? "", data.evidence ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`, actor);
+      await logActivity(company, "Bug", String(data.title), "Updated", `Bug ${data.title} marked as ${data.status}`, actor, undefined, workspaceId);
       if (data.severity) {
         void broadcastCriticalBug({
           company,
@@ -93,6 +93,27 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       return res;
     }
     case "test-plans": {
+      const projectName = textOrEmpty(data.project);
+      if (data.project !== undefined && !projectName) {
+        throw new Error("Project cannot be empty for a Test Plan.");
+      }
+      if (projectName) {
+        const existingProj = await db.get<{ id: number }>(
+          `SELECT "id" FROM "Project" WHERE "name" = ? AND "deletedAt" IS NULL${companyParam.length > 0 ? ' AND "company" = ?' : ''} LIMIT 1`,
+          companyParam.length > 0 ? [projectName, company] : [projectName],
+        );
+        if (!existingProj) {
+          const words = projectName.replace(/[^a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+          let key = words.length >= 2 ? words.map((w) => w[0]).join("").slice(0, 4).toUpperCase() : (words[0]?.slice(0, 4).toUpperCase() || "PRJ");
+          if (key.length < 2) key = "PRJ";
+          await db.run(
+            `INSERT INTO "Project" ("name", "key", "company", "workspaceId", "status", "publicToken")
+             VALUES (?, ?, ?, ?, 'active', md5(random()::text || clock_timestamp()::text))`,
+            [projectName, key, company, workspaceId],
+          );
+        }
+      }
+
       const notesInput = textOrEmpty(data.notes);
       const notes = notesInput ? notesInput : generateTestPlanNotes({
         title: text(data.title),
@@ -110,7 +131,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.title, data.project, data.sprint ?? "", data.scope ?? "", data.startDate ?? "", data.endDate ?? "", data.status, notes, data.assignee ?? "", id, ...companyParam]
       );
-      await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor);
+      await logActivity(company, "TestPlan", String(data.title), "Updated", `Plan ${data.title} revised`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       try {
         await syncSprintFromTestPlan({
@@ -137,7 +158,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project, data.sprint ?? "", data.tester, data.scope ?? "", data.totalCases ?? "", data.passed ?? "", data.failed ?? "", data.blocked ?? "", data.result, data.notes ?? "", data.evidence ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`, actor);
+      await logActivity(company, "Session", String(data.date), "Updated", `Test session results updated`, actor, undefined, workspaceId);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSession" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
         await syncSearchIndex("test-sessions", company, String(id), updatedRow);
@@ -151,7 +172,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.testSuiteId, data.tcId, data.typeCase, data.preCondition ?? "", data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
       );
-      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`, actor);
+      await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestCase" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -167,7 +188,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [suitePlanId, data.title, data.assignee ?? "", data.status, data.notes, id, ...companyParam]
       );
-      await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`, actor);
+      await logActivity(company, "TestSuite", String(data.title), "Updated", `Suite ${data.title} updated`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -182,7 +203,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.role ?? "", data.email ?? "", data.skills ?? "", data.status, id, ...companyParam]
       );
-      await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`, actor);
+      await logActivity(company, "Assignee", String(data.name), "Updated", `Profile for ${data.name} updated`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       return res;
     }
@@ -214,7 +235,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", email, "Updated", `Security settings for ${email} updated`, actor);
+        await logActivity(company, "User", email, "Updated", `Security settings for ${email} updated`, actor, undefined, workspaceId);
         invalidateDashboardCache(company);
         return res;
       } else {
@@ -229,7 +250,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         }
         await syncSearchIndex("users", company, updatedUser.id, updatedUser);
         await syncSearchIndex("assignees", company, updatedUser.id, { ...updatedUser, status: "active" });
-        await logActivity(company, "User", email, "Updated", `User info for ${email} updated`, actor);
+        await logActivity(company, "User", email, "Updated", `User info for ${email} updated`, actor, undefined, workspaceId);
         invalidateDashboardCache(company);
         return res;
       }
@@ -241,7 +262,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.name, data.startDate ?? "", data.endDate ?? "", data.status, data.goal ?? "", id, ...companyParam]
       );
-      await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`, actor);
+      await logActivity(company, "Sprint", String(data.name), "Updated", `Sprint ${data.name} updated to ${data.status}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Sprint" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -256,7 +277,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.project ?? "", data.title, data.attendees ?? "", data.content ?? "", data.content ?? "", data.actionItems ?? "", data.relatedItems ?? "", id, ...companyParam]
       );
-      await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`, actor);
+      await logActivity(company, "MeetingNote", String(data.title), "Updated", `Meeting notes for ${data.title} revised`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "MeetingNote" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -274,7 +295,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.version, data.project, env, dev, data.changelog ?? "", data.status, notes, id, ...companyParam]
       );
-      await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`, actor);
+      await logActivity(company, "Deployment", String(data.version), "Updated", `Deployment ${data.version} updated to ${data.status}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "Deployment" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
       if (updatedRow) {
@@ -290,7 +311,7 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
         [data.date, data.startTime ?? "", data.endTime ?? "", data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
       );
-      await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor);
+      await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       return res;
     }

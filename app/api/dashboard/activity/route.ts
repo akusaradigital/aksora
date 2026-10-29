@@ -112,16 +112,26 @@ export async function GET(request: Request) {
   const limitParam = parseInt(searchParams.get("limit") || "50", 10);
   const limit = Math.min(Math.max(1, isNaN(limitParam) ? 50 : limitParam), 200);
 
-  const { company, isAdmin } = getAccessScope(user);
+  const { company, isAdmin, workspaceId } = getAccessScope(user);
 
   try {
     let entries: ActivityEntry[];
 
+    const andScope = isAdmin
+      ? ""
+      : workspaceId
+      ? ` AND ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+      : ` AND "company" = ?`;
+    const whereScope = isAdmin
+      ? ""
+      : workspaceId
+      ? ` WHERE ("workspaceId" = ? OR ("workspaceId" IS NULL AND "company" = ?))`
+      : ` WHERE "company" = ?`;
+    const cp = isAdmin ? [] : workspaceId ? [workspaceId, company] : [company];
+
     if (scope === "my") {
       const userName = (user.name || "").trim();
       const userEmail = (user.email || "").trim();
-      const andCompany = isAdmin ? "" : ` AND "company" = ?`;
-      const cp = isAdmin ? [] : [company];
 
       // Build LIKE conditions
       const likeConditions: string[] = [];
@@ -139,7 +149,7 @@ export async function GET(request: Request) {
         const matched = await db.query<ActivityEntry>(
           `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
            FROM "ActivityLog"
-           WHERE (${likeConditions.join(" OR ")})${andCompany}
+           WHERE (${likeConditions.join(" OR ")})${andScope}
            ORDER BY "createdAt" DESC
            LIMIT ?`,
           [...likeParams, ...cp, limit],
@@ -147,8 +157,7 @@ export async function GET(request: Request) {
 
         entries = matched.length > 0 ? matched : await db.query<ActivityEntry>(
           `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
-           FROM "ActivityLog"
-           ${isAdmin ? "" : 'WHERE "company" = ?'}
+           FROM "ActivityLog"${whereScope}
            ORDER BY "createdAt" DESC
            LIMIT ?`,
           [...cp, limit],
@@ -156,21 +165,17 @@ export async function GET(request: Request) {
       } else {
         entries = await db.query<ActivityEntry>(
           `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
-           FROM "ActivityLog"
-           ${isAdmin ? "" : 'WHERE "company" = ?'}
+           FROM "ActivityLog"${whereScope}
            ORDER BY "createdAt" DESC
            LIMIT ?`,
           [...cp, limit],
         );
       }
     } else {
-      // Team scope: filter by company
-      const andCompany = isAdmin ? "" : ` WHERE "company" = ?`;
-      const cp = isAdmin ? [] : [company];
-
+      // Team scope: filter by company/workspace
       entries = await db.query<ActivityEntry>(
         `SELECT "id", "entityType", "entityId", "action", "summary", "actor", "publicToken", "createdAt"
-         FROM "ActivityLog"${andCompany}
+         FROM "ActivityLog"${whereScope}
          ORDER BY "createdAt" DESC
          LIMIT ?`,
         [...cp, limit],

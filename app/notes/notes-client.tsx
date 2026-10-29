@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { NotePencil, Plus, PushPin, Trash } from "@phosphor-icons/react";
+import { MagnifyingGlass, NotePencil, Plus, PushPin, Trash, X } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -31,6 +31,7 @@ export function NotesClient() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const [editing, setEditing] = useState<Note | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -139,17 +140,53 @@ export function NotesClient() {
     }
   };
 
+  const filteredNotes = notes.filter((n) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (n.title && n.title.toLowerCase().includes(q)) ||
+      (n.content && n.content.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">{notes.length} note{notes.length === 1 ? "" : "s"}</p>
-        <button
-          onClick={openCreate}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
-        >
-          <Plus size={15} weight="bold" />
-          New Note
-        </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-slate-500">
+          {filteredNotes.length} note{filteredNotes.length === 1 ? "" : "s"}
+          {search.trim() ? ` (filtered from ${notes.length})` : ""}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full min-w-0 sm:w-56">
+            <div className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-slate-400">
+              <MagnifyingGlass size={14} weight="bold" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search notes..."
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-7 text-xs font-medium text-slate-700 placeholder:text-slate-400 shadow-xs outline-none transition focus:border-blue-500"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                <X size={12} weight="bold" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={openCreate}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700"
+          >
+            <Plus size={15} weight="bold" />
+            New Note
+          </button>
+        </div>
       </div>
 
       {error && <InlineAlert variant="error" message={error} />}
@@ -168,9 +205,23 @@ export function NotesClient() {
           <p className="mt-1 text-sm font-bold text-slate-700">No notes yet</p>
           <p className="text-xs text-slate-400">Click &quot;New Note&quot; to jot something down.</p>
         </div>
+      ) : filteredNotes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-16 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+            <MagnifyingGlass size={20} weight="bold" />
+          </div>
+          <p className="mt-1 text-sm font-bold text-slate-700">No notes match your search</p>
+          <p className="text-xs text-slate-400">Try searching with a different title or keyword.</p>
+          <button
+            onClick={() => setSearch("")}
+            className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {notes.map((note) => (
+          {filteredNotes.map((note) => (
             <div
               key={note.id}
               className="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"

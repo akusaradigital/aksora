@@ -29,8 +29,8 @@ describe("Duration Utils", () => {
   });
 
   it("formats duration for display", () => {
-    expect(formatDuration(240)).toBe("4j (240m)");
-    expect(formatDuration(90)).toBe("1j 30m (90m)");
+    expect(formatDuration(240)).toBe("4h (240m)");
+    expect(formatDuration(90)).toBe("1h 30m (90m)");
     expect(formatDuration(45)).toBe("45m");
     expect(formatDuration(0)).toBe("-");
     expect(formatDuration(null)).toBe("-");
@@ -42,12 +42,12 @@ describe("DurationInput Component", () => {
     cleanup();
   });
 
-  it("renders Jam and Menit inputs initialized from minutes", () => {
+  it("renders Hours and Minutes inputs initialized from minutes", () => {
     render(<DurationInput name="durationMinutes" value={240} />);
 
     expect(screen.getByDisplayValue("4")).toBeDefined();
     expect(screen.getByDisplayValue("0")).toBeDefined();
-    expect(screen.getByText("240 menit")).toBeDefined();
+    expect(screen.getByText("240 min")).toBeDefined();
 
     const hidden = document.querySelector('input[type="hidden"][name="durationMinutes"]') as HTMLInputElement;
     expect(hidden).toBeDefined();
@@ -62,7 +62,7 @@ describe("DurationInput Component", () => {
     fireEvent.change(hoursInput, { target: { value: "2" } });
 
     expect(handleChange).toHaveBeenCalledWith(120);
-    expect(screen.getByText("120 menit")).toBeDefined();
+    expect(screen.getByText("120 min")).toBeDefined();
   });
 
   it("updates total minutes when user changes minutes", () => {
@@ -73,7 +73,7 @@ describe("DurationInput Component", () => {
     fireEvent.change(minutesInput, { target: { value: "30" } });
 
     expect(handleChange).toHaveBeenCalledWith(90);
-    expect(screen.getByText("90 menit")).toBeDefined();
+    expect(screen.getByText("90 min")).toBeDefined();
   });
 
   it("updates hours, minutes, and total when clicking a quick preset", () => {
@@ -86,6 +86,6 @@ describe("DurationInput Component", () => {
     expect(handleChange).toHaveBeenCalledWith(240);
     expect(screen.getByDisplayValue("4")).toBeDefined();
     expect(screen.getByDisplayValue("0")).toBeDefined();
-    expect(screen.getByText("240 menit")).toBeDefined();
+    expect(screen.getByText("240 min")).toBeDefined();
   });
 });

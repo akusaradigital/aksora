@@ -11,6 +11,7 @@ import {
   Target,
   ChartLineUp,
 } from "@phosphor-icons/react/dist/ssr";
+import { QaWorkflowGraphic } from "@/components/landing/qa-workflow-graphic";
 
 export const metadata: Metadata = {
   title: "About — Aksora: One Team. One Flow.",
@@ -75,22 +76,31 @@ export default function AboutPage() {
       {/* Origin Story */}
       <section className="border-b border-gray-100 bg-gray-50">
         <div className="mx-auto max-w-6xl px-5 py-20">
-          <div className="max-w-3xl mx-auto">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 mb-3">Our Story</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Born from real frustration, built with real experience.</h2>
-            <div className="space-y-5 text-[13px] text-gray-600 leading-relaxed">
-              <p>
-                Aksora was born inside a software development team where the QA crew faced a common but painful reality: test cases scattered across Google Docs, bugs lost in Slack threads, and sprint reviews that required hours of manual report compilation.
-              </p>
-              <p>
-                The team evaluated existing solutions. Enterprise tools like TestRail and Zephyr offered comprehensive features but came with steep learning curves, complex pricing, and months of onboarding. Lightweight alternatives lacked the depth needed for serious QA operations.
-              </p>
-              <p>
-                The gap was clear: there was no tool that combined professional-grade QA capabilities with the simplicity and speed that modern teams expect. So we built one.
-              </p>
-              <p>
-                Today, Aksora serves as a complete quality and workflow platform — covering the full lifecycle from test planning through execution, bug tracking, sprint management, and automated reporting — while maintaining the setup simplicity of a consumer product.
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-center">
+            <div className="lg:col-span-7 space-y-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">Our Story</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                Born from real frustration, built with real experience.
+              </h2>
+              <div className="space-y-4 text-[13px] text-gray-600 leading-relaxed">
+                <p>
+                  Aksora was born inside a software development team where the QA crew faced a common but painful reality: test cases scattered across Google Docs, bugs lost in Slack threads, and sprint reviews that required hours of manual report compilation.
+                </p>
+                <p>
+                  The team evaluated existing solutions. Enterprise tools like TestRail and Zephyr offered comprehensive features but came with steep learning curves, complex pricing, and months of onboarding. Lightweight alternatives lacked the depth needed for serious QA operations.
+                </p>
+                <p>
+                  The gap was clear: there was no tool that combined professional-grade QA capabilities with the simplicity and speed that modern teams expect. So we built one.
+                </p>
+                <p>
+                  Today, Aksora serves as a complete quality and workflow platform — covering the full lifecycle from test planning through execution, bug tracking, sprint management, and automated reporting — while maintaining the setup simplicity of a consumer product.
+                </p>
+              </div>
+            </div>
+
+            {/* QA Workflow Graphic - Crisp, Real Product Flow */}
+            <div className="lg:col-span-5">
+              <QaWorkflowGraphic />
             </div>
           </div>
         </div>

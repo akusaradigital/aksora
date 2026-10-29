@@ -51,6 +51,15 @@ export async function GET(request: NextRequest) {
     );
     deletedCounts["ActivityLog"] = staleActivity.length;
 
+    // Retention pruning: orphan search tokens for purged activity logs
+    if (staleActivity.length > 0) {
+      await db.run(
+        `DELETE FROM "SearchToken" WHERE "entityType" = 'activity' AND NOT EXISTS (
+          SELECT 1 FROM "ActivityLog" WHERE "ActivityLog"."id" = "SearchToken"."entityIdInt"
+        )`
+      );
+    }
+
     // Retention pruning: email events older than 90 days
     const staleEmailEvents = await db.query<{ id: number }>(
       `DELETE FROM "EmailEvent" WHERE "createdAt" < CURRENT_TIMESTAMP - INTERVAL '90 days' RETURNING "id"`

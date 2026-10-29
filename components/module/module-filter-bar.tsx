@@ -50,17 +50,19 @@ function FilterDropdown({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "inline-flex h-8 items-center gap-1.5  border px-3 text-xs font-semibold transition",
+          "inline-flex h-8 items-center gap-1.5 border px-2.5 sm:px-3 text-xs font-semibold transition touch-manipulation",
           activeValue
             ? "border-blue-300 bg-blue-50 text-blue-700"
             : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
         )}
       >
-        {selectedOption ? selectedOption.label : filter.label}
-        <CaretDown size={11} weight="bold" />
+        <span className="truncate max-w-[110px] sm:max-w-none">
+          {selectedOption ? selectedOption.label : filter.label}
+        </span>
+        <CaretDown size={11} weight="bold" className="shrink-0" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-48 overflow-y-auto  border border-gray-200 bg-white shadow-md animate-in fade-in  duration-150">
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-48 max-w-[calc(100vw-2.5rem)] overflow-y-auto border border-gray-200 bg-white shadow-md animate-in fade-in duration-150">
           <button
             type="button"
             onClick={() => { onSelect(""); setOpen(false); }}

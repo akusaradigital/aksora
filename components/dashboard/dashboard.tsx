@@ -26,6 +26,7 @@ import {
   AttentionNeededCard,
   ProjectOverviewCard,
 } from "@/components/dashboard/dashboard-bottom-cards";
+import { CanaryHealthWidget } from "@/components/dashboard/canary-health-widget";
 import { ResolutionRateMetric } from "@/components/dashboard/dashboard-stat-cards";
 import type {
   OverviewDashboardData,
@@ -348,6 +349,11 @@ export function Dashboard(props: DashboardProps) {
         <div className="lg:col-span-7">
           <ProjectOverviewCard items={projectOverview} />
         </div>
+      </section>
+
+      {/* 5. QA Canary: Environment Health & Latency Monitor */}
+      <section>
+        <CanaryHealthWidget />
       </section>
 
       <DashboardStandupModal

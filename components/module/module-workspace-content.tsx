@@ -154,7 +154,7 @@ export function ModuleWorkspace({
 
   // Reset page when search/filter changes
   const statusOptions = useMemo(() => {
-    const f = resolvedConfig.fields.find((f) => f.name === "status");
+    const f = resolvedConfig.fields.find((f) => f.name === "status" || f.name === "result");
     return f && "options" in f ? f.options : [];
   }, [resolvedConfig.fields]);
   const hasKanban = statusOptions.length > 0 && (module === "tasks" || module === "bugs" || module === "test-cases" || module === "sprints");
@@ -172,14 +172,67 @@ export function ModuleWorkspace({
     return relatedOptions.assignee || relatedOptions.suggestedDev || [];
   }, [relatedOptions]);
 
-  // Build filter options from module config
+  // Build appropriate, non-bloated filter options tailored per module (max 2-3 essential filters)
   const filterOptions = useMemo(() => {
     const opts: Array<{ key: string; label: string; options: Array<{ value: string; label: string }> }> = [];
-    if (statusOptions.length > 0) opts.push({ key: "status", label: "Status", options: statusOptions });
-    if (priorityOptions.length > 0) opts.push({ key: "priority", label: "Priority", options: priorityOptions });
-    if (severityOptions.length > 0) opts.push({ key: "severity", label: "Severity", options: severityOptions });
+
+    // 1. Project filter (foundational entity across Aksora)
+    const projectOpts = relatedOptions.project || [];
+    if (projectOpts.length > 0) {
+      opts.push({ key: "project", label: "Project", options: projectOpts });
+    }
+
+    // 2. Test Plan filter for test suites
+    if (module === "test-suites" && relatedOptions.testPlanId && relatedOptions.testPlanId.length > 0) {
+      opts.push({
+        key: "testPlanLabel",
+        label: "Test Plan",
+        options: relatedOptions.testPlanId.map((p) => ({ value: p.label, label: p.label })),
+      });
+    }
+
+    // 3. Status or Result filter
+    const statusField = resolvedConfig.fields.find((f) => f.name === "status" || f.name === "result");
+    if (statusField && "options" in statusField && statusField.options && statusField.options.length > 0) {
+      opts.push({
+        key: statusField.name,
+        label: statusField.name === "result" ? "Result" : "Status",
+        options: statusField.options,
+      });
+    }
+
+    // 4. Severity (for bugs) or Priority (for tasks/test cases)
+    if (module === "bugs" && severityOptions.length > 0) {
+      opts.push({ key: "severity", label: "Severity", options: severityOptions });
+    } else if (priorityOptions.length > 0) {
+      opts.push({ key: "priority", label: "Priority", options: priorityOptions });
+    }
+
+    // 5. Category (for work-logs)
+    if (module === "work-logs") {
+      const catField = resolvedConfig.fields.find((f) => f.name === "category");
+      if (catField && "options" in catField && catField.options && catField.options.length > 0) {
+        opts.push({ key: "category", label: "Category", options: catField.options });
+      }
+    }
+
+    // 6. Date filter for date-bearing modules (tasks, work-logs, deployments, meeting-notes, test-sessions)
+    if (["tasks", "work-logs", "deployments", "meeting-notes", "test-sessions"].includes(module)) {
+      opts.push({
+        key: "datePreset",
+        label: "Date",
+        options: [
+          { value: "today", label: "Today" },
+          { value: "yesterday", label: "Yesterday" },
+          { value: "this-week", label: "This Week" },
+          { value: "this-month", label: "This Month" },
+          { value: "last-30", label: "Past 30 Days" },
+        ],
+      });
+    }
+
     return opts;
-  }, [statusOptions, priorityOptions, severityOptions]);
+  }, [relatedOptions.project, relatedOptions.testPlanId, module, resolvedConfig.fields, severityOptions, priorityOptions]);
 
   // Active filters state
   const [activeFilters, setActiveFilters] = useState<Array<{ key: string; value: string; label: string }>>([]);
@@ -216,11 +269,83 @@ export function ModuleWorkspace({
   const reorderable = true;
 
   const visibleRows = useMemo(() => {
-    if (activeFilters.length === 0) return localRows;
-    return localRows.filter((row) =>
-      activeFilters.every((f) => String(row[f.key] ?? "").toLowerCase() === f.value.toLowerCase()),
-    );
-  }, [localRows, activeFilters]);
+    let result = localRows;
+    if (activeFilters.length > 0) {
+      result = localRows.filter((row) =>
+        activeFilters.every((f) => {
+          if (f.key === "datePreset") {
+            const rawDate = String(row.startDate || row.date || row.createdAt || "");
+            if (!rawDate) return false;
+            const rowDateStr = rawDate.slice(0, 10);
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10);
+            if (f.value === "today") return rowDateStr === todayStr;
+            if (f.value === "yesterday") {
+              const y = new Date(now);
+              y.setDate(y.getDate() - 1);
+              return rowDateStr === y.toISOString().slice(0, 10);
+            }
+            if (f.value === "this-week") {
+              const day = (now.getDay() + 6) % 7;
+              const monday = new Date(now);
+              monday.setDate(monday.getDate() - day);
+              const mondayStr = monday.toISOString().slice(0, 10);
+              const sunday = new Date(monday);
+              sunday.setDate(sunday.getDate() + 6);
+              const sundayStr = sunday.toISOString().slice(0, 10);
+              return rowDateStr >= mondayStr && rowDateStr <= sundayStr;
+            }
+            if (f.value === "this-month") return rowDateStr.slice(0, 7) === todayStr.slice(0, 7);
+            if (f.value === "last-30") {
+              const past30 = new Date(now);
+              past30.setDate(past30.getDate() - 30);
+              return rowDateStr >= past30.toISOString().slice(0, 10) && rowDateStr <= todayStr;
+            }
+            return true;
+          }
+          return String(row[f.key] ?? "").toLowerCase() === f.value.toLowerCase();
+        }),
+      );
+    }
+
+    if (module === "tasks") {
+      const isCustomSort = Boolean(searchParams.get("sortBy") && searchParams.get("sortBy") !== "date" && searchParams.get("sortBy") !== "startDate");
+      if (isCustomSort) {
+        return result.map((row) => ({ ...row, dateRowSpan: 1 }));
+      }
+
+      const groupedDate = new Map<string, { start: number; count: number }>();
+      result.forEach((row, index) => {
+        const rawDate = String(row.startDate || row.date || "");
+        const endKey = row.endDate ? String(row.endDate).slice(0, 10) : "";
+        const key = rawDate
+          ? endKey && endKey !== rawDate.slice(0, 10)
+            ? `${rawDate.slice(0, 10)}_${endKey}`
+            : rawDate.slice(0, 10)
+          : "no-date";
+        const current = groupedDate.get(key);
+        if (!current) groupedDate.set(key, { start: index, count: 1 });
+        else current.count += 1;
+      });
+
+      return result.map((row, index) => {
+        const rawDate = String(row.startDate || row.date || "");
+        const endKey = row.endDate ? String(row.endDate).slice(0, 10) : "";
+        const key = rawDate
+          ? endKey && endKey !== rawDate.slice(0, 10)
+            ? `${rawDate.slice(0, 10)}_${endKey}`
+            : rawDate.slice(0, 10)
+          : "no-date";
+        const group = groupedDate.get(key);
+        return {
+          ...row,
+          dateRowSpan: group && group.start === index ? group.count : 0,
+        };
+      });
+    }
+
+    return result;
+  }, [localRows, activeFilters, module, searchParams]);
   const preferredColumnOrder = useMemo(() => getPreferredColumnOrder(module), [module]);
   const defaultVisibleColumns = config.columns
     .filter((column) => preferredColumnOrder.includes(column.key))

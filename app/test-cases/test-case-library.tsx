@@ -14,6 +14,8 @@ import {
  PencilSimple,
  Table,
  DotsSixVertical,
+ Funnel,
+ X,
 } from"@phosphor-icons/react";
 import {
  DndContext,
@@ -281,11 +283,20 @@ function TestCaseTable({ displayCases, suiteAssignee }: { displayCases: TestCase
 
 export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[]; initialSearch?: string }) {
  const [search] = useState(initialSearch);
- const [filterStatus] = useState(ALL);
+ const [filterStatus, setFilterStatus] = useState(ALL);
+ const [filterProject, setFilterProject] = useState(ALL);
  const [filterAssignee] = useState(ALL);
  const [selectedKey, setSelectedKey] = useState<string | null>(null);
  const [isMenuOpen, setIsMenuOpen] = useState(false);
  const menuRef = useRef<HTMLDivElement | null>(null);
+
+ const projectOptions = useMemo(() => {
+   const set = new Set<string>();
+   cases.forEach((c) => {
+     if (c.planProject) set.add(c.planProject);
+   });
+   return Array.from(set).sort();
+ }, [cases]);
 
  const groups = useMemo<SuiteGroup[]>(() => {
  const map = new Map<string, SuiteGroup>();
@@ -319,6 +330,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
 
  const filteredGroups = useMemo(() => {
  return groups
+ .filter((g) => filterProject === ALL || g.planProject === filterProject)
  .map((g) => {
  let filteredCases = g.cases;
  if (filterStatus !== ALL) filteredCases = filteredCases.filter((c) => c.status === filterStatus);
@@ -346,7 +358,7 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  if (search || filterStatus !== ALL || filterAssignee !== ALL) return g.filteredCases.length > 0;
  return true;
  });
- }, [groups, filterStatus, filterAssignee, search]);
+ }, [groups, filterProject, filterStatus, filterAssignee, search]);
 
  const selected = filteredGroups.find((g) => g.key === selectedKey) ?? filteredGroups[0] ?? null;
  const displayCases = selected
@@ -375,6 +387,77 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
 
  return (
  <div className="space-y-3 pb-6">
+  {/* Appropriate, Non-bloated Filters Toolbar */}
+  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 pb-3">
+   <div className="flex flex-wrap items-center gap-2">
+    <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
+     <Funnel size={13} weight="bold" />
+     Filters
+    </span>
+
+    {/* Project Filter */}
+    {projectOptions.length > 0 && (
+     <div className="relative">
+      <select
+       value={filterProject}
+       onChange={(e) => setFilterProject(e.target.value)}
+       className={cn(
+        "h-8 border px-2.5 text-xs font-semibold outline-none transition max-w-[140px] sm:max-w-none truncate touch-manipulation",
+        filterProject !== ALL
+         ? "border-blue-300 bg-blue-50 text-blue-700"
+         : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+       )}
+      >
+       <option value={ALL}>All Projects</option>
+       {projectOptions.map((p) => (
+        <option key={p} value={p}>
+         {p}
+        </option>
+       ))}
+      </select>
+     </div>
+    )}
+
+    {/* Status Filter */}
+    <div className="relative">
+     <select
+      value={filterStatus}
+      onChange={(e) => setFilterStatus(e.target.value)}
+      className={cn(
+       "h-8 border px-2.5 text-xs font-semibold outline-none transition touch-manipulation",
+       filterStatus !== ALL
+        ? "border-blue-300 bg-blue-50 text-blue-700"
+        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+      )}
+     >
+      <option value={ALL}>All Statuses</option>
+      <option value="Passed">Passed</option>
+      <option value="Failed">Failed</option>
+      <option value="Blocked">Blocked</option>
+      <option value="Pending">Pending</option>
+     </select>
+    </div>
+
+    {(filterProject !== ALL || filterStatus !== ALL) && (
+     <button
+      type="button"
+      onClick={() => {
+       setFilterProject(ALL);
+       setFilterStatus(ALL);
+      }}
+      className="inline-flex h-8 items-center gap-1 bg-gray-100 px-2.5 text-xs font-bold text-gray-600 transition hover:bg-gray-200"
+     >
+      <X size={11} weight="bold" />
+      Clear
+     </button>
+    )}
+   </div>
+
+   <div className="text-xs font-medium text-gray-400">
+    {filteredGroups.length} suite{filteredGroups.length === 1 ? "" : "s"}
+   </div>
+  </div>
+
  <div>
  <div className="flex flex-col gap-4 lg:h-[calc(100vh-310px)] lg:min-h-[500px] lg:flex-row">
  <div className="flex max-h-[320px] w-full shrink-0 flex-col gap-1 overflow-y-auto border-b border-gray-200/70 bg-transparent p-3 lg:h-full lg:max-h-none lg:w-[360px] lg:border-b-0 lg:border-r">

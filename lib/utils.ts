@@ -111,8 +111,8 @@ export function formatDuration(minutes?: number | string | null): string {
   if (isNaN(num) || num <= 0) return "-";
   const h = Math.floor(num / 60);
   const m = num % 60;
-  if (h > 0 && m > 0) return `${h}j ${m}m (${num}m)`;
-  if (h > 0) return `${h}j (${num}m)`;
+  if (h > 0 && m > 0) return `${h}h ${m}m (${num}m)`;
+  if (h > 0) return `${h}h (${num}m)`;
   return `${m}m`;
 }
 

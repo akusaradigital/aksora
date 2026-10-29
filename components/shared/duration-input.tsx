@@ -83,11 +83,11 @@ export function DurationInput({
         />
       )}
 
-      {/* Dual Inputs: Jam and Menit */}
+      {/* Dual Inputs: Hours and Minutes */}
       <div className="grid grid-cols-2 gap-2.5">
         <div>
           <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
-            Jam <span className="font-normal lowercase text-gray-400">(hours)</span>
+            Hours
           </label>
           <div className="relative flex items-center">
             <input
@@ -104,14 +104,14 @@ export function DurationInput({
               )}
             />
             <span className="pointer-events-none absolute right-3 text-[11px] font-semibold text-gray-400">
-              jam
+              hrs
             </span>
           </div>
         </div>
 
         <div>
           <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
-            Menit <span className="font-normal lowercase text-gray-400">(minutes)</span>
+            Minutes
           </label>
           <div className="relative flex items-center">
             <input
@@ -129,7 +129,7 @@ export function DurationInput({
               )}
             />
             <span className="pointer-events-none absolute right-3 text-[11px] font-semibold text-gray-400">
-              menit
+              min
             </span>
           </div>
         </div>
@@ -141,14 +141,14 @@ export function DurationInput({
           <Clock size={13} weight="bold" className="text-sky-600" />
           <span>Total:</span>
           <span className="font-bold text-sky-700">
-            {currentTotal > 0 ? `${currentTotal} menit` : "0 menit"}
+            {currentTotal > 0 ? `${currentTotal} min` : "0 min"}
           </span>
           {currentTotal > 0 && (
             <span className="text-gray-400">({formatDuration(currentTotal)})</span>
           )}
         </div>
         <span className="text-[10px] text-gray-400">
-          Auto konversi ke Sicmundus (menit)
+          Auto-converts to Sicmundus (minutes)
         </span>
       </div>
 

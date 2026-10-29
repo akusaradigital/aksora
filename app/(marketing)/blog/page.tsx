@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarBlank, Clock, User } from "@phosphor-icons/react/dist/ssr";
+import { BlogArticleGraphic } from "@/components/landing/blog-article-graphic";
 
 export const metadata: Metadata = {
   title: "Blog — Insights on QA Strategy, Testing & Quality Engineering",
@@ -77,20 +78,27 @@ export default function BlogPage() {
       <section className="border-b border-gray-100">
         <div className="mx-auto max-w-4xl px-5 py-12">
           <article className="border-2 border-blue-100 bg-blue-50/30 p-8 hover:border-blue-200 transition-all">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-blue-600 px-2.5 py-1">Featured</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5">{posts[0].category}</span>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+              <div className="md:col-span-7">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-blue-600 px-2.5 py-1">Featured</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5">{posts[0].category}</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 leading-snug">{posts[0].title}</h2>
+                <p className="mt-3 text-[13px] text-gray-600 leading-relaxed">{posts[0].excerpt}</p>
+                <div className="mt-5 flex items-center gap-4 text-[11px] text-gray-400">
+                  <span className="flex items-center gap-1"><User size={11} weight="bold" />{posts[0].author}</span>
+                  <span className="flex items-center gap-1"><CalendarBlank size={11} weight="bold" />{posts[0].date}</span>
+                  <span className="flex items-center gap-1"><Clock size={11} weight="bold" />{posts[0].readTime}</span>
+                </div>
+                <span className="mt-4 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-600">
+                  Coming soon
+                </span>
+              </div>
+              <div className="md:col-span-5">
+                <BlogArticleGraphic slug={posts[0].slug} className="min-h-[180px]" />
+              </div>
             </div>
-            <h2 className="text-lg font-bold text-gray-900">{posts[0].title}</h2>
-            <p className="mt-3 text-[13px] text-gray-600 leading-relaxed">{posts[0].excerpt}</p>
-            <div className="mt-5 flex items-center gap-4 text-[11px] text-gray-400">
-              <span className="flex items-center gap-1"><User size={11} weight="bold" />{posts[0].author}</span>
-              <span className="flex items-center gap-1"><CalendarBlank size={11} weight="bold" />{posts[0].date}</span>
-              <span className="flex items-center gap-1"><Clock size={11} weight="bold" />{posts[0].readTime}</span>
-            </div>
-            <span className="mt-4 inline-flex items-center gap-1 text-[12px] font-semibold text-blue-600">
-              Coming soon
-            </span>
           </article>
         </div>
       </section>
@@ -99,25 +107,32 @@ export default function BlogPage() {
       <section className="border-b border-gray-100 bg-gray-50">
         <div className="mx-auto max-w-4xl px-5 py-16">
           <h2 className="text-lg font-bold text-gray-900 mb-8">All Articles</h2>
-          <div className="space-y-5">
+          <div className="space-y-6">
             {posts.slice(1).map((post) => (
               <article key={post.slug} className="border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-sm transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5">{post.category}</span>
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                    <CalendarBlank size={11} weight="bold" aria-hidden="true" />
-                    {post.date}
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                    <Clock size={11} weight="bold" aria-hidden="true" />
-                    {post.readTime}
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+                  <div className="sm:col-span-7">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5">{post.category}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                        <CalendarBlank size={11} weight="bold" aria-hidden="true" />
+                        {post.date}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                        <Clock size={11} weight="bold" aria-hidden="true" />
+                        {post.readTime}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 leading-snug">{post.title}</h3>
+                    <p className="mt-2 text-[12px] text-gray-500 leading-relaxed">{post.excerpt}</p>
+                    <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">
+                      Coming soon
+                    </span>
+                  </div>
+                  <div className="sm:col-span-5">
+                    <BlogArticleGraphic slug={post.slug} className="min-h-[150px]" />
+                  </div>
                 </div>
-                <h3 className="text-[14px] font-bold text-gray-900">{post.title}</h3>
-                <p className="mt-2 text-[12px] text-gray-500 leading-relaxed">{post.excerpt}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                  Coming soon
-                </span>
               </article>
             ))}
           </div>

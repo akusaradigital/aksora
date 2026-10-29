@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LockKey, Plus, Trash, Eye, EyeSlash, Copy, ArrowsClockwise, PencilSimple } from "@phosphor-icons/react";
+import { LockKey, Plus, Trash, Eye, EyeSlash, Copy, ArrowsClockwise, PencilSimple, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { toast } from "@/components/ui/toast";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -42,6 +42,7 @@ export function VaultClient() {
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [revealing, setRevealing] = useState<number | null>(null);
@@ -203,17 +204,55 @@ export function VaultClient() {
     }
   };
 
+  const filteredEntries = entries.filter((e) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (e.title && e.title.toLowerCase().includes(q)) ||
+      (e.username && e.username.toLowerCase().includes(q)) ||
+      (e.url && e.url.toLowerCase().includes(q)) ||
+      (e.category && e.category.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">{entries.length} entr{entries.length === 1 ? "y" : "ies"}</p>
-        <button
-          onClick={openCreate}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
-        >
-          <Plus size={15} weight="bold" />
-          New Entry
-        </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-slate-500">
+          {filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}
+          {search.trim() ? ` (filtered from ${entries.length})` : ""}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full min-w-0 sm:w-56">
+            <div className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-slate-400">
+              <MagnifyingGlass size={14} weight="bold" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search passwords..."
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-7 text-xs font-medium text-slate-700 placeholder:text-slate-400 shadow-xs outline-none transition focus:border-blue-500"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                <X size={12} weight="bold" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={openCreate}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700"
+          >
+            <Plus size={15} weight="bold" />
+            New Entry
+          </button>
+        </div>
       </div>
 
       {error && <InlineAlert variant="error" message={error} />}
@@ -232,6 +271,20 @@ export function VaultClient() {
           <p className="mt-1 text-sm font-bold text-slate-700">No saved passwords yet</p>
           <p className="text-xs text-slate-400">Click &quot;New Entry&quot; to save your first password.</p>
         </div>
+      ) : filteredEntries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-16 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+            <MagnifyingGlass size={20} weight="bold" />
+          </div>
+          <p className="mt-1 text-sm font-bold text-slate-700">No passwords match your search</p>
+          <p className="text-xs text-slate-400">Try searching with a different title, username, or URL.</p>
+          <button
+            onClick={() => setSearch("")}
+            className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -246,7 +299,7 @@ export function VaultClient() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {entries.map((entry) => (
+              {filteredEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-slate-50/50">
                   {/* Title + URL */}
                   <td className="px-4 py-3">
@@ -270,7 +323,20 @@ export function VaultClient() {
                     )}
                   </td>
                   {/* Username */}
-                  <td className="px-4 py-3 text-slate-600">{entry.username || "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="max-w-[120px] sm:max-w-[200px] truncate" title={entry.username}>{entry.username || "—"}</span>
+                      {entry.username && (
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(entry.username); toast("Username copied", "success"); }}
+                          aria-label="Copy username"
+                          className="shrink-0 text-slate-400 hover:text-slate-700"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   {/* Category */}
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${CATEGORY_COLORS[entry.category] ?? "bg-slate-100 text-slate-600"}`}>

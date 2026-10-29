@@ -6,6 +6,7 @@ import { useRef, useEffect } from "react";
 import {
   Bug,
   Checks,
+  FolderSimple,
   Kanban,
   Note,
   NotePencil,
@@ -28,6 +29,7 @@ import {
   Key,
   Robot,
   MicrophoneStage,
+  Compass,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
@@ -51,10 +53,12 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
     {
       title: t.groupTestManagement,
       items: [
+        { href: "/projects", label: t.projects || "Projects", icon: FolderSimple },
         { href: "/test-plans", label: t.testPlans, icon: ClipboardText },
         { href: "/test-suites", label: t.testSuites, icon: Table },
         { href: "/test-cases", label: t.testCases, icon: Checks },
         { href: "/test-execution", label: t.testSessions, icon: PlayCircle },
+        { href: "/exploratory", label: t.exploratory || "Exploratory (SBTM)", icon: Compass },
       ],
     },
     {
@@ -64,10 +68,11 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
         { href: "/bugs", label: t.bugs, icon: Bug },
         { href: "/sprints", label: t.sprints, icon: Kanban },
         { href: "/work-logs", label: t.workLog, icon: ClockCountdown },
+        { href: "/gantt", label: t.ganttTimeline, icon: Rows },
       ],
     },
     {
-      title: t.groupDocumentation,
+      title: t.groupTeamWorkspace || t.groupDocumentation,
       items: [
         { href: "/standup", label: t.dailyStandup, icon: MicrophoneStage },
         { href: "/meeting-notes", label: t.meetingNotes, icon: Note },
@@ -75,14 +80,14 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
       ],
     },
     {
-      title: t.groupPersonal,
+      title: t.groupPersonalTools || t.groupPersonal,
       items: [
         { href: "/notes", label: t.notes, icon: NotePencil },
         { href: "/vault", label: t.passwordManager, icon: LockKey },
       ],
     },
     {
-      title: t.groupReports,
+      title: t.groupReportsAnalytics || t.groupReports,
       items: [
         { href: "/weekly-report", label: t.report, icon: ChartLineUp },
         { href: "/reports/sprint-burndown", label: "Sprint Burndown", icon: ChartLineUp },
@@ -91,7 +96,6 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
         { href: "/reports/test-gap", label: t.testGapAnalysis, icon: MagnifyingGlass },
         { href: "/deployments", label: t.deploymentLog, icon: RocketLaunch },
         { href: "/reports/workload", label: t.workloadHeatmap, icon: Users },
-        { href: "/gantt", label: t.ganttTimeline, icon: Rows },
       ],
     },
     {
@@ -109,13 +113,13 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/ai", "/settings/api-keys", "/settings/support", "/work-logs", "/notes", "/vault"],
-  fullstack: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  ai: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  qa: ["/", "/dashboard", "/standup", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  fe: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  be: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  pm: ["/", "/dashboard", "/standup", "/tasks", "/bugs", "/test-plans", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  admin: ["/", "/dashboard", "/standup", "/projects", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/ai", "/settings/api-keys", "/settings/support", "/work-logs", "/notes", "/vault"],
+  fullstack: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  ai: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  qa: ["/", "/dashboard", "/standup", "/projects", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  fe: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  be: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  pm: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
 };
 
 function canSeeHref(role: string, href: string) {
@@ -153,11 +157,13 @@ export function SidebarNavItem({
   const Icon = item.icon;
   const linkRef = useRef<HTMLAnchorElement | null>(null);
   const isSuiteExecutionRoute = pathname.startsWith("/test-execution");
+  const isProjectDetailRoute = pathname.startsWith("/test-plans/projects/");
   const active =
     pathname === item.href ||
-    (item.href !== "/settings" && item.href !== "/test-suites" && pathname.startsWith(`${item.href}/`)) ||
+    (item.href !== "/settings" && item.href !== "/test-suites" && item.href !== "/test-plans" && pathname.startsWith(`${item.href}/`)) ||
+    (item.href === "/projects" && (pathname.startsWith("/projects/") || isProjectDetailRoute)) ||
+    (item.href === "/test-plans" && pathname.startsWith("/test-plans/") && !isProjectDetailRoute) ||
     (item.href === "/test-cases" && pathname.startsWith("/test-cases/")) ||
-    (item.href === "/test-plans" && pathname.startsWith("/test-plans/projects/")) ||
     (item.href === "/test-suites" && pathname.startsWith("/test-suites/") && !isSuiteExecutionRoute) ||
     (item.href === "/test-execution" && isSuiteExecutionRoute);
 

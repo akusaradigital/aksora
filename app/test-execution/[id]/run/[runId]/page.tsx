@@ -33,7 +33,7 @@ export default async function RunExecutionPage({
 
   // Get verdicts with case details
   const verdicts = await db.query<Record<string, unknown>>(
-    `SELECT v."id" as "verdictId", v."testCaseId", v."verdict", v."actualResult", v."evidence", v."duration", v."executedAt",
+    `SELECT v."id" as "verdictId", v."testCaseId", v."verdict", v."actualResult", v."evidence", v."duration", v."matrix", v."aiAnalysis", v."executedAt",
             tc."tcId", tc."caseName", tc."preCondition", tc."testStep", tc."expectedResult", tc."priority", tc."typeCase"
      FROM "CaseVerdict" v
      JOIN "TestCase" tc ON tc."id" = v."testCaseId"
@@ -88,6 +88,8 @@ export default async function RunExecutionPage({
     duration: Number(v.duration) || 0,
     priority: String(v.priority || "Medium"),
     typeCase: String(v.typeCase || ""),
+    matrix: String(v.matrix || ""),
+    aiAnalysis: String(v.aiAnalysis || ""),
   }));
 
   // If run is completed, show summary view

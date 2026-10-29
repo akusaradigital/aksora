@@ -36,7 +36,7 @@ async function clearSearchIndex(module: ModuleKey, company: string, entityId: st
 export async function deleteModuleRecord(module: ModuleKey, id: string | number) {
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
-  const { company, andWhere: companyFilter, params: companyParam } = scope;
+  const { company, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
@@ -71,7 +71,7 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
   }
 
   const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
-  await logActivity(company, table, entityId, "Deleted", `${table} removed`, actor);
+  await logActivity(company, table, entityId, "Deleted", `${table} removed`, actor, undefined, workspaceId);
   await clearSearchIndex(module, company, entityId);
   if (table === "User") {
     await clearSearchIndex("assignees", company, entityId);
@@ -84,7 +84,7 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
   if (ids.length === 0) return;
   const currentUser = await getCurrentUser();
   const scope = getAccessScope(currentUser);
-  const { company, andWhere: companyFilter, params: companyParam } = scope;
+  const { company, andWhere: companyFilter, params: companyParam, workspaceId } = scope;
   const actor = currentUser?.name || currentUser?.email || "";
 
   const table = getTableName(module);
@@ -125,7 +125,7 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
     [...ids, ...companyParam]
   );
 
-  await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`, actor);
+  await logActivity(company, table, ids.join(","), "Deleted", `${ids.length} ${table} records deleted`, actor, undefined, workspaceId);
   for (const entityId of ids) {
     await clearSearchIndex(module, company, String(entityId));
     if (table === "User") {

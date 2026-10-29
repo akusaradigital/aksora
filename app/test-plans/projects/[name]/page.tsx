@@ -85,7 +85,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
  description={`${stats.totalPlans} test plans · ${stats.totalCases} test cases · ${stats.totalBugs} defects tracked`}
  crumbs={[
  { label:"Dashboard", href:"/dashboard" },
- { label:"Test Plans", href:"/test-plans" },
+ { label:"Projects", href:"/projects" },
  { label: projectName },
  ]}
  >

@@ -238,7 +238,7 @@ export function AIProviderCard({
                 type="text"
                 value={state.selectedModel}
                 onChange={(e) => onModelChange(e.target.value)}
-                placeholder="Enter model name..."
+                placeholder={isFetchingModels ? "Fetching available models..." : "Input API key to load models, or type here..."}
                 className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               />
             )}
@@ -249,27 +249,26 @@ export function AIProviderCard({
       {/* Footer Action Buttons */}
       <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3.5">
         <div className="flex items-center gap-1.5">
-          {state.keyInput.trim() || isPublicRouter ? (
-            <>
-              <button
-                type="button"
-                onClick={onRemoveKey}
-                className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
-                title="Remove credentials"
-              >
-                <Trash size={13} weight="bold" />
-                Remove
-              </button>
-              <button
-                type="button"
-                onClick={onSaveKey}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                title="Save key to browser storage"
-              >
-                <Key size={13} weight="bold" />
-                Save
-              </button>
-            </>
+          {isConfigured ? (
+            <button
+              type="button"
+              onClick={onRemoveKey}
+              className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
+              title="Remove saved credentials"
+            >
+              <Trash size={13} weight="bold" />
+              Remove
+            </button>
+          ) : (state.keyInput.trim() || (isPublicRouter && state.urlInput?.trim())) ? (
+            <button
+              type="button"
+              onClick={onSaveKey}
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+              title="Save key to browser storage"
+            >
+              <Key size={13} weight="bold" />
+              Save
+            </button>
           ) : null}
         </div>
 

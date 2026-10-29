@@ -20,6 +20,7 @@ export type TableRow = {
   relatedSuites?: RelatedSuite[];
   projectRowSpan?: number;
   testPlanRowSpan?: number;
+  dateRowSpan?: number;
   [key: string]: string | number | boolean | null | undefined | RelatedSuite[] | unknown;
 };
 

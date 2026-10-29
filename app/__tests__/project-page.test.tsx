@@ -86,7 +86,7 @@ describe("project detail page", () => {
     expect(props.description).toContain("test plans");
     expect(props.crumbs).toEqual([
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Test Plans", href: "/test-plans" },
+      { label: "Projects", href: "/projects" },
       { label: "QA Hub" },
     ]);
   });

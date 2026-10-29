@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   CheckCircle, XCircle, Warning, CaretLeft, CaretRight, Play, ArrowLeft,
-  Keyboard, Lightning, Timer, Bug
+  Keyboard, Lightning, Timer, Bug, Sparkle, SquaresFour, Columns
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RunPlayMode } from "./run-play-mode";
 import { QuickBugModal } from "@/components/bugs/quick-bug-modal";
 import { EvidenceUploadField } from "@/components/shared/evidence-upload-field";
+import { ExecutionMatrixView } from "@/components/test-management/execution-matrix-view";
+import { AiVisionInspector } from "@/components/test-management/ai-vision-inspector";
 
 type CaseItem = {
   verdictId: number;
@@ -29,6 +31,8 @@ type CaseItem = {
   duration: number;
   priority: string;
   typeCase: string;
+  matrix?: string;
+  aiAnalysis?: string;
 };
 
 type RunData = {
@@ -68,6 +72,8 @@ export function RunExecutionView({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showBugModal, setShowBugModal] = useState(false);
   const [isPlayMode, setIsPlayMode] = useState(false);
+  const [viewMode, setViewMode] = useState<"split" | "matrix">("split");
+  const [showAiVision, setShowAiVision] = useState(false);
   const [tester, setTester] = useState(run.tester);
   const [notes, setNotes] = useState(run.notes);
   const [elapsed, setElapsed] = useState(0);
@@ -188,6 +194,101 @@ export function RunExecutionView({
     });
     toast(`Marked ${pendingCases.length} pending cases as Passed!`, "success");
   }, [isCompleted, items, queueSave]);
+
+  const updateViewportVerdict = useCallback(async (
+    testCaseId: number,
+    viewport: "desktop" | "tablet" | "mobile",
+    verdict: "Passed" | "Failed" | "Blocked" | "Pending"
+  ) => {
+    if (isCompleted) return;
+    setItems(prev => {
+      return prev.map(item => {
+        if (item.testCaseId !== testCaseId) return item;
+        let m: Record<string, { verdict: string }> = {};
+        try {
+          if (item.matrix) m = JSON.parse(item.matrix);
+        } catch {
+          m = {};
+        }
+        m[viewport] = { verdict };
+        const values = Object.values(m).map(x => x.verdict);
+        let derivedVerdict = item.verdict;
+        if (values.includes("Failed")) derivedVerdict = "Failed";
+        else if (values.includes("Blocked")) derivedVerdict = "Blocked";
+        else if (values.length > 0 && values.every(v => v === "Passed")) derivedVerdict = "Passed";
+
+        const updated = {
+          ...item,
+          matrix: JSON.stringify(m),
+          verdict: derivedVerdict,
+        };
+
+        fetch(`/api/execution-runs/${run.id}/verdict`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            testCaseId,
+            viewport,
+            verdict,
+          }),
+        }).catch(() => {});
+
+        return updated;
+      });
+    });
+  }, [isCompleted, run.id]);
+
+  const applyAiVerdict = useCallback(async (
+    testCaseId: number,
+    verdict: string,
+    actualResult: string,
+    evidence: string,
+    analysis: unknown,
+    viewport: string
+  ) => {
+    if (isCompleted) return;
+    setItems(prev => {
+      return prev.map(item => {
+        if (item.testCaseId !== testCaseId) return item;
+        let m: Record<string, { verdict: string; actualResult?: string; evidence?: string }> = {};
+        try {
+          if (item.matrix) m = JSON.parse(item.matrix);
+        } catch {
+          m = {};
+        }
+        m[viewport] = { verdict, actualResult, evidence };
+        const values = Object.values(m).map(x => x.verdict);
+        let derivedVerdict = verdict;
+        if (values.includes("Failed")) derivedVerdict = "Failed";
+        else if (values.includes("Blocked")) derivedVerdict = "Blocked";
+        else if (values.length > 0 && values.every(v => v === "Passed")) derivedVerdict = "Passed";
+
+        const updated = {
+          ...item,
+          verdict: derivedVerdict,
+          actualResult,
+          evidence,
+          matrix: JSON.stringify(m),
+          aiAnalysis: JSON.stringify(analysis),
+        };
+
+        fetch(`/api/execution-runs/${run.id}/verdict`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            testCaseId,
+            verdict,
+            actualResult,
+            evidence,
+            viewport,
+            aiAnalysis: analysis,
+          }),
+        }).catch(() => {});
+
+        return updated;
+      });
+    });
+  }, [isCompleted, run.id]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -390,15 +491,55 @@ export function RunExecutionView({
             <div className="text-xs font-bold text-slate-500">{completed}/{total} · {progress}%</div>
           </div>
         </div>
+
+        {/* View Mode Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-2.5 bg-slate-50 border-t border-slate-100 rounded-b-xl">
+          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-semibold shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("split")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition",
+                viewMode === "split" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Columns size={14} weight="bold" /> Split View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("matrix")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition",
+                viewMode === "matrix" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <SquaresFour size={14} weight="bold" /> Viewport Matrix (Mobile / Tab / Desktop)
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Sparkle size={13} weight="fill" className="text-blue-600" />
+            <span className="font-semibold text-slate-700">Autonomous Vision AI Ready</span>
+          </div>
+        </div>
       </div>
 
-      {/* Main content: case list + detail */}
+      {/* Main content: case list + detail OR matrix view */}
       {total === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
           <Play size={40} className="text-slate-300 mb-4" weight="bold" />
           <h3 className="text-xl font-bold text-slate-900">No cases in this run</h3>
           <p className="mt-2 text-slate-500">Add test cases to the suite to populate this run.</p>
         </div>
+      ) : viewMode === "matrix" ? (
+        <ExecutionMatrixView
+          runId={run.id}
+          items={items}
+          isCompleted={isCompleted}
+          onUpdateViewportVerdict={updateViewportVerdict}
+          onApplyAiVerdict={(tcId, verdict, actual, evidence, analysis, vp) => {
+            applyAiVerdict(tcId, verdict, actual, evidence, analysis, vp);
+          }}
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Left: Case list */}
@@ -554,6 +695,39 @@ export function RunExecutionView({
                             Log Bug from this Failure
                           </button>
                         )}
+
+                        {/* AI Vision Inspector Collapsible */}
+                        <div className="mt-4 pt-4 border-t border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => setShowAiVision(v => !v)}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-blue-950/60 hover:bg-blue-900/60 border border-blue-800/80 text-xs font-bold text-blue-300 transition"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <Sparkle size={14} weight="fill" className="text-blue-400" />
+                              AI Vision Test (Autonomous Image Analysis)
+                            </span>
+                            <span className="text-[10px] text-blue-400 font-mono">
+                              {showAiVision ? "Hide" : "Open"}
+                            </span>
+                          </button>
+                          {showAiVision && (
+                            <div className="mt-3">
+                              <AiVisionInspector
+                                testCaseId={selectedCase.testCaseId}
+                                executionRunId={run.id}
+                                caseName={selectedCase.caseName}
+                                expectedResult={selectedCase.expectedResult}
+                                existingEvidence={selectedCase.evidence}
+                                existingAnalysis={selectedCase.aiAnalysis}
+                                disabled={isCompleted}
+                                onApplyVerdict={(verdict, actualResult, evidence, analysis, viewport) => {
+                                  applyAiVerdict(selectedCase.testCaseId, verdict, actualResult, evidence, analysis, viewport);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

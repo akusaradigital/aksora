@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { company, andWhere, params: qParams } = getAccessScope(user);
+  const { andWhere, params: qParams } = getAccessScope(user);
   const suiteId = request.nextUrl.searchParams.get("suiteId");
 
   if (!suiteId) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   const { company, workspaceId, andWhere, params: qParams } = getAccessScope(user);
   const body = await request.json();
-  const { testSuiteId, testPlanId = "" } = body;
+  const { testSuiteId, testPlanId = "", runType = "manual", viewports = "" } = body;
 
   if (!testSuiteId) {
     return NextResponse.json({ error: "testSuiteId is required" }, { status: 400 });
@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
   const totalCases = Number(caseCount?.cnt) || 0;
 
   await db.run(
-    `INSERT INTO "ExecutionRun" ("company", "workspaceId", "testSuiteId", "testPlanId", "runNumber", "status", "tester", "totalCases", "startedAt")
-     VALUES (?, ?, CAST(? AS INTEGER), ?, ?, 'in-progress', ?, ?, CURRENT_TIMESTAMP)`,
-    [company, workspaceId, testSuiteId, testPlanId, runNumber, user.name || user.email || "", totalCases]
+    `INSERT INTO "ExecutionRun" ("company", "workspaceId", "testSuiteId", "testPlanId", "runNumber", "runType", "viewports", "status", "tester", "totalCases", "startedAt")
+     VALUES (?, ?, CAST(? AS INTEGER), ?, ?, ?, ?, 'in-progress', ?, ?, CURRENT_TIMESTAMP)`,
+    [company, workspaceId, testSuiteId, testPlanId, runNumber, runType, viewports, user.name || user.email || "", totalCases]
   );
 
   const run = await db.get<Record<string, unknown>>(
