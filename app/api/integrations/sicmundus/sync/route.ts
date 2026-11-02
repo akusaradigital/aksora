@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  loginSicmundus,
-  createSicmundusSubtask,
-  createSicmundusTimeEntry,
-  getSicmundusApiUrl,
-} from "@/lib/sicmundus";
+import { getSicmundusApiUrl, loginSicmundus, findOrCreateSicmundusSubtask, createSicmundusTimeEntry } from "@/lib/sicmundus";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/data-helpers";
 
@@ -41,8 +36,8 @@ export async function POST(req: Request) {
     const token = auth.token;
     const assigneeId = auth.user.id;
 
-    // 2. Create subtask in Sicmundus
-    const subtask = await createSicmundusSubtask(token, body.sicmundusTaskId, {
+    // 2. Find existing matching subtask or create a new one (reuses subtask if same work)
+    const subtask = await findOrCreateSicmundusSubtask(token, body.sicmundusTaskId, {
       title: body.subtaskTitle,
       assigneeId,
       dueDate: body.date,
@@ -57,23 +52,27 @@ export async function POST(req: Request) {
       notes: body.notes || "",
     });
 
-    // 4. If an Aksora task ID was provided, sync duration back to local DB
+    // 4. Record the sync against the source Aksora work log and save duration
     if (body.taskId) {
       try {
+        const companyFilter = user.role === "superadmin" ? "" : ' AND "company" = ?';
+        const companyParams = user.role === "superadmin" ? [] : [user.company || ""];
         await db.run(
-          `UPDATE "Task" SET "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
-          [duration, body.taskId]
+          `UPDATE "WorkLog" SET "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [duration, body.taskId, ...companyParams]
         );
         await logActivity(
           user.company || "",
-          "Task",
+          "WorkLog",
           body.subtaskTitle,
           "Synced",
           `Logged ${duration}m to Sicmundus subtask: ${body.subtaskTitle}`,
-          user.name || user.email || ""
+          user.name || user.email || "",
+          undefined,
+          user.workspaceId
         );
       } catch (err) {
-        console.warn("Could not update local task duration after Sicmundus sync:", err);
+        console.warn("Could not log Sicmundus sync activity:", err);
       }
     }
 

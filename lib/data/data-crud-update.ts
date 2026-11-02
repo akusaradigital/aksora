@@ -13,6 +13,7 @@ import {
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 import { evaluateAutomationRules } from "@/lib/automation-engine";
 import { broadcastCriticalBug } from "@/lib/chat-broadcast";
+import { calculateDurationFromTime, addMinutesToTime } from "@/lib/utils";
 
 type ModuleData = Record<string, unknown>;
 
@@ -305,13 +306,21 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     }
     case "work-logs": {
       const assignee = textOrEmpty(data.assignee) || actor;
+      const duration = data.durationMinutes !== undefined && data.durationMinutes !== ""
+        ? (Number(data.durationMinutes) || 0)
+        : (data.startTime && data.endTime ? (calculateDurationFromTime(data.startTime, data.endTime) ?? 0) : 0);
+      let endTime = data.endTime ? String(data.endTime) : "";
+      if (!endTime && data.startTime && duration > 0) {
+        endTime = addMinutesToTime(data.startTime, duration) ?? "";
+      }
+      const startTime = data.startTime ? String(data.startTime) : "";
       const res = await db.run(
         `UPDATE "WorkLog"
-         SET "date" = ?, "startTime" = ?, "endTime" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "date" = ?, "startTime" = ?, "endTime" = ?, "durationMinutes" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.date, data.startTime ?? "", data.endTime ?? "", data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
+        [data.date, startTime, endTime, duration, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee, id, ...companyParam]
       );
-      await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${data.startTime}-${data.endTime} ${data.category}`, actor, undefined, workspaceId);
+      await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${startTime || "Direct"}-${endTime || `${duration}m`} ${data.category}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
       return res;
     }

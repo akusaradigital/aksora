@@ -27,6 +27,8 @@
 *.pfx
 *.p12
 *.crt
+.sicmundus-cache.json
+.sicmundus-cron.log
 
 # debug
 npm-debug.log*

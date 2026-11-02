@@ -7,7 +7,7 @@ import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
 import { FormFieldError } from "@/components/shared/form-field-error";
 import { DurationInput } from "@/components/shared/duration-input";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { cn } from "@/lib/utils";
+import { cn, calculateDurationFromTime, addMinutesToTime } from "@/lib/utils";
 import { Info } from "@phosphor-icons/react";
 import { EvidenceUploadField } from "@/components/shared/evidence-upload-field";
 import type { ModuleKey } from "@/lib/modules";
@@ -35,6 +35,86 @@ function getNextVersion(version: string) {
  if (!match) return "";
  const [, prefix, major, minor, patch] = match;
  return `${prefix}${major}.${minor}.${Number(patch) + 1}`;
+}
+
+function WorkLogDurationField({
+  name,
+  value,
+  disabled,
+  error,
+  editingRow,
+  module,
+}: {
+  name: string;
+  value: string;
+  disabled?: boolean;
+  error?: boolean;
+  editingRow: Row | null;
+  module: ModuleKey;
+}) {
+  const [duration, setDuration] = useState<number | string>(() => {
+    if (value && value !== "0") return value;
+    if (module === "work-logs" && editingRow) {
+      return calculateDurationFromTime(editingRow.startTime, editingRow.endTime) ?? "";
+    }
+    return value;
+  });
+
+  useEffect(() => {
+    if (module !== "work-logs") return;
+
+    const handleFormTimeChange = (e: Event) => {
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement | null;
+      if (!target || (target.name !== "startTime" && target.name !== "endTime")) return;
+      const form = target.closest("form");
+      if (!form) return;
+
+      const startInput = form.elements.namedItem("startTime") as HTMLInputElement | HTMLTextAreaElement | null;
+      const endInput = form.elements.namedItem("endTime") as HTMLInputElement | HTMLTextAreaElement | null;
+      if (startInput?.value && endInput?.value) {
+        const calculated = calculateDurationFromTime(startInput.value, endInput.value);
+        if (calculated) {
+          setDuration(calculated);
+        }
+      }
+    };
+
+    document.addEventListener("input", handleFormTimeChange);
+    document.addEventListener("change", handleFormTimeChange);
+    return () => {
+      document.removeEventListener("input", handleFormTimeChange);
+      document.removeEventListener("change", handleFormTimeChange);
+    };
+  }, [module]);
+
+  const handleChange = (mins: number) => {
+    setDuration(mins);
+
+    // If user picks duration directly and startTime is set but endTime is empty: auto-calculate endTime
+    if (module === "work-logs" && mins > 0) {
+      const form = document.getElementById(`${module}-form`) as HTMLFormElement | null;
+      if (form) {
+        const startInput = form.elements.namedItem("startTime") as HTMLInputElement | HTMLTextAreaElement | null;
+        const endInput = form.elements.namedItem("endTime") as HTMLInputElement | HTMLTextAreaElement | null;
+        if (startInput?.value && (!endInput?.value || endInput.value.trim() === "")) {
+          const suggestedEnd = addMinutesToTime(startInput.value, mins);
+          if (suggestedEnd && endInput) {
+            endInput.value = suggestedEnd;
+          }
+        }
+      }
+    }
+  };
+
+  return (
+    <DurationInput
+      name={name}
+      value={duration}
+      onChange={handleChange}
+      disabled={disabled}
+      error={error}
+    />
+  );
 }
 
 export function ModuleWorkspaceFormText({
@@ -69,11 +149,13 @@ export function ModuleWorkspaceFormText({
  if (isDuration) {
   return (
     <div className="space-y-1">
-      <DurationInput
+      <WorkLogDurationField
         name={field.name}
         value={value}
         disabled={isLocked}
         error={!!fieldError}
+        editingRow={editingRow}
+        module={module}
       />
       <FormFieldError message={fieldError} />
     </div>

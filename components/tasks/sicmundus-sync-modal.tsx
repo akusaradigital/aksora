@@ -43,7 +43,16 @@ export function SicmundusSyncModal({
   const notesInputId = useId();
 
   const [tasksList, setTasksList] = useState<SicmundusParentTask[]>(DEFAULT_PRESET_TASKS);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>(DEFAULT_PRESET_TASKS[0].id);
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(() => {
+    if (task.project) {
+      const projectLower = task.project.toLowerCase();
+      const matched = DEFAULT_PRESET_TASKS.find(
+        (t) => t.project_name && (t.project_name.toLowerCase().includes(projectLower) || projectLower.includes(t.project_name.toLowerCase()))
+      );
+      if (matched) return matched.id;
+    }
+    return DEFAULT_PRESET_TASKS[0].id;
+  });
   const [isCustomTask, setIsCustomTask] = useState(false);
   const [customTaskId, setCustomTaskId] = useState("");
 
@@ -89,8 +98,20 @@ export function SicmundusSyncModal({
         if (!res.ok) return;
         const body = await res.json();
         if (active && body?.data?.tasks && Array.isArray(body.data.tasks) && body.data.tasks.length > 0) {
-          setTasksList(body.data.tasks);
-          setSelectedTaskId(body.data.tasks[0].id);
+          const tasks: SicmundusParentTask[] = body.data.tasks;
+          setTasksList(tasks);
+          // Smart project match: auto-select if task.project matches any project_name
+          if (task.project) {
+            const projectLower = task.project.toLowerCase();
+            const matched = tasks.find(
+              (t) => t.project_name && t.project_name.toLowerCase().includes(projectLower)
+            ) || tasks.find(
+              (t) => t.project_name && projectLower.includes(t.project_name.toLowerCase())
+            );
+            setSelectedTaskId(matched ? matched.id : tasks[0].id);
+          } else {
+            setSelectedTaskId(tasks[0].id);
+          }
         }
       } catch {
         // Fallback to presets
@@ -101,7 +122,7 @@ export function SicmundusSyncModal({
     return () => {
       active = false;
     };
-  }, [isOpen, username, password]);
+  }, [isOpen, username, password, task.project]);
 
   // AI format task title & notes
   const handleAIFormat = async () => {
@@ -263,18 +284,34 @@ export function SicmundusSyncModal({
                     className="w-full border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-sky-600 focus:outline-none"
                   />
                 ) : (
-                  <select
-                    id={parentTaskId}
-                    value={selectedTaskId}
-                    onChange={(e) => setSelectedTaskId(e.target.value)}
-                    className="w-full border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-sky-600 focus:outline-none"
-                  >
-                    {tasksList.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title} {t.project_name ? `(${t.project_name})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      id={parentTaskId}
+                      value={selectedTaskId}
+                      onChange={(e) => setSelectedTaskId(e.target.value)}
+                      className="w-full border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-sky-600 focus:outline-none"
+                    >
+                      {tasksList.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title} {t.project_name ? `(${t.project_name})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {task.project && (() => {
+                      const selected = tasksList.find((t) => t.id === selectedTaskId);
+                      if (!selected?.project_name) return null;
+                      const projectLower = task.project.toLowerCase();
+                      const isMatch =
+                        selected.project_name.toLowerCase().includes(projectLower) ||
+                        projectLower.includes(selected.project_name.toLowerCase());
+                      if (!isMatch) return null;
+                      return (
+                        <p className="mt-1 text-[11px] font-semibold text-emerald-700">
+                          Matches current project: {task.project}
+                        </p>
+                      );
+                    })()}
+                  </>
                 )}
               </div>
 

@@ -309,6 +309,7 @@ export const workLogSchema = z.object({
   date: z.string().min(1, "Date is required"),
   startTime: optionalText,
   endTime: optionalText,
+  durationMinutes: z.union([z.string(), z.number()]).optional().default(""),
   category: requiredText("Category"),
   project: requiredText("Project"),
   description: requiredText("Description"),

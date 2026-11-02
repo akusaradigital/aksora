@@ -15,6 +15,7 @@ import {
 } from "@/lib/data-helpers";
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 import { broadcastCriticalBug } from "@/lib/chat-broadcast";
+import { calculateDurationFromTime, addMinutesToTime } from "@/lib/utils";
 
 type ModuleData = Record<string, unknown> & {
   company?: unknown;
@@ -290,12 +291,20 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
     case "work-logs": {
       const publicToken = makePublicToken();
       const assignee = data.assignee || actor;
+      const duration = data.durationMinutes !== undefined && data.durationMinutes !== ""
+        ? (Number(data.durationMinutes) || 0)
+        : (data.startTime && data.endTime ? (calculateDurationFromTime(data.startTime, data.endTime) ?? 0) : 0);
+      let endTime = data.endTime ? String(data.endTime) : "";
+      if (!endTime && data.startTime && duration > 0) {
+        endTime = addMinutesToTime(data.startTime, duration) ?? "";
+      }
+      const startTime = data.startTime ? String(data.startTime) : "";
       const res = await runInsert(
-        `INSERT INTO "WorkLog" ("company", "workspaceId", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee")
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [company, workspaceId, publicToken, data.date, data.startTime ?? "", data.endTime ?? "", data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
+        `INSERT INTO "WorkLog" ("company", "workspaceId", "publicToken", "date", "startTime", "endTime", "durationMinutes", "category", "project", "description", "output", "notes", "assignee")
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [company, workspaceId, publicToken, data.date, startTime, endTime, duration, data.category, data.project, data.description, data.output ?? "", data.notes ?? "", assignee]
       );
-      await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${data.startTime}-${data.endTime} ${data.category} (${data.project})`, actor, publicToken, workspaceId);
+      await logActivity(company, "WorkLog", String(data.date), "Created", `Work log: ${startTime || "Direct"}-${endTime || `${duration}m`} ${data.category} (${data.project})`, actor, publicToken, workspaceId);
       invalidateDashboardCache(company);
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "WorkLog" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {

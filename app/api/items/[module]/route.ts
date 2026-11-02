@@ -57,8 +57,14 @@ export async function POST(
   }
 
   try {
-    const formData = await request.formData();
-    const entry = formDataToEntry(formData);
+    const contentType = request.headers.get("content-type") || "";
+    let entry: Record<string, unknown>;
+    if (contentType.includes("application/json")) {
+      entry = await request.json();
+    } else {
+      const formData = await request.formData();
+      entry = formDataToEntry(formData);
+    }
     const schema = moduleConfigs[moduleKey].schema;
     const parsed = schema.safeParse(entry);
 

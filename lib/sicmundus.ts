@@ -127,10 +127,13 @@ export async function getSicmundusTasks(
       if (!fallbackRes.ok) {
         return getPresetTasks();
       }
-      return (await fallbackRes.json()) as SicmundusTaskItem[];
+      const rawFallback = await fallbackRes.json();
+      const list = Array.isArray(rawFallback) ? rawFallback : rawFallback?.tasks || [];
+      return list.length > 0 ? list : getPresetTasks();
     }
-    const data = (await res.json()) as SicmundusTaskItem[];
-    return Array.isArray(data) && data.length > 0 ? data : getPresetTasks();
+    const rawData = await res.json();
+    const list = Array.isArray(rawData) ? rawData : rawData?.tasks || [];
+    return list.length > 0 ? list : getPresetTasks();
   } catch (err) {
     console.warn("Failed to fetch Sicmundus tasks, using presets:", err);
     return getPresetTasks();
@@ -197,6 +200,77 @@ export async function createSicmundusSubtask(
   }
 
   return (await res.json()) as SicmundusSubtask;
+}
+
+/**
+ * Fetch existing subtasks under a parent task.
+ */
+export async function getSicmundusSubtasks(
+  token: string,
+  taskId: string
+): Promise<SicmundusSubtask[]> {
+  const baseUrl = getSicmundusApiUrl();
+  try {
+    const res = await fetch(`${baseUrl}/tasks/${encodeURIComponent(taskId)}/subtasks`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data?.subtasks || []);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Find an existing subtask with matching title or create a new one.
+ * Prevents duplicating subtasks when performing repeated / same daily tasks.
+ */
+export async function findOrCreateSicmundusSubtask(
+  token: string,
+  taskId: string,
+  payload: { title: string; assigneeId?: string; dueDate?: string }
+): Promise<SicmundusSubtask> {
+  const existing = await getSicmundusSubtasks(token, taskId);
+  const target = payload.title.trim().toLowerCase();
+
+  // 1. Exact match
+  const exact = existing.find((s) => s.title && s.title.trim().toLowerCase() === target);
+  if (exact) return exact;
+
+  // 2. Loose match (subtask name contains target or vice versa)
+  const loose = existing.find((s) => {
+    if (!s.title) return false;
+    const cur = s.title.trim().toLowerCase();
+    return cur.includes(target) || target.includes(cur);
+  });
+  if (loose) return loose;
+
+  // 3. Create if not found
+  return createSicmundusSubtask(token, taskId, payload);
+}
+
+/**
+ * Fetch time entries from Sicmundus.
+ */
+export async function getSicmundusEntries(token: string): Promise<SicmundusTimeEntry[]> {
+  const baseUrl = getSicmundusApiUrl();
+  try {
+    const res = await fetch(`${baseUrl}/entries`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data?.entries || []);
+  } catch {
+    return [];
+  }
 }
 
 /**

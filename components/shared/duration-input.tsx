@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Clock } from "@phosphor-icons/react";
 import { cn, decomposeDuration, composeDuration, formatDuration } from "@/lib/utils";
 
@@ -31,6 +31,7 @@ export function DurationInput({
   showPresets = true,
   className,
 }: DurationInputProps) {
+  const [prevValue, setPrevValue] = useState(value);
   const initial = decomposeDuration(value);
   const [hoursDraft, setHoursDraft] = useState<string>(
     initial.hours > 0 ? String(initial.hours) : initial.totalMinutes > 0 ? "0" : ""
@@ -39,12 +40,13 @@ export function DurationInput({
     initial.minutes > 0 ? String(initial.minutes) : initial.totalMinutes > 0 ? "0" : ""
   );
 
-  // Sync state if external value changes (e.g. row loaded or AI format returned)
-  useEffect(() => {
+  // Sync state if external value changes (e.g. row loaded, preset applied, or start/end time changed)
+  if (value !== prevValue) {
+    setPrevValue(value);
     const dec = decomposeDuration(value);
     setHoursDraft(dec.hours > 0 ? String(dec.hours) : dec.totalMinutes > 0 ? "0" : "");
     setMinutesDraft(dec.minutes > 0 ? String(dec.minutes) : dec.totalMinutes > 0 ? "0" : "");
-  }, [value]);
+  }
 
   const currentTotal = composeDuration(hoursDraft, minutesDraft);
 
@@ -86,9 +88,9 @@ export function DurationInput({
       {/* Dual Inputs: Hours and Minutes */}
       <div className="grid grid-cols-2 gap-2.5">
         <div>
-          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
             Hours
-          </label>
+          </span>
           <div className="relative flex items-center">
             <input
               type="number"
@@ -99,8 +101,8 @@ export function DurationInput({
               value={hoursDraft}
               onChange={(e) => handleHoursChange(e.target.value)}
               className={cn(
-                "w-full border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 pr-10 focus:border-sky-600 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed",
-                error && "border-rose-500 focus:border-rose-600"
+                "w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-xs text-gray-900 pr-10 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)] disabled:bg-gray-100 disabled:cursor-not-allowed",
+                error && "border-rose-400 focus:border-rose-400 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.1)]"
               )}
             />
             <span className="pointer-events-none absolute right-3 text-[11px] font-semibold text-gray-400">
@@ -110,9 +112,9 @@ export function DurationInput({
         </div>
 
         <div>
-          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-500">
             Minutes
-          </label>
+          </span>
           <div className="relative flex items-center">
             <input
               type="number"
@@ -124,8 +126,8 @@ export function DurationInput({
               value={minutesDraft}
               onChange={(e) => handleMinutesChange(e.target.value)}
               className={cn(
-                "w-full border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 pr-12 focus:border-sky-600 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed",
-                error && "border-rose-500 focus:border-rose-600"
+                "w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-xs text-gray-900 pr-12 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:shadow-[0_0_0_4px_rgba(56,189,248,0.1)] disabled:bg-gray-100 disabled:cursor-not-allowed",
+                error && "border-rose-400 focus:border-rose-400 focus:shadow-[0_0_0_4px_rgba(244,63,94,0.1)]"
               )}
             />
             <span className="pointer-events-none absolute right-3 text-[11px] font-semibold text-gray-400">
@@ -147,9 +149,6 @@ export function DurationInput({
             <span className="text-gray-400">({formatDuration(currentTotal)})</span>
           )}
         </div>
-        <span className="text-[10px] text-gray-400">
-          Auto-converts to Sicmundus (minutes)
-        </span>
       </div>
 
       {/* Quick Presets */}
@@ -168,9 +167,9 @@ export function DurationInput({
                   disabled={disabled}
                   onClick={() => handlePresetSelect(preset.minutes)}
                   className={cn(
-                    "border px-2 py-0.5 text-[11px] font-semibold transition cursor-pointer disabled:opacity-50",
+                    "rounded-md border px-2.5 py-1 text-[11px] font-semibold transition cursor-pointer disabled:opacity-50",
                     isSelected
-                      ? "border-sky-600 bg-sky-50 text-sky-700"
+                      ? "border-sky-600 bg-sky-50 text-sky-700 font-bold"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                   )}
                 >

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { codeFromId, formatDuration } from "@/lib/utils";
+import { codeFromId, formatDuration, calculateDurationFromTime } from "@/lib/utils";
 import { getRoleExportLabel, getUserRoleOptions } from "@/lib/roles";
 import {
   type ModuleConfig,
@@ -514,24 +514,29 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
     sheetName: "Work Logs",
     schema: workLogSchema,
     coerce: (entry) => normalizeEntry(entry),
-    toRow: (item) => ({
-      ID: codeFromId("WL", Number(item.id)),
-      Date: String(item.date ?? ""),
-      "Start Time": String(item.startTime ?? ""),
-      "End Time": String(item.endTime ?? ""),
-      Category: String(item.category ?? ""),
-      Project: String(item.project ?? ""),
-      Description: String(item.description ?? ""),
-      Output: String(item.output ?? ""),
-      Notes: String(item.notes ?? ""),
-      Assignee: String(item.assignee ?? ""),
-    }),
+    toRow: (item) => {
+      const dur = (item.durationMinutes as string | number) || (item.startTime && item.endTime ? calculateDurationFromTime(item.startTime, item.endTime) : 0);
+      return {
+        ID: codeFromId("WL", Number(item.id)),
+        Date: String(item.date ?? ""),
+        "Start Time": String(item.startTime ?? ""),
+        "End Time": String(item.endTime ?? ""),
+        Duration: dur ? formatDuration(dur) : "",
+        Category: String(item.category ?? ""),
+        Project: String(item.project ?? ""),
+        Description: String(item.description ?? ""),
+        Output: String(item.output ?? ""),
+        Notes: String(item.notes ?? ""),
+        Assignee: String(item.assignee ?? ""),
+      };
+    },
     fields: [
       { name: "date", label: "Date", kind: "date", required: true },
-      { name: "startTime", label: "Start Time", kind: "text", placeholder: "e.g. 08:00" },
-      { name: "endTime", label: "End Time", kind: "text", placeholder: "e.g. 12:00" },
       { name: "category", label: "Category", kind: "select", options: workLogCategoryOptions, required: true },
       { name: "project", label: "Project", kind: "select", options: [], required: true },
+      { name: "startTime", label: "Start Time", kind: "text", placeholder: "e.g. 08:00" },
+      { name: "endTime", label: "End Time", kind: "text", placeholder: "e.g. 12:00" },
+      { name: "durationMinutes", label: "Duration", kind: "text", placeholder: "Hours / Minutes" },
       { name: "description", label: "Description", kind: "textarea", placeholder: "What did you work on?", required: true, span: 3 },
       { name: "output", label: "Output / Deliverable", kind: "textarea", placeholder: "What was produced or completed?", span: 3 },
       { name: "notes", label: "Notes", kind: "textarea", placeholder: "Additional notes or blockers...", span: 3 },
@@ -540,6 +545,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { key: "date", label: "Date" },
       { key: "startTime", label: "Start" },
       { key: "endTime", label: "End" },
+      { key: "durationMinutes", label: "Duration" },
       { key: "category", label: "Category" },
       { key: "project", label: "Project" },
       { key: "description", label: "Description", multiline: true },

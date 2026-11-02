@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SicmundusSyncModal } from "@/components/tasks/sicmundus-sync-modal";
+import { workLogToSicmundusProp } from "@/components/tasks/sicmundus-sync-parts";
 
 type Row = Record<string, string | number | unknown>;
 
@@ -33,21 +34,12 @@ export function ModuleRowActions({
   const publicToken = String(row.publicToken ?? "");
   const isClosedBug = module === "bugs" && (String(row.status) === "closed" || String(row.status) === "fixed");
 
-  const taskProp = {
-    id: String(row.id ?? ""),
-    title: String(row.title ?? row.caseName ?? row.name ?? ""),
-    description: typeof row.description === "string" ? row.description : undefined,
-    project: typeof row.project === "string" ? row.project : typeof row.projectName === "string" ? row.projectName : undefined,
-    category: typeof row.category === "string" ? row.category : undefined,
-    durationMinutes: typeof row.durationMinutes === "number" || typeof row.durationMinutes === "string" ? row.durationMinutes : undefined,
-    startDate: typeof row.startDate === "string" ? row.startDate : typeof row.date === "string" ? row.date : undefined,
-    endDate: typeof row.endDate === "string" ? row.endDate : undefined,
-  };
+  const taskProp = workLogToSicmundusProp(row);
 
   return (
     <>
       <div className="flex items-center gap-2">
-        {module === "tasks" && (
+        {module === "work-logs" && (
           <button
             type="button"
             onClick={() => {

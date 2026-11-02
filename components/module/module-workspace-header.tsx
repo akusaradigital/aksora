@@ -9,6 +9,7 @@ import { QuickBugButton } from "@/components/bugs/quick-bug-button";
 import { QaCopilotButton } from "@/components/shared/qa-copilot-button";
 import { AiReleaseNotesButton } from "@/components/test-sessions/ai-release-notes-button";
 import { AiStandupDigestButton } from "@/components/dashboard/ai-standup-digest-button";
+import { WorkLogAiActions } from "@/components/work-logs/work-log-ai-actions";
 
 type FilterOption = {
   key: string;
@@ -115,6 +116,8 @@ export function ModuleWorkspaceHeader({
                   <AiReleaseNotesButton />
                 </>
               )}
+
+              {module === "work-logs" && <WorkLogAiActions />}
 
               {canAdd && (
                 <>

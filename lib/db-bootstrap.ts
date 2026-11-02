@@ -344,6 +344,9 @@ async function migrateTaskDueDateToStartEnd(deps: DbBootstrapDeps) {
     await pool.query(`UPDATE "Task" SET "startDate" = "dueDate" WHERE COALESCE("startDate", '') = '' AND COALESCE("dueDate", '') != ''`);
     await pool.query(`UPDATE "Task" SET "endDate" = "dueDate" WHERE COALESCE("endDate", '') = '' AND COALESCE("dueDate", '') != ''`);
   } catch { /* ignore if dueDate column doesn't exist */ }
+  try {
+    await pool.query(`ALTER TABLE "WorkLog" ADD COLUMN IF NOT EXISTS "durationMinutes" INTEGER DEFAULT 0`);
+  } catch { /* column may already exist */ }
 }
 
 export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {

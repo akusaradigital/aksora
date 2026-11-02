@@ -123,7 +123,7 @@ export async function getModuleRows(module: ModuleKey, limit?: number) {
       // Admin sees all company data, regular user sees only their own
       const userFilter = isAdmin || isWsAdmin ? "" : ' AND "assignee" = ?';
       const userParams = isAdmin || isWsAdmin ? [] : [String(currentUser?.name ?? "").trim()];
-      return await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter} ORDER BY "date" DESC, "startTime" DESC`, [...qParams, ...userParams]);
+      return await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "durationMinutes", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter} ORDER BY "date" DESC, "startTime" DESC`, [...qParams, ...userParams]);
     }
     default:
       return [];
@@ -143,7 +143,7 @@ const SORTABLE_COLUMNS: Record<string, string[]> = {
   "users": ["name", "email", "role", "createdAt"],
   "sprints": ["name", "status", "startDate", "endDate"],
   "deployments": ["project", "date", "version", "status", "updatedAt", "createdAt"],
-  "work-logs": ["date", "startTime", "endTime", "category", "project", "assignee", "updatedAt", "createdAt"],
+  "work-logs": ["date", "startTime", "endTime", "durationMinutes", "category", "project", "assignee", "updatedAt", "createdAt"],
 };
 
 const DEFAULT_ORDER: Record<string, string> = {
@@ -315,7 +315,7 @@ export async function getModuleRowsPage(module: ModuleKey, page: number, pageSiz
       const userParams = isAdmin || isWsAdmin ? [] : [String(currentUser?.name ?? "").trim()];
       const totalRow = await db.get(`SELECT COUNT(*) as total FROM "WorkLog" WHERE "deletedAt" IS NULL${andWhere}${userFilter}${searchClause}`, [...qParams, ...userParams, ...searchParams]) as { total?: number } | undefined;
       const total = Number(totalRow?.total ?? 0);
-      const rows = await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter}${searchClause}${orderClause}${limitClause}`, [...qParams, ...userParams, ...searchParams]);
+      const rows = await selectAll(`SELECT "id", "company", "publicToken", "date", "startTime", "endTime", "durationMinutes", "category", "project", "description", "output", "notes", "assignee", "sortOrder", "createdAt", "updatedAt", "deletedAt" FROM "WorkLog" WHERE "deletedAt" IS NULL ${andWhere}${userFilter}${searchClause}${orderClause}${limitClause}`, [...qParams, ...userParams, ...searchParams]);
       return { rows, total };
     }
     default:

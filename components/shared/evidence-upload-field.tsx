@@ -3,11 +3,9 @@
 import { useState, useRef, useCallback } from "react";
 import {
   FileImage,
-  UploadSimple,
   LinkSimple,
   X,
   ArrowsOutSimple,
-  Sparkle,
   CheckCircle,
 } from "@phosphor-icons/react";
 import { compressImageToWebp, formatFileSize, type CompressedImageResult } from "@/lib/image-compress";
@@ -316,28 +314,14 @@ export function EvidenceUploadField({
                 }}
               />
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-blue-600 shadow-xs mb-2 group-hover:scale-105 transition">
-                {compressing ? (
-                  <Sparkle size={18} weight="bold" className="animate-spin text-blue-600" />
-                ) : (
-                  <UploadSimple size={18} weight="bold" />
-                )}
-              </div>
-
               <p className="text-xs font-bold text-slate-700">
                 {compressing ? (
-                  "Compressing to ultra-light WebP..."
+                  "Compressing image..."
                 ) : (
                   <>
-                    <span className="text-blue-600 underline">Click to upload</span>, drag &amp; drop, or press{" "}
-                    <kbd className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-700 shadow-2xs">
-                      Ctrl+V
-                    </kbd>
+                    <span className="text-blue-600 underline">Click to upload</span> or drag &amp; drop
                   </>
                 )}
-              </p>
-              <p className="mt-1 text-[10px] font-medium text-slate-400">
-                Auto-compressed to &lt;70 KB WebP with sharp UI text &amp; zero blur
               </p>
             </div>
           )}

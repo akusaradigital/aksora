@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle, ArrowSquareOut, CaretDown, CaretUp, PaperPlaneTilt, X } from "@phosphor-icons/react";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatDuration, calculateDurationFromTime } from "@/lib/utils";
 
 export interface SicmundusTaskProp {
   id: string | number;
@@ -12,6 +12,27 @@ export interface SicmundusTaskProp {
   durationMinutes?: number | string;
   startDate?: string;
   endDate?: string;
+}
+
+/** Maps a Work Log row to the payload the Sicmundus sync modal expects. */
+export function workLogToSicmundusProp(row: Record<string, unknown>): SicmundusTaskProp {
+  const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+  const rawDur = row.durationMinutes;
+  const dur = typeof rawDur === "number" && rawDur > 0
+    ? rawDur
+    : typeof rawDur === "string" && rawDur
+    ? parseInt(rawDur.replace(/\D+/g, ""), 10) || undefined
+    : calculateDurationFromTime(row.startTime, row.endTime);
+
+  return {
+    id: String(row.id ?? ""),
+    title: str(row.description) ?? str(row.title) ?? "",
+    description: str(row.output) ?? str(row.notes) ?? str(row.description),
+    project: str(row.project),
+    category: str(row.category),
+    durationMinutes: dur,
+    startDate: str(row.date) ?? str(row.startDate),
+  };
 }
 
 export function SicmundusSyncHeader({
@@ -111,8 +132,8 @@ export function SicmundusTaskPreview({ task }: { task: SicmundusTaskProp }) {
   return (
     <div className="border border-gray-200/80 bg-gray-50/70 p-3 text-xs space-y-1">
       <div className="flex items-center justify-between text-gray-500 text-[11px]">
-        <span className="font-bold uppercase tracking-wider text-gray-400">Aksora Source Task</span>
-        <span className="font-semibold text-gray-600">{task.category || "Task"}</span>
+        <span className="font-bold uppercase tracking-wider text-gray-400">Aksora Work Log</span>
+        <span className="font-semibold text-gray-600">{task.category || "Work Log"}</span>
       </div>
       <p className="font-bold text-gray-900 text-sm truncate">{task.title}</p>
       {task.project && (

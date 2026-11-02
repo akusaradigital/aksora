@@ -125,6 +125,9 @@ export function getPreferredColumnOrder(module: ModuleKey) {
   if (module === "deployments") {
     return ["date", "version", "project", "environment", "developer", "status", "changelog", "notes"];
   }
+  if (module === "work-logs") {
+    return ["date", "startTime", "endTime", "durationMinutes", "category", "project", "description", "output", "assignee"];
+  }
   return ["code", "title", "project", "status", "priority"];
 }
 
@@ -143,6 +146,8 @@ export function getFieldIcons(): Record<string, ReactNode> {
     status: <Pulse size={16} className="text-emerald-500" />,
     priority: <Shield size={16} className="text-orange-500" />,
     durationMinutes: <Clock size={16} className="text-amber-500" />,
+    startTime: <Clock size={16} className="text-sky-500" />,
+    endTime: <Clock size={16} className="text-indigo-500" />,
     severity: <WarningCircle size={16} className="text-rose-500" />,
     bugType: <Bug size={16} className="text-rose-500" />,
     startDate: <Calendar size={16} className="text-emerald-500" />,

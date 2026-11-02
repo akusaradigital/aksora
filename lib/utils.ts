@@ -133,3 +133,24 @@ export function composeDuration(hours: number | string, minutes: number | string
   return h * 60 + m;
 }
 
+export function calculateDurationFromTime(start: unknown, end: unknown): number | undefined {
+  const toMin = (v: unknown) => {
+    const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
+    return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
+  };
+  const s = toMin(start);
+  const e = toMin(end);
+  if (isNaN(s) || isNaN(e)) return undefined;
+  const diff = e >= s ? e - s : e + 24 * 60 - s;
+  return diff > 0 ? diff : undefined;
+}
+
+export function addMinutesToTime(start: unknown, minutes: number): string | undefined {
+  const m = /^(\d{1,2})[:.](\d{2})/.exec(String(start ?? "").trim());
+  if (!m || isNaN(minutes) || minutes <= 0) return undefined;
+  const total = Number(m[1]) * 60 + Number(m[2]) + minutes;
+  const h = Math.floor(total / 60) % 24;
+  const mins = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+

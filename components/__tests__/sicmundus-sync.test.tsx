@@ -16,7 +16,7 @@ vi.mock("@phosphor-icons/react", () => {
   }
   const icons = [
     "PaperPlaneTilt", "Sparkle", "ArrowsClockwise", "CheckCircle", "ArrowSquareOut",
-    "CaretDown", "CaretUp", "X", "WarningCircle", "Clock", "CalendarBlank", "PencilSimple", "Note",
+    "CaretDown", "CaretUp", "X", "WarningCircle", "Clock", "CalendarBlank", "PencilSimple", "Note", "CheckFat",
   ];
   return Object.fromEntries(icons.map((name) => [name, (props: Record<string, unknown>) => <IconStub name={name} {...props} />]));
 });
@@ -133,6 +133,20 @@ describe("SicmundusSyncModal", () => {
     expect(customInput).toBeDefined();
   });
 
+  it("auto-selects task and shows indicator when task.project matches", async () => {
+    const taskWithMatchingProject = {
+      ...defaultTask,
+      project: "Other",
+    };
+    render(<SicmundusSyncModal isOpen={true} onClose={vi.fn()} task={taskWithMatchingProject} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Matches current project: Other")).toBeDefined();
+      const select = screen.getByRole("combobox") as HTMLSelectElement;
+      expect(select.value).toBe("task-2");
+    });
+  });
+
   it("handles successful sync submission and displays success view", async () => {
     const onSyncSuccess = vi.fn();
     render(<SicmundusSyncModal isOpen={true} onClose={vi.fn()} task={defaultTask} onSyncSuccess={onSyncSuccess} />);
@@ -159,11 +173,11 @@ describe("ModuleRowActions with Sicmundus Sync", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders Sync button when module is tasks", () => {
+  it("renders Sync button when module is work-logs", () => {
     render(
       <ModuleRowActions
-        module="tasks"
-        row={{ id: "t-1", title: "Daily standup and QA testing" }}
+        module="work-logs"
+        row={{ id: "wl-1", description: "Daily standup and QA testing", project: "QA Ecosystem" }}
         canEdit={true}
         canDelete={true}
         onView={vi.fn()}
