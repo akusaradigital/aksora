@@ -306,9 +306,17 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     }
     case "work-logs": {
       const assignee = textOrEmpty(data.assignee) || actor;
-      const duration = data.durationMinutes !== undefined && data.durationMinutes !== ""
-        ? (Number(data.durationMinutes) || 0)
-        : (data.startTime && data.endTime ? (calculateDurationFromTime(data.startTime, data.endTime) ?? 0) : 0);
+      const rawDur = data.durationMinutes;
+      let duration = 0;
+      if (typeof rawDur === "number" && !isNaN(rawDur) && rawDur > 0) {
+        duration = rawDur;
+      } else if (typeof rawDur === "string" && rawDur.trim() !== "") {
+        const parsed = parseInt(rawDur.replace(/\D+/g, ""), 10);
+        if (!isNaN(parsed) && parsed > 0) duration = parsed;
+      }
+      if (duration === 0 && data.startTime && data.endTime) {
+        duration = calculateDurationFromTime(data.startTime, data.endTime) ?? 0;
+      }
       let endTime = data.endTime ? String(data.endTime) : "";
       if (!endTime && data.startTime && duration > 0) {
         endTime = addMinutesToTime(data.startTime, duration) ?? "";

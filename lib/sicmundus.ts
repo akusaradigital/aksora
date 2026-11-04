@@ -4,6 +4,8 @@
  * Reference: D:\KERJAAN\sicmundus
  */
 
+import { db } from "@/lib/db";
+
 export interface SicmundusUser {
   id: string;
   username: string;
@@ -444,7 +446,7 @@ export async function createSicmundusTimeEntry(
 }
 
 /**
- * Update an existing time entry in Sicmundus (duration, notes, start_time).
+ * Update an existing time entry in Sicmundus (duration, notes, start_time, end_time).
  */
 export async function updateSicmundusTimeEntry(
   token: string,
@@ -453,11 +455,21 @@ export async function updateSicmundusTimeEntry(
     durationMinutes: number;
     notes?: string;
     startTime?: string;
+    endTime?: string;
   }
 ): Promise<boolean> {
   const baseUrl = getSicmundusApiUrl();
   const dur = Math.max(1, payload.durationMinutes || 240);
   const startTime = payload.startTime || new Date().toISOString();
+  let endTime = payload.endTime;
+  if (!endTime) {
+    try {
+      const startMs = new Date(startTime).getTime();
+      endTime = new Date(startMs + dur * 60 * 1000).toISOString();
+    } catch {
+      endTime = startTime;
+    }
+  }
 
   const res = await fetch(`${baseUrl}/entries/${encodeURIComponent(entryId)}`, {
     method: "PUT",
@@ -469,6 +481,7 @@ export async function updateSicmundusTimeEntry(
       duration_minutes: dur,
       notes: payload.notes || "",
       start_time: startTime,
+      end_time: endTime,
     }),
   });
 
@@ -555,7 +568,6 @@ export async function autoSyncWorkLogToSicmundus(payload: {
 
     // 4. Update Postgres WorkLog record with Sicmundus IDs if record ID is provided
     if (payload.id) {
-      const { db } = await import("@/lib/db");
       await db.run(
         `UPDATE "WorkLog" SET "sicmundusTaskId" = ?, "sicmundusSubtaskId" = ?, "sicmundusEntryId" = ?, "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
         [parentTask.id, subtask.id, entry.id, duration, payload.id]
@@ -604,14 +616,33 @@ export async function autoUpdateWorkLogToSicmundus(payload: {
       const auth = await loginSicmundus();
       const duration = Math.max(1, payload.durationMinutes || 240);
       const dateStr = payload.date || new Date().toISOString().slice(0, 10);
-      const startTime = payload.startTime
-        ? `${dateStr}T${payload.startTime}:00.000Z`
-        : `${dateStr}T05:00:00.000Z`;
+
+      let startTime = "";
+      if (payload.startTime) {
+        const timePart = payload.startTime.length === 5 ? `${payload.startTime}:00.000Z` : payload.startTime;
+        startTime = payload.startTime.includes("T") ? payload.startTime : `${dateStr}T${timePart}`;
+      } else {
+        startTime = `${dateStr}T05:00:00.000Z`;
+      }
+
+      let endTime = "";
+      if (payload.endTime) {
+        const timePart = payload.endTime.length === 5 ? `${payload.endTime}:00.000Z` : payload.endTime;
+        endTime = payload.endTime.includes("T") ? payload.endTime : `${dateStr}T${timePart}`;
+      } else {
+        try {
+          const startMs = new Date(startTime).getTime();
+          endTime = new Date(startMs + duration * 60 * 1000).toISOString();
+        } catch {
+          endTime = startTime;
+        }
+      }
 
       const ok = await updateSicmundusTimeEntry(auth.token, payload.sicmundusEntryId, {
         durationMinutes: duration,
         notes: payload.notes || payload.description || "",
         startTime,
+        endTime,
       });
       if (ok) return true;
     }
@@ -708,7 +739,7 @@ Return ONLY a valid JSON object in this exact structure with no extra text or ma
   // 1. Attempt using user-provided AI settings (SnapTest style)
   if (aiOpts?.ai_provider && (aiOpts.api_key || aiOpts.ai_provider === "9router" || aiOpts.nine_router_public_url)) {
     try {
-      const { callLLM } = await import("@/lib/ai-service");
+      const { callLLM } = await import("./ai-service");
       const res = await callLLM({
         provider: aiOpts.ai_provider,
         model: aiOpts.ai_model,
@@ -738,7 +769,7 @@ Return ONLY a valid JSON object in this exact structure with no extra text or ma
 
   // 2. Attempt AI generation via server environment gateway if configured
   try {
-    const { executeCompletionWithFailover } = await import("@/lib/ai-gateway");
+    const { executeCompletionWithFailover } = await import("./ai-gateway");
 
     const completion = await executeCompletionWithFailover(
       {

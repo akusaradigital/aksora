@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function run() {
+  await pool.query(`DELETE FROM "WorkLog" WHERE description = 'Automated Edit Verification Test'`);
   const p = await pool.query('SELECT count(*) FROM "Project"');
   const t = await pool.query('SELECT count(*) FROM "Task"');
   const w = await pool.query('SELECT count(*) FROM "WorkLog"');
