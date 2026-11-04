@@ -70,16 +70,16 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     }
   }
 
-  // Auto-delete linked Sicmundus time entry if deleting a WorkLog
+  // Auto-delete linked Sicmundus time entry & subtask if deleting a WorkLog
   if (module === "work-logs") {
-    const existing = await db.get<{ sicmundusEntryId?: string }>(
-      `SELECT "sicmundusEntryId" FROM "WorkLog" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+    const existing = await db.get<{ sicmundusEntryId?: string; sicmundusSubtaskId?: string }>(
+      `SELECT "sicmundusEntryId", "sicmundusSubtaskId" FROM "WorkLog" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
       [id, ...companyParam]
     );
-    if (existing?.sicmundusEntryId) {
+    if (existing?.sicmundusEntryId || existing?.sicmundusSubtaskId) {
       try {
         const { autoDeleteWorkLogFromSicmundus } = await import("@/lib/sicmundus");
-        await autoDeleteWorkLogFromSicmundus(existing.sicmundusEntryId);
+        await autoDeleteWorkLogFromSicmundus(existing.sicmundusEntryId, existing.sicmundusSubtaskId);
       } catch (err) {
         console.warn("[Delete WorkLog] Sicmundus delete non-blocking failure:", err);
       }

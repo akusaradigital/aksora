@@ -103,6 +103,7 @@ export function WorkLogAiActions() {
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [inserting, setInserting] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [syncingSicmundus, setSyncingSicmundus] = useState(false);
 
   const [bugs, setBugs] = useState<BugActivity[]>([]);
   const [testSessions, setTestSessions] = useState<TestSessionActivity[]>([]);
@@ -267,6 +268,24 @@ export function WorkLogAiActions() {
     }
   };
 
+  const handleSyncSicmundus = async () => {
+    setSyncingSicmundus(true);
+    try {
+      const res = await fetch("/api/work-logs/sync-sicmundus", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Gagal sinkronisasi Sicmundus");
+      }
+      toast(json.message || "Sinkronisasi Sicmundus berhasil!", "success");
+      fetchTodayStatus();
+      router.refresh();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Gagal sinkronisasi Sicmundus", "error");
+    } finally {
+      setSyncingSicmundus(false);
+    }
+  };
+
   const todayHoursFormatted = todayMinutes !== null ? (todayMinutes / 60).toFixed(1) : "0.0";
   const isTodayTargetMet = todayMinutes !== null && todayMinutes >= 480;
   const todayRemainingMinutes = todayMinutes !== null ? Math.max(0, 480 - todayMinutes) : 480;
@@ -351,6 +370,18 @@ export function WorkLogAiActions() {
         >
           <ClipboardText size={14} weight="bold" className="text-gray-600" />
           {copying ? "Menyalin..." : "Salin Standup"}
+        </button>
+
+        {/* Sync Sicmundus */}
+        <button
+          type="button"
+          onClick={handleSyncSicmundus}
+          disabled={syncingSicmundus}
+          title="Sinkronkan entri waktu dua arah dengan Sicmundus"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition active:scale-95 disabled:opacity-50"
+        >
+          <ArrowsClockwise size={14} weight="bold" className={cn("text-indigo-600", syncingSicmundus && "animate-spin")} />
+          {syncingSicmundus ? "Syncing..." : "Sync Sicmundus"}
         </button>
       </div>
 

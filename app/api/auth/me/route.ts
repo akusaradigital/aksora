@@ -25,9 +25,34 @@ export async function GET() {
 
   const memberships = user.id ? await getWorkspaceMembershipsForUser(user.id) : [];
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     authEnabled: authEnabled(),
     authenticated: true,
     user: { ...user, avatar, memberships },
   });
+
+  // Self-healing: automatically refresh cookie with hydrated active workspace & company
+  try {
+    const { createSessionToken, sessionCookieName } = await import("@/lib/auth-core");
+    const token = await createSessionToken(user.email, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      company: user.company,
+      activeWorkspaceId: user.activeWorkspaceId,
+      locale: user.locale,
+    });
+    const maxAge = Number(process.env.SESSION_TTL_HOURS || 6) * 60 * 60;
+    response.cookies.set(sessionCookieName(), token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge,
+    });
+  } catch {
+    /* non-blocking session refresh */
+  }
+
+  return response;
 }

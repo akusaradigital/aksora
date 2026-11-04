@@ -315,15 +315,16 @@ export async function getCurrentUser() {
     // Fast path: user data embedded in token (new tokens after login)
     if (decoded.id && decoded.name !== undefined && decoded.role !== undefined && decoded.company !== undefined) {
       let validUserId = decoded.id;
+      let userDbRow: { id: number; password: string; company?: string; role?: string; workspaceId?: number | null } | undefined;
       // Verify session hasn't been revoked and user exists in current DB
       try {
         const { db } = await import("./db");
-        const row = await db.get<{ id: number; password: string }>(
-          'SELECT "id", "password" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+        userDbRow = await db.get<{ id: number; password: string; company?: string; role?: string; workspaceId?: number | null }>(
+          'SELECT "id", "password", "company", "role", "workspaceId" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
           [decoded.id],
         );
-        if (row) {
-          if (decoded.pv && row.password && row.password.slice(0, 16) !== decoded.pv) {
+        if (userDbRow) {
+          if (decoded.pv && userDbRow.password && userDbRow.password.slice(0, 16) !== decoded.pv) {
             return null; // Password changed - session revoked
           }
         } else if (decoded.email) {
@@ -357,25 +358,47 @@ export async function getCurrentUser() {
         /* non-critical fallback */
       }
 
-      // Resolve activeWorkspaceId from DB if missing in token (old tokens, no re-login needed)
-      let activeWorkspaceId = decoded.activeWorkspaceId ?? null;
-      if (activeWorkspaceId === null && decoded.company) {
+      // Resolve company and activeWorkspaceId from DB if missing or outdated in token
+      let effectiveCompany = userDbRow?.company || decoded.company || "";
+      let activeWorkspaceId = userDbRow?.workspaceId ?? decoded.activeWorkspaceId ?? null;
+      if (activeWorkspaceId === null && effectiveCompany) {
         try {
           const { db } = await import("./db");
           const ws = await db.get<{ id: number }>(
             'SELECT "id" FROM "Workspace" WHERE "name" = ? LIMIT 1',
-            [decoded.company],
+            [effectiveCompany],
           );
           activeWorkspaceId = ws?.id ?? null;
         } catch { /* non-critical, stay null */ }
       }
+      if (activeWorkspaceId === null) {
+        try {
+          const { db } = await import("./db");
+          const mem = await db.get<{ workspaceId: number }>(
+            'SELECT "workspaceId" FROM "WorkspaceMembership" WHERE "userId" = CAST(? AS INTEGER) ORDER BY "id" ASC LIMIT 1',
+            [validUserId],
+          );
+          if (mem?.workspaceId) {
+            activeWorkspaceId = mem.workspaceId;
+            if (!effectiveCompany) {
+              const ws = await db.get<{ name: string }>(
+                'SELECT "name" FROM "Workspace" WHERE "id" = CAST(? AS INTEGER)',
+                [activeWorkspaceId],
+              );
+              if (ws?.name) effectiveCompany = ws.name;
+            }
+          }
+        } catch { /* non-critical */ }
+      }
+      if (!activeWorkspaceId) activeWorkspaceId = 1;
+      if (!effectiveCompany) effectiveCompany = "Akusara Project";
 
       return {
         id: validUserId,
         name: decoded.name,
         email: decoded.email,
-        role: normalizeRole(decoded.role),
-        company: decoded.company,
+        role: normalizeRole(userDbRow?.role || decoded.role),
+        company: effectiveCompany,
         activeWorkspaceId,
         locale: decoded.locale || "en",
       };
@@ -392,7 +415,13 @@ export async function getCurrentUser() {
       [decoded.email]
     );
     if (!user) return null;
-    return { ...user, role: normalizeRole(user.role), activeWorkspaceId: user.activeWorkspaceId ?? null, locale: user.locale || "en" };
+    return {
+      ...user,
+      role: normalizeRole(user.role),
+      company: user.company || "Akusara Project",
+      activeWorkspaceId: user.activeWorkspaceId ?? 1,
+      locale: user.locale || "en",
+    };
   } catch {
     return null;
   }

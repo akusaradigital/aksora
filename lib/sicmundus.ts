@@ -697,17 +697,44 @@ export async function autoUpdateWorkLogToSicmundus(payload: {
 }
 
 /**
- * Automatically delete a Sicmundus time entry when an Aksora WorkLog is deleted.
+ * Delete a subtask from Sicmundus.
  */
-export async function autoDeleteWorkLogFromSicmundus(sicmundusEntryId: string): Promise<boolean> {
-  if (!sicmundusEntryId || !process.env.SICMUNDUS_USER || !process.env.SICMUNDUS_PASS) {
+export async function deleteSicmundusSubtask(
+  token: string,
+  subtaskId: string
+): Promise<boolean> {
+  const baseUrl = getSicmundusApiUrl();
+  const res = await fetch(`${baseUrl}/subtasks/${encodeURIComponent(subtaskId)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.ok;
+}
+
+/**
+ * Automatically delete a Sicmundus time entry and its container subtask when an Aksora WorkLog is deleted.
+ */
+export async function autoDeleteWorkLogFromSicmundus(
+  sicmundusEntryId?: string | null,
+  sicmundusSubtaskId?: string | null
+): Promise<boolean> {
+  if ((!sicmundusEntryId && !sicmundusSubtaskId) || !process.env.SICMUNDUS_USER || !process.env.SICMUNDUS_PASS) {
     return false;
   }
   try {
     const auth = await loginSicmundus();
-    return await deleteSicmundusTimeEntry(auth.token, sicmundusEntryId);
+    if (sicmundusEntryId) {
+      await deleteSicmundusTimeEntry(auth.token, sicmundusEntryId);
+    }
+    if (sicmundusSubtaskId) {
+      await deleteSicmundusSubtask(auth.token, sicmundusSubtaskId);
+    }
+    return true;
   } catch (err) {
-    console.warn("[Sicmundus AutoDelete] Failed to delete entry from Sicmundus:", err);
+    console.warn("[Sicmundus AutoDelete] Failed to delete entry/subtask from Sicmundus:", err);
     return false;
   }
 }
@@ -717,6 +744,7 @@ export interface SicmundusAIOptions {
   ai_model?: string;
   api_key?: string;
   nine_router_public_url?: string;
+  usage?: { feature: string; workspaceId?: number | null; userId?: number | null };
 }
 
 /**
@@ -789,6 +817,7 @@ Return ONLY a valid JSON object in this exact structure with no extra text or ma
         userPrompt: aiPrompt,
         jsonMode: true,
         maxTokens: 300,
+        usage: aiOpts.usage,
       });
 
       const jsonMatch = res.content.match(/\{[\s\S]*\}/);
@@ -951,6 +980,7 @@ Return ONLY a valid JSON array in this exact schema with no extra text or markdo
         userPrompt: systemPrompt,
         jsonMode: true,
         maxTokens: 700,
+        usage: aiOpts.usage,
       });
 
       const arrayMatch = res.content.match(/\[[\s\S]*\]/);

@@ -11,7 +11,8 @@ export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 export function getAccessScope(user: CurrentUser | null = null) {
   const company = String(user?.company ?? "").trim();
   const isAdmin = isPlatformSuperAdmin(user?.role, company);
-  const workspaceId = user?.activeWorkspaceId ?? null;
+  const workspaceId = user?.activeWorkspaceId ?? (company ? null : 1);
+  const effectiveCompany = company || "Akusara Project";
 
   // Primary scoping: workspaceId (integer FK) when available.
   // Fallback to company string when no workspaceId is available. Superadmin (isAdmin) gets no filter.
@@ -23,7 +24,7 @@ export function getAccessScope(user: CurrentUser | null = null) {
     : ' AND "company" = ?';
   const params: (string | number)[] = isAdmin ? [] : workspaceId
     ? [workspaceId]
-    : [company];
+    : [effectiveCompany];
 
   const getScopedColumn = (prefix = "") => {
     const col = workspaceId ? '"workspaceId"' : '"company"';
@@ -40,15 +41,17 @@ export function getAccessScope(user: CurrentUser | null = null) {
     return ` WHERE ${getScopedColumn(prefix)} = ?`;
   };
 
-  return { company, isAdmin, workspaceId, where, andWhere, params, getScopedColumn, getScopedAndClause, getScopedWhereClause };
+  return { company: effectiveCompany, isAdmin, workspaceId, where, andWhere, params, getScopedColumn, getScopedAndClause, getScopedWhereClause };
 }
 
 export function buildScopedCondition(isAdmin: boolean, workspaceId: number | null | undefined, company: string, prefix = "", useWhere = false) {
-  const col = workspaceId ? '"workspaceId"' : '"company"';
+  const effectiveWs = workspaceId ?? (company ? null : 1);
+  const effectiveComp = company || "Akusara Project";
+  const col = effectiveWs ? '"workspaceId"' : '"company"';
   const targetCol = prefix ? `${prefix}.${col}` : col;
   const verb = useWhere ? "WHERE" : "AND";
   const clause = isAdmin ? "" : ` ${verb} ${targetCol} = ?`;
-  const params = isAdmin ? [] : workspaceId ? [workspaceId] : [company];
+  const params = isAdmin ? [] : effectiveWs ? [effectiveWs] : [effectiveComp];
   return { clause, params };
 }
 
