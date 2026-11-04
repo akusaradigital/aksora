@@ -95,11 +95,12 @@ export const priorityOptions: Option[] = ["P0", "P1", "P2", "P3"].map((value) =>
 }));
 
 export const taskStatusOptions: Option[] = [
-  ["Todo", "todo"],
-  ["Doing", "doing"],
-  ["Review", "review"],
-  ["Done", "done"],
-  ["Blocked", "blocked"],
+  ["Backlog", "backlog"],
+  ["To Do", "todo"],
+  ["In Progress", "in_progress"],
+  ["Need to Test", "need_to_test"],
+  ["Completed", "completed"],
+  ["On Hold", "hold"],
 ].map(([label, value]) => ({ label, value }));
 
 export const bugStatusOptions: Option[] = [

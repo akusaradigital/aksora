@@ -80,7 +80,11 @@ export interface SicmundusParentTask {
 }
 
 export const DEFAULT_PRESET_TASKS: SicmundusParentTask[] = [
+  { id: "auto", title: "✨ Auto-detect / Create Task in Sicmundus", category: "Automatic", project_name: "Auto" },
   { id: "48eaa317-0f7c-4152-ada5-e0c8b4eb88ac", title: "Testing QA Studio & Evidence Hub", category: "Testing", project_name: "QA Ecosystem" },
+  { id: "0b113ed4-4af4-4357-946c-0cb763684809", title: "Enhancement - DPD & SFTP", category: "Development", project_name: "CIMB" },
+  { id: "53f08fe6-f880-4fe1-954f-1834dbdc115c", title: "MOT - Asset", category: "Maintenance", project_name: "Website Asset" },
+  { id: "0575ce38-dcb0-45f5-a608-cc68cd26198b", title: "AuraCheck", category: "Testing", project_name: "AuraCheck" },
   { id: "48672c2b-bb66-4f67-b6a9-f320246404ba", title: "Campaign RTD Top Spender", category: "Development", project_name: "RTD Top Spender" },
   { id: "8a6c7128-d8a1-457e-801b-96527bedd949", title: "Create K6 Performance Test", category: "Research & Development", project_name: "R&D" },
   { id: "a889e502-aa7d-4cae-8a46-cec1fb05f3f0", title: "Laravel Testing Environment (TST/UAT/PRD)", category: "Testing", project_name: "Core Platform" },

@@ -192,7 +192,10 @@ export function SicmundusSyncModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskId: task.id,
-          sicmundusTaskId: finalTaskId,
+          sicmundusTaskId: finalTaskId === "auto" ? "" : finalTaskId,
+          taskTitle: task.title,
+          project: task.project,
+          category: task.category,
           subtaskTitle: subtaskTitle.trim(),
           durationMinutes,
           date,

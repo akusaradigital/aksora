@@ -48,12 +48,44 @@ function buildStatusAliases(statusOptions: { label: string; value: string }[]) {
     aliases.set(normalizeStatus(raw), raw);
     aliases.set(normalizeStatus(status.label), raw);
   }
-  // Only add fallback aliases if not already defined by statusOptions
-  if (!aliases.has(normalizeStatus("idea"))) aliases.set(normalizeStatus("idea"), "todo");
-  if (!aliases.has(normalizeStatus("triage"))) aliases.set(normalizeStatus("triage"), "todo");
-  if (!aliases.has(normalizeStatus("ready"))) aliases.set(normalizeStatus("ready"), "doing");
-  if (!aliases.has(normalizeStatus("in progress"))) aliases.set(normalizeStatus("in progress"), "doing");
-  if (!aliases.has(normalizeStatus("in_progress"))) aliases.set(normalizeStatus("in_progress"), "doing");
+  // Aliases for Sicmundus / legacy status normalization
+  const hasInProgress = aliases.has("in_progress");
+  const hasCompleted = aliases.has("completed");
+  const hasHold = aliases.has("hold");
+  const hasBacklog = aliases.has("backlog");
+
+  if (hasInProgress) {
+    if (!aliases.has(normalizeStatus("doing"))) aliases.set(normalizeStatus("doing"), "in_progress");
+    if (!aliases.has(normalizeStatus("ready"))) aliases.set(normalizeStatus("ready"), "in_progress");
+    if (!aliases.has(normalizeStatus("in progress"))) aliases.set(normalizeStatus("in progress"), "in_progress");
+  } else {
+    if (!aliases.has(normalizeStatus("in progress"))) aliases.set(normalizeStatus("in progress"), "doing");
+    if (!aliases.has(normalizeStatus("in_progress"))) aliases.set(normalizeStatus("in_progress"), "doing");
+    if (!aliases.has(normalizeStatus("ready"))) aliases.set(normalizeStatus("ready"), "doing");
+  }
+
+  if (hasCompleted) {
+    if (!aliases.has(normalizeStatus("done"))) aliases.set(normalizeStatus("done"), "completed");
+  } else {
+    if (!aliases.has(normalizeStatus("completed"))) aliases.set(normalizeStatus("completed"), "done");
+  }
+
+  if (hasHold) {
+    if (!aliases.has(normalizeStatus("blocked"))) aliases.set(normalizeStatus("blocked"), "hold");
+    if (!aliases.has(normalizeStatus("on_hold"))) aliases.set(normalizeStatus("on_hold"), "hold");
+    if (!aliases.has(normalizeStatus("on hold"))) aliases.set(normalizeStatus("on hold"), "hold");
+  } else {
+    if (!aliases.has(normalizeStatus("hold"))) aliases.set(normalizeStatus("hold"), "blocked");
+  }
+
+  if (hasBacklog) {
+    if (!aliases.has(normalizeStatus("idea"))) aliases.set(normalizeStatus("idea"), "backlog");
+    if (!aliases.has(normalizeStatus("triage"))) aliases.set(normalizeStatus("triage"), "backlog");
+  } else {
+    if (!aliases.has(normalizeStatus("backlog"))) aliases.set(normalizeStatus("backlog"), "todo");
+    if (!aliases.has(normalizeStatus("idea"))) aliases.set(normalizeStatus("idea"), "todo");
+    if (!aliases.has(normalizeStatus("triage"))) aliases.set(normalizeStatus("triage"), "todo");
+  }
   return aliases;
 }
 

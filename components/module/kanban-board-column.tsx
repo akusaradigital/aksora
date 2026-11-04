@@ -11,12 +11,17 @@ import type { TableRow } from "@/components/module/module-workspace-table-row";
 type Row = TableRow;
 
 const columnAccents: Record<string, { border: string; header: string; dot: string; drop: string }> = {
-  todo: { border: "border-gray-300", header: "text-gray-500", dot: "bg-gray-400", drop: "border-gray-400 bg-gray-50/40" },
+  backlog: { border: "border-slate-300", header: "text-slate-600", dot: "bg-slate-400", drop: "border-slate-400 bg-slate-50/40" },
+  todo: { border: "border-amber-300", header: "text-amber-700", dot: "bg-amber-500", drop: "border-amber-400 bg-amber-50/40" },
   doing: { border: "border-blue-400", header: "text-blue-600", dot: "bg-blue-600", drop: "border-blue-400 bg-blue-50/40" },
+  in_progress: { border: "border-blue-400", header: "text-blue-600", dot: "bg-blue-600", drop: "border-blue-400 bg-blue-50/40" },
+  need_to_test: { border: "border-orange-400", header: "text-orange-600", dot: "bg-orange-500", drop: "border-orange-400 bg-orange-50/40" },
   done: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
+  completed: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
+  hold: { border: "border-purple-400", header: "text-purple-600", dot: "bg-purple-500", drop: "border-purple-400 bg-purple-50/40" },
+  blocked: { border: "border-purple-400", header: "text-purple-600", dot: "bg-purple-500", drop: "border-purple-400 bg-purple-50/40" },
   deferred: { border: "border-gray-400", header: "text-gray-600", dot: "bg-gray-500", drop: "border-gray-400 bg-gray-50/40" },
   open: { border: "border-red-400", header: "text-red-600", dot: "bg-red-500", drop: "border-red-400 bg-red-50/40" },
-  in_progress: { border: "border-blue-400", header: "text-blue-600", dot: "bg-blue-600", drop: "border-blue-400 bg-blue-50/40" },
   ready_to_retest: { border: "border-violet-400", header: "text-violet-600", dot: "bg-violet-600", drop: "border-violet-400 bg-violet-50/40" },
   closed: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
   active: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
@@ -24,7 +29,6 @@ const columnAccents: Record<string, { border: string; header: string; dot: strin
   draft: { border: "border-amber-400", header: "text-amber-600", dot: "bg-amber-500", drop: "border-amber-400 bg-amber-50/40" },
   passed: { border: "border-emerald-400", header: "text-emerald-600", dot: "bg-emerald-600", drop: "border-emerald-400 bg-emerald-50/40" },
   failed: { border: "border-rose-400", header: "text-rose-600", dot: "bg-rose-500", drop: "border-rose-400 bg-rose-50/40" },
-  blocked: { border: "border-amber-400", header: "text-amber-600", dot: "bg-amber-500", drop: "border-amber-400 bg-amber-50/40" },
 };
 
 function getAccent(value: string) {

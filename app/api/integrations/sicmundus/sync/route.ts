@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getSicmundusApiUrl, loginSicmundus, findOrCreateSicmundusSubtask, createSicmundusTimeEntry } from "@/lib/sicmundus";
+import {
+  getSicmundusApiUrl,
+  loginSicmundus,
+  findOrCreateSicmundusTask,
+  findOrCreateSicmundusSubtask,
+  createSicmundusTimeEntry,
+} from "@/lib/sicmundus";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/data-helpers";
 
@@ -15,7 +21,10 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as {
       taskId?: string | number;
-      sicmundusTaskId: string;
+      sicmundusTaskId?: string;
+      taskTitle?: string;
+      project?: string;
+      category?: string;
       subtaskTitle: string;
       durationMinutes: number;
       date: string;
@@ -24,9 +33,6 @@ export async function POST(req: Request) {
       password?: string;
     };
 
-    if (!body.sicmundusTaskId) {
-      return NextResponse.json({ error: "Sicmundus parent task ID is required" }, { status: 400 });
-    }
     if (!body.subtaskTitle) {
       return NextResponse.json({ error: "Subtask title is required" }, { status: 400 });
     }
@@ -36,30 +42,41 @@ export async function POST(req: Request) {
     const token = auth.token;
     const assigneeId = auth.user.id;
 
-    // 2. Find existing matching subtask or create a new one (reuses subtask if same work)
-    const subtask = await findOrCreateSicmundusSubtask(token, body.sicmundusTaskId, {
+    // 2. Resolve or auto-create parent task in Sicmundus if missing / auto
+    let targetTaskId = body.sicmundusTaskId && body.sicmundusTaskId !== "auto" ? body.sicmundusTaskId : "";
+    if (!targetTaskId) {
+      const parentTask = await findOrCreateSicmundusTask(token, {
+        title: body.taskTitle || body.subtaskTitle,
+        project: body.project,
+        category: body.category,
+      });
+      targetTaskId = parentTask.id;
+    }
+
+    // 3. Find existing matching subtask or create a new one (omitting due_date to bypass task due_date validation)
+    const subtask = await findOrCreateSicmundusSubtask(token, targetTaskId, {
       title: body.subtaskTitle,
       assigneeId,
       dueDate: body.date,
     });
 
-    // 3. Create time entry for the subtask
+    // 4. Create time entry for the subtask
     const duration = Math.max(1, Number(body.durationMinutes) || 240);
-    const entry = await createSicmundusTimeEntry(token, body.sicmundusTaskId, {
+    const entry = await createSicmundusTimeEntry(token, targetTaskId, {
       subtaskId: subtask.id,
       durationMinutes: duration,
       date: body.date,
       notes: body.notes || "",
     });
 
-    // 4. Record the sync against the source Aksora work log and save duration
+    // 5. Record the sync against the source Aksora work log and save duration + IDs
     if (body.taskId) {
       try {
         const companyFilter = user.role === "superadmin" ? "" : ' AND "company" = ?';
         const companyParams = user.role === "superadmin" ? [] : [user.company || ""];
         await db.run(
-          `UPDATE "WorkLog" SET "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-          [duration, body.taskId, ...companyParams]
+          `UPDATE "WorkLog" SET "durationMinutes" = ?, "sicmundusTaskId" = ?, "sicmundusSubtaskId" = ?, "sicmundusEntryId" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+          [duration, targetTaskId, subtask.id, entry.id, body.taskId, ...companyParams]
         );
         await logActivity(
           user.company || "",
@@ -77,11 +94,12 @@ export async function POST(req: Request) {
     }
 
     const sicmundusUrl = getSicmundusApiUrl().replace(/\/api$/, "");
-    const taskLink = `${sicmundusUrl}/tasks?task=${encodeURIComponent(body.sicmundusTaskId)}`;
+    const taskLink = `${sicmundusUrl}/tasks?task=${encodeURIComponent(targetTaskId)}`;
 
     return NextResponse.json({
       data: {
         success: true,
+        taskId: targetTaskId,
         subtask,
         entry,
         durationMinutes: duration,

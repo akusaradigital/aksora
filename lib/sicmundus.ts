@@ -146,10 +146,34 @@ export async function getSicmundusTasks(
 export function getPresetTasks(): SicmundusTaskItem[] {
   return [
     {
+      id: "auto",
+      title: "✨ Auto-detect / Create Task in Sicmundus",
+      category: "Automatic",
+      project_name: "Auto",
+    },
+    {
       id: "48eaa317-0f7c-4152-ada5-e0c8b4eb88ac",
       title: "Testing QA Studio & Evidence Hub",
       category: "Testing",
       project_name: "QA Ecosystem",
+    },
+    {
+      id: "0b113ed4-4af4-4357-946c-0cb763684809",
+      title: "Enhancement - DPD & SFTP",
+      category: "Development",
+      project_name: "CIMB",
+    },
+    {
+      id: "53f08fe6-f880-4fe1-954f-1834dbdc115c",
+      title: "MOT - Asset",
+      category: "Maintenance",
+      project_name: "Website Asset",
+    },
+    {
+      id: "0575ce38-dcb0-45f5-a608-cc68cd26198b",
+      title: "AuraCheck",
+      category: "Testing",
+      project_name: "AuraCheck",
     },
     {
       id: "48672c2b-bb66-4f67-b6a9-f320246404ba",
@@ -173,7 +197,103 @@ export function getPresetTasks(): SicmundusTaskItem[] {
 }
 
 /**
+ * Create a new parent task in Sicmundus when it does not exist.
+ */
+export async function createSicmundusTask(
+  token: string,
+  payload: {
+    title: string;
+    description?: string;
+    category?: string;
+    status?: string;
+    priority?: string;
+    projectId?: string;
+  }
+): Promise<SicmundusTaskItem> {
+  const baseUrl = getSicmundusApiUrl();
+  const res = await fetch(`${baseUrl}/tasks`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: payload.title,
+      description: payload.description || "",
+      category: payload.category || "General",
+      status: payload.status || "in_progress",
+      priority: payload.priority || "normal",
+      project_id: payload.projectId || null,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Failed to create Sicmundus task (${res.status}): ${errText}`);
+  }
+
+  return (await res.json()) as SicmundusTaskItem;
+}
+
+/**
+ * Find an existing parent task in Sicmundus matching ID, title, or project,
+ * or automatically create a new task if none exists.
+ */
+export async function findOrCreateSicmundusTask(
+  token: string,
+  payload: {
+    taskId?: string;
+    title?: string;
+    project?: string;
+    category?: string;
+    status?: string;
+  }
+): Promise<SicmundusTaskItem> {
+  const existingTasks = await getSicmundusTasks(token);
+
+  // 1. If explicit taskId is passed and not "auto", verify if it exists
+  if (payload.taskId && payload.taskId !== "auto") {
+    const exact = existingTasks.find((t) => t.id === payload.taskId);
+    if (exact) return exact;
+  }
+
+  // 2. Match by project name
+  if (payload.project) {
+    const pTarget = payload.project.trim().toLowerCase();
+    const byProject = existingTasks.find((t) => {
+      const pName = (t.project_name || "").trim().toLowerCase();
+      const tTitle = (t.title || "").trim().toLowerCase();
+      return (
+        pName === pTarget ||
+        tTitle === pTarget ||
+        (pName && pName.includes(pTarget)) ||
+        (pTarget && pName.includes(pTarget))
+      );
+    });
+    if (byProject) return byProject;
+  }
+
+  // 3. Match by task title
+  if (payload.title) {
+    const tTarget = payload.title.trim().toLowerCase();
+    const byTitle = existingTasks.find((t) => (t.title || "").trim().toLowerCase() === tTarget);
+    if (byTitle) return byTitle;
+  }
+
+  // 4. Auto-create if not found in Sicmundus
+  const taskTitle = payload.project || payload.title || "Aksora Engineering Task";
+  return createSicmundusTask(token, {
+    title: taskTitle,
+    description: `Auto-created from Aksora work log: ${payload.title || ""}`,
+    category: payload.category || "General",
+    status: payload.status || "in_progress",
+    priority: "normal",
+  });
+}
+
+/**
  * Create a new subtask under a Sicmundus parent task.
+ * Note: due_date is omitted to prevent validation errors when parent task due_date is in the past.
  */
 export async function createSicmundusSubtask(
   token: string,
@@ -190,7 +310,6 @@ export async function createSicmundusSubtask(
     body: JSON.stringify({
       title: payload.title,
       assignee_id: payload.assigneeId,
-      due_date: payload.dueDate || new Date().toISOString().slice(0, 10),
     }),
   });
 
