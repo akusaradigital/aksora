@@ -314,6 +314,13 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
         endTime = addMinutesToTime(data.startTime, duration) ?? "";
       }
       const startTime = data.startTime ? String(data.startTime) : "";
+
+      // Check existing Sicmundus entry ID
+      const existing = await db.get<{ sicmundusEntryId?: string; sicmundusTaskId?: string }>(
+        `SELECT "sicmundusEntryId", "sicmundusTaskId" FROM "WorkLog" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+        [id, ...companyParam]
+      );
+
       const res = await db.run(
         `UPDATE "WorkLog"
          SET "date" = ?, "startTime" = ?, "endTime" = ?, "durationMinutes" = ?, "category" = ?, "project" = ?, "description" = ?, "output" = ?, "notes" = ?, "assignee" = ?, "updatedAt" = CURRENT_TIMESTAMP
@@ -322,6 +329,28 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       );
       await logActivity(company, "WorkLog", text(data.date), "Updated", `Work log updated: ${startTime || "Direct"}-${endTime || `${duration}m`} ${data.category}`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
+
+      // Auto-update Sicmundus in background/inline
+      try {
+        const { autoUpdateWorkLogToSicmundus } = await import("@/lib/sicmundus");
+        await autoUpdateWorkLogToSicmundus({
+          id,
+          date: String(data.date || ""),
+          durationMinutes: duration,
+          startTime,
+          endTime,
+          project: String(data.project || ""),
+          description: String(data.description || ""),
+          notes: String(data.notes || data.output || ""),
+          category: String(data.category || ""),
+          assignee,
+          sicmundusEntryId: existing?.sicmundusEntryId,
+          sicmundusTaskId: existing?.sicmundusTaskId,
+        });
+      } catch (err) {
+        console.warn("[Update WorkLog] Auto-update to Sicmundus non-blocking failure:", err);
+      }
+
       return res;
     }
     default:

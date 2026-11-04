@@ -309,6 +309,25 @@ export async function createModuleRecord(module: ModuleKey, data: ModuleData) {
       const created = await db.get<{ id?: number | string }>(`SELECT "id" FROM "WorkLog" WHERE "company" = ? AND "publicToken" = ? ORDER BY "id" DESC LIMIT 1`, [company, publicToken]);
       if (created?.id !== undefined) {
         await syncSearchIndex("work-logs", company, Number(created.id), data, workspaceId);
+
+        // Auto-sync to Sicmundus in background/inline so user simply logs in Aksora
+        try {
+          const { autoSyncWorkLogToSicmundus } = await import("@/lib/sicmundus");
+          await autoSyncWorkLogToSicmundus({
+            id: created.id,
+            date: String(data.date || new Date().toISOString().slice(0, 10)),
+            durationMinutes: duration,
+            startTime,
+            endTime,
+            project: String(data.project || ""),
+            description: String(data.description || ""),
+            notes: String(data.notes || data.output || ""),
+            category: String(data.category || ""),
+            assignee: String(assignee || ""),
+          });
+        } catch (err) {
+          console.warn("[Create WorkLog] Auto-sync to Sicmundus non-blocking failure:", err);
+        }
       }
       return res;
     }

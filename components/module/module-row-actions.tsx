@@ -40,17 +40,27 @@ export function ModuleRowActions({
     <>
       <div className="flex items-center gap-2">
         {module === "work-logs" && (
-          <button
-            type="button"
-            onClick={() => {
-              if (onSyncSicmundus) onSyncSicmundus();
-              else setIsSyncOpen(true);
-            }}
-            className="rounded-sm border border-sky-200 px-2.5 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
-            title="Sync to Sicmundus"
-          >
-            Sync
-          </button>
+          <div className="flex items-center gap-1.5">
+            {row.sicmundusEntryId ? (
+              <span
+                className="inline-flex items-center gap-1 rounded-sm border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700"
+                title={`Synced to Sicmundus (Entry: ${row.sicmundusEntryId})`}
+              >
+                ✓ Sicmundus
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                if (onSyncSicmundus) onSyncSicmundus();
+                else setIsSyncOpen(true);
+              }}
+              className="rounded-sm border border-sky-200 px-2 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
+              title={row.sicmundusEntryId ? "Re-sync / edit in Sicmundus" : "Sync to Sicmundus"}
+            >
+              {row.sicmundusEntryId ? "Re-sync" : "Sync"}
+            </button>
+          </div>
         )}
         {module === "test-suites" && (
           <Link

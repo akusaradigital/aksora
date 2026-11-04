@@ -443,6 +443,204 @@ export async function createSicmundusTimeEntry(
   return (await res.json()) as SicmundusTimeEntry;
 }
 
+/**
+ * Update an existing time entry in Sicmundus (duration, notes, start_time).
+ */
+export async function updateSicmundusTimeEntry(
+  token: string,
+  entryId: string,
+  payload: {
+    durationMinutes: number;
+    notes?: string;
+    startTime?: string;
+  }
+): Promise<boolean> {
+  const baseUrl = getSicmundusApiUrl();
+  const dur = Math.max(1, payload.durationMinutes || 240);
+  const startTime = payload.startTime || new Date().toISOString();
+
+  const res = await fetch(`${baseUrl}/entries/${encodeURIComponent(entryId)}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      duration_minutes: dur,
+      notes: payload.notes || "",
+      start_time: startTime,
+    }),
+  });
+
+  return res.ok;
+}
+
+/**
+ * Delete a time entry from Sicmundus.
+ */
+export async function deleteSicmundusTimeEntry(
+  token: string,
+  entryId: string
+): Promise<boolean> {
+  const baseUrl = getSicmundusApiUrl();
+  const res = await fetch(`${baseUrl}/entries/${encodeURIComponent(entryId)}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return res.ok;
+}
+
+/**
+ * Automatically sync an Aksora WorkLog record to Sicmundus.
+ * Finds or creates parent task and subtask in Sicmundus, records the time entry,
+ * and updates the Postgres WorkLog row with the Sicmundus IDs.
+ */
+export async function autoSyncWorkLogToSicmundus(payload: {
+  id?: number | string;
+  date: string;
+  durationMinutes?: number;
+  startTime?: string;
+  endTime?: string;
+  project?: string;
+  description?: string;
+  notes?: string;
+  category?: string;
+  assignee?: string;
+}): Promise<{
+  success: boolean;
+  taskId?: string;
+  subtaskId?: string;
+  entryId?: string;
+  error?: string;
+}> {
+  try {
+    const user = process.env.SICMUNDUS_USER;
+    const pass = process.env.SICMUNDUS_PASS;
+    if (!user || !pass) {
+      console.warn("[Sicmundus AutoSync] Credentials missing. Skipping auto-sync.");
+      return { success: false, error: "Credentials missing" };
+    }
+
+    const auth = await loginSicmundus();
+    const token = auth.token;
+    const assigneeId = auth.user.id;
+
+    // 1. Find or create parent task in Sicmundus
+    const taskTitle = (payload.project || payload.description || "Aksora Engineering Task").trim();
+    const parentTask = await findOrCreateSicmundusTask(token, {
+      title: taskTitle,
+      project: payload.project,
+      category: payload.category || "General",
+    });
+
+    // 2. Find or create subtask
+    const subtaskTitle = (payload.description || payload.notes || "Daily Work Log").trim();
+    const subtask = await findOrCreateSicmundusSubtask(token, parentTask.id, {
+      title: subtaskTitle,
+      assigneeId,
+      dueDate: payload.date,
+    });
+
+    // 3. Create time entry
+    const duration = Math.max(1, payload.durationMinutes || 240);
+    const entry = await createSicmundusTimeEntry(token, parentTask.id, {
+      subtaskId: subtask.id,
+      durationMinutes: duration,
+      date: payload.date,
+      notes: payload.notes || payload.description || "",
+    });
+
+    // 4. Update Postgres WorkLog record with Sicmundus IDs if record ID is provided
+    if (payload.id) {
+      const { db } = await import("@/lib/db");
+      await db.run(
+        `UPDATE "WorkLog" SET "sicmundusTaskId" = ?, "sicmundusSubtaskId" = ?, "sicmundusEntryId" = ?, "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)`,
+        [parentTask.id, subtask.id, entry.id, duration, payload.id]
+      );
+    }
+
+    return {
+      success: true,
+      taskId: parentTask.id,
+      subtaskId: subtask.id,
+      entryId: entry.id,
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Sicmundus AutoSync] Failed to sync WorkLog to Sicmundus:", errorMsg);
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Automatically update or create a Sicmundus time entry when an Aksora WorkLog is updated.
+ */
+export async function autoUpdateWorkLogToSicmundus(payload: {
+  id: number | string;
+  date: string;
+  durationMinutes?: number;
+  startTime?: string;
+  endTime?: string;
+  project?: string;
+  description?: string;
+  notes?: string;
+  category?: string;
+  assignee?: string;
+  sicmundusEntryId?: string;
+  sicmundusTaskId?: string;
+}): Promise<boolean> {
+  try {
+    const user = process.env.SICMUNDUS_USER;
+    const pass = process.env.SICMUNDUS_PASS;
+    if (!user || !pass) {
+      return false;
+    }
+
+    // If entry ID already exists, update in place
+    if (payload.sicmundusEntryId) {
+      const auth = await loginSicmundus();
+      const duration = Math.max(1, payload.durationMinutes || 240);
+      const dateStr = payload.date || new Date().toISOString().slice(0, 10);
+      const startTime = payload.startTime
+        ? `${dateStr}T${payload.startTime}:00.000Z`
+        : `${dateStr}T05:00:00.000Z`;
+
+      const ok = await updateSicmundusTimeEntry(auth.token, payload.sicmundusEntryId, {
+        durationMinutes: duration,
+        notes: payload.notes || payload.description || "",
+        startTime,
+      });
+      if (ok) return true;
+    }
+
+    // If no entry ID or update failed, perform auto-sync to create or re-link
+    const res = await autoSyncWorkLogToSicmundus(payload);
+    return res.success;
+  } catch (err) {
+    console.warn("[Sicmundus AutoUpdate] Failed to update Sicmundus entry:", err);
+    return false;
+  }
+}
+
+/**
+ * Automatically delete a Sicmundus time entry when an Aksora WorkLog is deleted.
+ */
+export async function autoDeleteWorkLogFromSicmundus(sicmundusEntryId: string): Promise<boolean> {
+  if (!sicmundusEntryId || !process.env.SICMUNDUS_USER || !process.env.SICMUNDUS_PASS) {
+    return false;
+  }
+  try {
+    const auth = await loginSicmundus();
+    return await deleteSicmundusTimeEntry(auth.token, sicmundusEntryId);
+  } catch (err) {
+    console.warn("[Sicmundus AutoDelete] Failed to delete entry from Sicmundus:", err);
+    return false;
+  }
+}
+
 export interface SicmundusAIOptions {
   ai_provider?: string;
   ai_model?: string;

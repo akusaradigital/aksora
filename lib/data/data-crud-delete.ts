@@ -70,6 +70,22 @@ export async function deleteModuleRecord(module: ModuleKey, id: string | number)
     }
   }
 
+  // Auto-delete linked Sicmundus time entry if deleting a WorkLog
+  if (module === "work-logs") {
+    const existing = await db.get<{ sicmundusEntryId?: string }>(
+      `SELECT "sicmundusEntryId" FROM "WorkLog" WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
+      [id, ...companyParam]
+    );
+    if (existing?.sicmundusEntryId) {
+      try {
+        const { autoDeleteWorkLogFromSicmundus } = await import("@/lib/sicmundus");
+        await autoDeleteWorkLogFromSicmundus(existing.sicmundusEntryId);
+      } catch (err) {
+        console.warn("[Delete WorkLog] Sicmundus delete non-blocking failure:", err);
+      }
+    }
+  }
+
   const res = await db.run(`UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = CAST(? AS INTEGER)${companyFilter}`, [id, ...companyParam]);
   await logActivity(company, table, entityId, "Deleted", `${table} removed`, actor, undefined, workspaceId);
   await clearSearchIndex(module, company, entityId);
@@ -117,6 +133,24 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
           [...deletable, ...companyParam],
         );
       }
+    }
+  }
+
+  // Auto-delete linked Sicmundus time entries if bulk deleting WorkLogs
+  if (module === "work-logs") {
+    try {
+      const entries = await db.query<{ sicmundusEntryId?: string }>(
+        `SELECT "sicmundusEntryId" FROM "WorkLog" WHERE "id" IN (${placeholderList})${companyFilter}`,
+        [...ids, ...companyParam]
+      );
+      const { autoDeleteWorkLogFromSicmundus } = await import("@/lib/sicmundus");
+      for (const item of entries) {
+        if (item.sicmundusEntryId) {
+          autoDeleteWorkLogFromSicmundus(item.sicmundusEntryId).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn("[Bulk Delete WorkLogs] Sicmundus delete non-blocking failure:", err);
     }
   }
 

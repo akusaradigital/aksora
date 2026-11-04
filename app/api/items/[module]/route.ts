@@ -82,12 +82,14 @@ export async function POST(
 
     const data = moduleConfigs[moduleKey].coerce(parsed.data as Record<string, string>);
 
-    await createModuleRecord(moduleKey, data);
+    const result = await createModuleRecord(moduleKey, data);
     revalidatePath("/");
     revalidatePath(`/${moduleKey}`);
 
+    const syncSuffix = moduleKey === "work-logs" ? " and synced to Sicmundus" : "";
     return NextResponse.json({
-      message: `${moduleConfigs[moduleKey].shortTitle} added successfully.`,
+      message: `${moduleConfigs[moduleKey].shortTitle} added successfully${syncSuffix}.`,
+      data: result,
     });
   } catch (error) {
     logError(error, `POST /api/items/${moduleKey}`);
