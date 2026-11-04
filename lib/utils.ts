@@ -50,8 +50,8 @@ export function toDateInput(value?: string | Date | null) {
   }
 }
 
-export function normalizeMultiline(value: string) {
-  return value.replace(/\r\n/g, "\n").trim();
+export function normalizeMultiline(value: unknown) {
+  return String(value ?? "").replace(/\r\n/g, "\n").trim();
 }
 
 function formatDisplaySegment(segment: string): string {
