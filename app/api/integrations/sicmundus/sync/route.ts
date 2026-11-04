@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       targetTaskId = parentTask.id;
     }
 
-    // 3. Find existing matching subtask or create a new one (omitting due_date to bypass task due_date validation)
+    // 3. Find existing matching subtask or create one with the work-log date
     const subtask = await findOrCreateSicmundusSubtask(token, targetTaskId, {
       title: body.subtaskTitle,
       assigneeId,

@@ -189,6 +189,21 @@ async function findOrCreateSubtask(token, taskId, title, assigneeId, date) {
   });
 
   if (match) {
+    if (!match.due_date && date) {
+      const res = await fetch(`${SICMUNDUS_API}/tasks/${encodeURIComponent(taskId)}/subtasks/${encodeURIComponent(match.id)}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ due_date: date }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to set subtask due date (${res.status}): ${txt}`);
+      }
+      match.due_date = date;
+    }
     console.log(`  ♻️  Reusing existing subtask: "${match.title}" (ID: ${match.id})`);
     return match;
   }

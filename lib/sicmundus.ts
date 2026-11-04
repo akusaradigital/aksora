@@ -295,7 +295,7 @@ export async function findOrCreateSicmundusTask(
 
 /**
  * Create a new subtask under a Sicmundus parent task.
- * Note: due_date is omitted to prevent validation errors when parent task due_date is in the past.
+ * Due dates are set from the associated work-log date when supplied.
  */
 export async function createSicmundusSubtask(
   token: string,
@@ -312,6 +312,7 @@ export async function createSicmundusSubtask(
     body: JSON.stringify({
       title: payload.title,
       assignee_id: payload.assigneeId,
+      ...(payload.dueDate ? { due_date: payload.dueDate } : {}),
     }),
   });
 
@@ -360,18 +361,57 @@ export async function findOrCreateSicmundusSubtask(
 
   // 1. Exact match
   const exact = existing.find((s) => s.title && s.title.trim().toLowerCase() === target);
-  if (exact) return exact;
 
   // 2. Loose match (subtask name contains target or vice versa)
-  const loose = existing.find((s) => {
+  const loose = exact || existing.find((s) => {
     if (!s.title) return false;
     const cur = s.title.trim().toLowerCase();
     return cur.includes(target) || target.includes(cur);
   });
-  if (loose) return loose;
+  if (loose) {
+    if (payload.dueDate && loose.due_date?.slice(0, 10) !== payload.dueDate.slice(0, 10)) {
+      return updateSicmundusSubtask(token, loose.id, {
+        title: loose.title,
+        assigneeId: loose.assignee_id || payload.assigneeId,
+        dueDate: payload.dueDate,
+      });
+    }
+    return loose;
+  }
 
   // 3. Create if not found
   return createSicmundusSubtask(token, taskId, payload);
+}
+
+/**
+ * Update an existing subtask in Sicmundus (title, assignee_id, due_date).
+ */
+export async function updateSicmundusSubtask(
+  token: string,
+  subtaskId: string,
+  payload: { title?: string; assigneeId?: string; dueDate?: string }
+): Promise<SicmundusSubtask> {
+  const baseUrl = getSicmundusApiUrl();
+  const body: Record<string, unknown> = {};
+  if (payload.title !== undefined) body.title = payload.title;
+  if (payload.assigneeId !== undefined) body.assignee_id = payload.assigneeId;
+  if (payload.dueDate !== undefined) body.due_date = payload.dueDate;
+
+  const res = await fetch(`${baseUrl}/subtasks/${encodeURIComponent(subtaskId)}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Failed to update Sicmundus subtask (${res.status}): ${errText}`);
+  }
+
+  return (await res.json()) as SicmundusSubtask;
 }
 
 /**

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
           ? "P3"
           : "P2";
       const duration = Number(t.total_minutes) || 0;
-      const startDate = (t.due_date || "").slice(0, 10) || null;
+      const dueDate = (t.due_date || "").slice(0, 10) || null;
 
       const existing = await db.get<{ id: number }>(
         `SELECT id FROM "Task" WHERE "sicmundusTaskId" = ? OR (title = ? AND project = ?)`,
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         await db.run(
           `INSERT INTO "Task" (
             company, "workspaceId", "publicToken", title, project, "relatedFeature",
-            category, status, priority, "startDate", description,
+            category, status, priority, "endDate", description,
             "durationMinutes", "sicmundusTaskId", assignee
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
             t.category || "Feature",
             status,
             priority,
-            startDate,
+            dueDate,
             t.description || t.title,
             duration,
             t.id,
@@ -94,8 +94,8 @@ export async function POST(req: Request) {
         tasksSynced++;
       } else {
         await db.run(
-          `UPDATE "Task" SET status = ?, priority = ?, "durationMinutes" = ?, "sicmundusTaskId" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`,
-          [status, priority, duration, t.id, existing.id]
+          `UPDATE "Task" SET status = ?, priority = ?, "durationMinutes" = ?, "sicmundusTaskId" = ?, "endDate" = COALESCE(NULLIF(?, ''), "endDate"), "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`,
+          [status, priority, duration, t.id, dueDate || "", existing.id]
         );
         tasksSynced++;
       }
@@ -151,8 +151,8 @@ export async function POST(req: Request) {
         entriesSynced++;
       } else {
         await db.run(
-          `UPDATE "WorkLog" SET "durationMinutes" = ?, "sicmundusEntryId" = ?, "sicmundusSubtaskId" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`,
-          [dur, e.id, e.subtask_id || "", existing.id]
+          `UPDATE "WorkLog" SET date = COALESCE(NULLIF(date, ''), ?), "startTime" = COALESCE(NULLIF("startTime", ''), ?), "endTime" = COALESCE(NULLIF("endTime", ''), ?), "durationMinutes" = ?, notes = COALESCE(NULLIF(notes, ''), ?), "sicmundusEntryId" = ?, "sicmundusSubtaskId" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE id = ?`,
+          [dateStr, startTimeStr, endTimeStr, dur, e.notes || "", e.id, e.subtask_id || "", existing.id]
         );
         entriesSynced++;
       }
