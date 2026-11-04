@@ -843,3 +843,376 @@ Return ONLY a valid JSON object in this exact structure with no extra text or ma
     durationMinutes: duration,
   };
 }
+
+export interface ParsedNaturalWorkLog {
+  project: string;
+  category: string;
+  description: string;
+  output?: string;
+  durationMinutes: number;
+  startTime?: string;
+  endTime?: string;
+  date: string;
+}
+
+/**
+ * Natural Language Work Log Parser.
+ * Converts conversational daily reports (e.g. "Tadi ngerjain bug slicing MOT 4 jam, meeting sprint auracheck 1 jam, sisanya testing oronamin c 3.5 jam")
+ * into structured work log entries with sequential start/end times and project matching.
+ * Adheres to the minimum 8-hour daily target rule, while fully supporting overtime (> 8 hours).
+ */
+export async function parseNaturalLanguageWorkLogsWithAI(
+  text: string,
+  targetDate?: string,
+  knownProjects: string[] = ["MOT - Asset", "AURA", "Oronamin C", "QA Ecosystem"],
+  aiOpts?: SicmundusAIOptions
+): Promise<ParsedNaturalWorkLog[]> {
+  const cleanInput = text.trim();
+  if (!cleanInput) return [];
+  const dateStr = targetDate || new Date().toISOString().slice(0, 10);
+
+  const systemPrompt = `You are an expert engineering timesheet parser for Aksora and Sicmundus.
+Convert the user's conversational work summary into structured daily work logs.
+
+Rules:
+1. Daily Target: Total work should be at least 8 hours (480 minutes), but can exceed 8 hours if specified (overtime).
+2. If "sisanya" (the rest/remainder) is mentioned without an exact duration, compute remaining minutes so total is at least 480 minutes (8 hours).
+3. Match projects against available list: ${JSON.stringify(knownProjects)}. If none matches, infer a clean project name.
+4. Categories should be one of: "development", "bugfix", "testing", "meeting", "deployment", "design".
+5. Generate realistic sequential times (e.g. starting at 09:00:00 -> 09:00 to 13:00, 13:00 to 14:00, etc.).
+
+Input sentence: "${cleanInput}"
+Target date: "${dateStr}"
+
+Return ONLY a valid JSON array in this exact schema with no extra text or markdown:
+[
+  {
+    "project": "Project Name",
+    "category": "development | bugfix | testing | meeting | etc",
+    "description": "Clear professional description of work done",
+    "output": "Deliverable or verification result",
+    "durationMinutes": 240,
+    "startTime": "09:00",
+    "endTime": "13:00",
+    "date": "${dateStr}"
+  }
+]`;
+
+  // 1. Try AI via callLLM if options provided
+  if (aiOpts?.ai_provider && (aiOpts.api_key || aiOpts.ai_provider === "9router" || aiOpts.nine_router_public_url)) {
+    try {
+      const { callLLM } = await import("./ai-service");
+      const res = await callLLM({
+        provider: aiOpts.ai_provider,
+        model: aiOpts.ai_model,
+        apiKey: aiOpts.api_key,
+        publicBaseUrl: aiOpts.nine_router_public_url,
+        systemPrompt: "You are a JSON-only timesheet parser. Output valid JSON array.",
+        userPrompt: systemPrompt,
+        jsonMode: true,
+        maxTokens: 700,
+      });
+
+      const arrayMatch = res.content.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        const parsed = JSON.parse(arrayMatch[0]) as ParsedNaturalWorkLog[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => ({
+            ...item,
+            date: dateStr,
+            durationMinutes: Math.max(15, Number(item.durationMinutes) || 60),
+          }));
+        }
+      }
+    } catch (err) {
+      console.warn("[Quick Log AI] Custom AI provider failed, falling back to smart parser:", err);
+    }
+  }
+
+  // 2. Try server AI gateway if configured
+  try {
+    const { executeCompletionWithFailover } = await import("./ai-gateway");
+    const completion = await executeCompletionWithFailover(
+      {
+        messages: [{ role: "user", content: systemPrompt }],
+        temperature: 0.1,
+        max_tokens: 600,
+      },
+      [
+        {
+          name: "DefaultRouter",
+          baseUrl: process.env.AI_ROUTER_URL || "http://localhost:8080",
+          apiKey: process.env.AI_ROUTER_API_KEY || "",
+          priority: 1,
+        },
+      ],
+      4000
+    );
+
+    const arrayMatch = completion.content.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      const parsed = JSON.parse(arrayMatch[0]) as ParsedNaturalWorkLog[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item) => ({
+          ...item,
+          date: dateStr,
+          durationMinutes: Math.max(15, Number(item.durationMinutes) || 60),
+        }));
+      }
+    }
+  } catch {
+    // Fall back to rule-based NLP clause parser
+  }
+
+  // 3. Fallback: Rule-based NLP clause parser (offline, fast, robust)
+  const clauses = cleanInput
+    .split(/[,;\n]+|\b(?:dan|lalu|kemudian|terus|after that|then)\b/gi)
+    .map((c) => c.trim())
+    .filter((c) => c.length > 2);
+
+  const results: ParsedNaturalWorkLog[] = [];
+  let allocatedMinutes = 0;
+  let hasRemainderClause = false;
+  let remainderClauseIndex = -1;
+
+  for (let i = 0; i < clauses.length; i++) {
+    const clause = clauses[i];
+    const isRemainder = /\b(sisanya|sisa|remainder|rest)\b/i.test(clause);
+
+    // Parse duration: e.g. "4.5 jam", "4 jam 30 menit", "45 menit", "4h", "2 hrs"
+    let duration = 0;
+    const hourMinMatch = clause.match(/(\d+(?:\.\d+)?)\s*(?:jam|hours?|hrs?|h)\s*(?:(\d+)\s*(?:menit|mins?|m))?/i);
+    const minuteOnlyMatch = clause.match(/(\d+)\s*(?:menit|mins?|m)\b/i);
+
+    if (hourMinMatch) {
+      const hrs = parseFloat(hourMinMatch[1]);
+      const mins = hourMinMatch[2] ? parseInt(hourMinMatch[2], 10) : 0;
+      duration = Math.round(hrs * 60) + mins;
+    } else if (minuteOnlyMatch) {
+      duration = parseInt(minuteOnlyMatch[1], 10);
+    }
+
+    if (isRemainder && duration === 0) {
+      hasRemainderClause = true;
+      remainderClauseIndex = i;
+      duration = 0;
+    } else if (duration === 0) {
+      duration = 120; // Default 2h if unspecified
+    }
+
+    // Match project
+    let matchedProject = knownProjects[0] || "General";
+    for (const proj of knownProjects) {
+      const pNorm = proj.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const cNorm = clause.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (cNorm.includes(pNorm) || (proj.length >= 3 && clause.toLowerCase().includes(proj.toLowerCase()))) {
+        matchedProject = proj;
+        break;
+      }
+    }
+    // Specific well-known project aliases
+    if (/mot|asset/i.test(clause)) {
+      matchedProject = knownProjects.find((p) => /mot|asset/i.test(p)) || "MOT - Asset";
+    } else if (/aura|auracheck/i.test(clause)) {
+      matchedProject = knownProjects.find((p) => /aura/i.test(p)) || "AURA";
+    } else if (/orona|pocari/i.test(clause)) {
+      matchedProject = knownProjects.find((p) => /orona/i.test(p)) || "Oronamin C";
+    }
+
+    // Infer category
+    let category = "development";
+    if (/\b(?:meeting|sync|standup|discuss|diskusi)\b/i.test(clause)) {
+      category = "meeting";
+    } else if (/\b(?:test|testing|qa|verify|verifikasi|regression)\b/i.test(clause)) {
+      category = "testing";
+    } else if (/\b(?:bug|fix|slicing|error|defect|resolv)\b/i.test(clause)) {
+      category = "bugfix";
+    } else if (/\b(?:deploy|release|staging|prod)\b/i.test(clause)) {
+      category = "deployment";
+    }
+
+    // Clean description by stripping duration keywords and remainder markers
+    let desc = clause
+      .replace(/\b(?:sisanya|sisa|remainder|rest)\b/gi, "")
+      .replace(/\b\d+(?:\.\d+)?\s*(?:jam|hours?|hrs?|h)\s*(?:\d+\s*(?:menit|mins?|m))?\b/gi, "")
+      .replace(/\b\d+\s*(?:menit|mins?|m)\b/gi, "")
+      .replace(/^[-,.\s]+|[-,.\s]+$/g, "")
+      .trim();
+
+    if (desc.length < 3) {
+      desc = `${category.toUpperCase()} tasks on ${matchedProject}`;
+    }
+
+    results.push({
+      project: matchedProject,
+      category,
+      description: desc.charAt(0).toUpperCase() + desc.slice(1),
+      output: `Completed and verified on ${matchedProject}`,
+      durationMinutes: duration,
+      date: dateStr,
+    });
+
+    if (!isRemainder) {
+      allocatedMinutes += duration;
+    }
+  }
+
+  // If there was a remainder clause, allocate whatever is needed to hit at least 480m (8 hours)
+  if (hasRemainderClause && remainderClauseIndex >= 0 && results[remainderClauseIndex]) {
+    const needed = Math.max(60, 480 - allocatedMinutes);
+    results[remainderClauseIndex].durationMinutes = needed;
+    allocatedMinutes += needed;
+  }
+
+  // Sequential time generator: start at 09:00 WIB
+  let currentStartMinutes = 9 * 60; // 09:00
+  for (const item of results) {
+    const sH = Math.floor(currentStartMinutes / 60) % 24;
+    const sM = currentStartMinutes % 60;
+    const endMinutes = currentStartMinutes + item.durationMinutes;
+    const eH = Math.floor(endMinutes / 60) % 24;
+    const eM = endMinutes % 60;
+
+    item.startTime = `${String(sH).padStart(2, "0")}:${String(sM).padStart(2, "0")}`;
+    item.endTime = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}`;
+
+    currentStartMinutes = endMinutes;
+  }
+
+  return results;
+}
+
+/**
+ * Auto-fill remaining time for a specific date so it meets or exceeds the minimum target (e.g. 8h / 480m).
+ * Fully syncs the generated entry to Sicmundus.
+ */
+export async function fillWorkLogDayGap(params: {
+  date: string;
+  targetMinutes?: number;
+  project?: string;
+  category?: string;
+  description?: string;
+  assignee?: string;
+  actor?: string;
+  company?: string;
+  workspaceId?: string | number | null;
+}): Promise<{
+  success: boolean;
+  addedMinutes: number;
+  totalDayMinutes: number;
+  id?: number | string;
+  error?: string;
+}> {
+  const dateStr = params.date || new Date().toISOString().slice(0, 10);
+  const target = Math.max(60, params.targetMinutes || 480);
+  const company = params.company || "";
+  const workspaceId = params.workspaceId ?? "";
+  const actor = params.actor || params.assignee || "System";
+  const assignee = params.assignee || actor;
+
+  try {
+    const companyFilter = company ? ' AND "company" = ?' : "";
+    const companyParam = company ? [company] : [];
+
+    // 1. Fetch existing logs for this date
+    const existing = await db.query<{
+      id: number | string;
+      durationMinutes: number | string;
+      startTime?: string;
+      endTime?: string;
+      project?: string;
+    }>(
+      `SELECT "id", "durationMinutes", "startTime", "endTime", "project"
+       FROM "WorkLog"
+       WHERE "deletedAt" IS NULL AND "date" = ?${companyFilter}
+       ORDER BY "createdAt" ASC`,
+      [dateStr, ...companyParam]
+    );
+
+    let currentTotalMinutes = 0;
+    let latestEndTime = "09:00";
+
+    for (const log of existing) {
+      const dur = typeof log.durationMinutes === "number" ? log.durationMinutes : parseInt(String(log.durationMinutes || "0"), 10);
+      if (!isNaN(dur) && dur > 0) {
+        currentTotalMinutes += dur;
+      }
+      if (log.endTime && String(log.endTime) > latestEndTime) {
+        latestEndTime = String(log.endTime);
+      }
+    }
+
+    if (currentTotalMinutes >= target) {
+      return {
+        success: true,
+        addedMinutes: 0,
+        totalDayMinutes: currentTotalMinutes,
+      };
+    }
+
+    const missingMinutes = target - currentTotalMinutes;
+    const project = params.project || existing[existing.length - 1]?.project || "MOT - Asset";
+    const category = params.category || "development";
+    const description = params.description || `Feature enhancement and verification for ${project}`;
+    const output = `Completed and verified in ${project}`;
+
+    // Compute start and end times
+    let startHour = 9;
+    let startMin = 0;
+    if (latestEndTime && latestEndTime.includes(":")) {
+      const parts = latestEndTime.split(":");
+      startHour = parseInt(parts[0], 10) || 9;
+      startMin = parseInt(parts[1], 10) || 0;
+    }
+    const startTotal = startHour * 60 + startMin;
+    const endTotal = startTotal + missingMinutes;
+    const endHour = Math.floor(endTotal / 60) % 24;
+    const endMin = endTotal % 60;
+
+    const startTime = `${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}`;
+    const endTime = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
+    const publicToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    // Insert into DB
+    await db.run(
+      `INSERT INTO "WorkLog" ("publicToken", "date", "startTime", "endTime", "durationMinutes", "category", "project", "description", "output", "notes", "assignee", "company", "workspaceId", "createdAt", "updatedAt")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [publicToken, dateStr, startTime, endTime, missingMinutes, category, project, description, output, "", assignee, company, workspaceId]
+    );
+
+    const created = await db.get<{ id: number }>(`SELECT "id" FROM "WorkLog" WHERE "publicToken" = ?`, [publicToken]);
+    const insertedId = created?.id;
+
+    // Auto-sync to Sicmundus
+    await autoSyncWorkLogToSicmundus({
+      id: insertedId,
+      date: dateStr,
+      durationMinutes: missingMinutes,
+      startTime,
+      endTime,
+      project,
+      category,
+      description,
+      notes: output,
+      assignee,
+    });
+
+    return {
+      success: true,
+      addedMinutes: missingMinutes,
+      totalDayMinutes: currentTotalMinutes + missingMinutes,
+      id: insertedId,
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Fill WorkLog Gap] Error:", errorMsg);
+    return {
+      success: false,
+      addedMinutes: 0,
+      totalDayMinutes: 0,
+      error: errorMsg,
+    };
+  }
+}
+
+

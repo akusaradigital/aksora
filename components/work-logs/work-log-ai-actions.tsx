@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkle,
@@ -11,11 +11,16 @@ import {
   Flask,
   ChatCenteredText,
   Clock,
-  Check,
+  CalendarCheck,
+  CheckCircle,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { WorkLogQuickModal } from "./work-log-quick-modal";
+import { WorkLogTimesheetAuditModal } from "./work-log-timesheet-audit-modal";
+import { WorkLogFillGapModal } from "./work-log-fill-gap-modal";
 
 interface BugActivity {
   id: number | string;
@@ -84,7 +89,17 @@ function formatDateLabel(): string {
 export function WorkLogAiActions() {
   const router = useRouter();
 
-  const [isOpen, setIsOpen] = useState(false);
+  // Modals state
+  const [isPullOpen, setIsPullOpen] = useState(false);
+  const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [isFillGapOpen, setIsFillGapOpen] = useState(false);
+
+  // Today's summary state
+  const [todayMinutes, setTodayMinutes] = useState<number | null>(null);
+  const [loadingToday, setLoadingToday] = useState(false);
+
+  // QA activity state
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [inserting, setInserting] = useState(false);
   const [copying, setCopying] = useState(false);
@@ -95,15 +110,31 @@ export function WorkLogAiActions() {
   const [suggestions, setSuggestions] = useState<WorkLogSuggestion[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
+  const fetchTodayStatus = async () => {
+    try {
+      const res = await fetch("/api/dashboard/timesheet-status");
+      if (res.ok) {
+        const json = await res.json();
+        setTodayMinutes(json.data?.todayMinutes ?? 0);
+      }
+    } catch {
+      // Non-blocking
+    }
+  };
+
+  useEffect(() => {
+    fetchTodayStatus();
+  }, []);
+
   // 1. Pull Today's Work
   const handleOpenPullModal = async () => {
-    setIsOpen(true);
+    setIsPullOpen(true);
     setLoadingActivity(true);
     try {
       const res = await fetch("/api/work-logs/today-activity");
       const json = await res.json();
       if (!res.ok || json.error) {
-        throw new Error(json.error || "Failed to load today's QA activities");
+        throw new Error(json.error || "Gagal memuat aktivitas QA hari ini");
       }
 
       const activities = json.data?.activities || {};
@@ -118,7 +149,7 @@ export function WorkLogAiActions() {
       setSuggestions(fetchedSuggestions);
       setSelectedIndices(new Set(fetchedSuggestions.map((_, idx) => idx)));
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to fetch activities", "error");
+      toast(err instanceof Error ? err.message : "Gagal mengambil aktivitas", "error");
     } finally {
       setLoadingActivity(false);
     }
@@ -146,7 +177,7 @@ export function WorkLogAiActions() {
   const handleInsertToWorkLog = async () => {
     const itemsToInsert = suggestions.filter((_, idx) => selectedIndices.has(idx));
     if (itemsToInsert.length === 0) {
-      toast("Please select at least one item to insert", "warning");
+      toast("Pilih minimal satu item untuk dimasukkan", "warning");
       return;
     }
 
@@ -159,7 +190,7 @@ export function WorkLogAiActions() {
         fd.append("category", item.category);
         fd.append("description", item.description);
         fd.append("output", item.output || "");
-        fd.append("notes", "");
+        fd.append("notes", item.output || item.description);
         fd.append("durationMinutes", String(item.durationMinutes || 60));
 
         const res = await fetch("/api/items/work-logs", {
@@ -169,15 +200,16 @@ export function WorkLogAiActions() {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "Failed to add work log");
+          throw new Error(errData.error || "Gagal menambahkan log kerja");
         }
       }
 
-      toast("Work logs added!", "success");
-      setIsOpen(false);
+      toast("Log kerja berhasil ditambahkan dan sync ke Sicmundus!", "success");
+      setIsPullOpen(false);
+      fetchTodayStatus();
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to insert work logs", "error");
+      toast(err instanceof Error ? err.message : "Gagal menambahkan log kerja", "error");
     } finally {
       setInserting(false);
     }
@@ -203,20 +235,19 @@ export function WorkLogAiActions() {
           const proj = item.project || "QA";
           const desc = item.description || "QA verification";
           const dur = formatDurationLabel(item.durationMinutes);
-          const out = item.output ? ` - ${item.output}` : "";
+          const out = item.output ? ` : ${item.output}` : "";
           lines.push(`• ${proj}: ${desc} (${dur})${out}`);
         }
       } else {
-        lines.push("• QA Ecosystem: Daily test execution and defect verification (4h) - Test passes completed");
+        lines.push("• QA Ecosystem: Daily test execution and defect verification (4h) : Test passes completed");
       }
       lines.push("• Blockers: None");
 
-      const standupReport = `*Daily Standup - ${todayDate}*\n${lines.join("\n")}`;
+      const standupReport = `*Daily Standup : ${todayDate}*\n${lines.join("\n")}`;
 
       try {
         await navigator.clipboard.writeText(standupReport);
       } catch {
-        // Fallback for browsers with restricted clipboard permissions
         const textarea = document.createElement("textarea");
         textarea.value = standupReport;
         textarea.style.position = "fixed";
@@ -228,44 +259,136 @@ export function WorkLogAiActions() {
         document.body.removeChild(textarea);
       }
 
-      toast("Copied standup report to clipboard!", "success");
+      toast("Laporan standup berhasil disalin ke clipboard!", "success");
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to copy standup format", "error");
+      toast(err instanceof Error ? err.message : "Gagal menyalin format standup", "error");
     } finally {
       setCopying(false);
     }
   };
 
+  const todayHoursFormatted = todayMinutes !== null ? (todayMinutes / 60).toFixed(1) : "0.0";
+  const isTodayTargetMet = todayMinutes !== null && todayMinutes >= 480;
+  const todayRemainingMinutes = todayMinutes !== null ? Math.max(0, 480 - todayMinutes) : 480;
+  const todayRemainingHours = (todayRemainingMinutes / 60).toFixed(1);
+
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Today's Daily 8h Target Indicator */}
+        {todayMinutes !== null && (
+          <div
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition",
+              isTodayTargetMet
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            )}
+            title={`Hari ini: ${todayHoursFormatted} jam tercatat. Target minimal harian adalah 8 jam.`}
+          >
+            {isTodayTargetMet ? (
+              <>
+                <CheckCircle size={14} weight="bold" className="text-emerald-600" />
+                <span>Hari Ini: <strong>{todayHoursFormatted}h</strong> (Min 8h ✓)</span>
+              </>
+            ) : (
+              <>
+                <WarningCircle size={14} weight="bold" className="text-amber-600" />
+                <span>Hari Ini: <strong>{todayHoursFormatted}h</strong> / 8h min</span>
+                <button
+                  type="button"
+                  onClick={() => setIsFillGapOpen(true)}
+                  className="ml-1 rounded bg-amber-600 hover:bg-amber-700 text-white px-1.5 py-0.5 text-[10px] font-bold transition"
+                  title="Genapkan waktu kerja ke minimal 8 jam"
+                >
+                  +{todayRemainingHours}h
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Quick Log AI (1 Kalimat) */}
+        <button
+          type="button"
+          onClick={() => setIsQuickLogOpen(true)}
+          title="Input cepat pekerjaan harian hanya dengan 1 kalimat santai"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 hover:bg-blue-100 transition active:scale-95"
+        >
+          <Sparkle size={14} weight="bold" className="text-blue-600" />
+          Quick Log (1 Kalimat)
+        </button>
+
+        {/* Timesheet Audit (Kalender Bulanan) */}
+        <button
+          type="button"
+          onClick={() => setIsAuditOpen(true)}
+          title="Buka audit kalender timesheet bulanan Sicmundus dan lengkapi hari yang bolong"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition active:scale-95"
+        >
+          <CalendarCheck size={14} weight="bold" className="text-emerald-600" />
+          Audit Timesheet
+        </button>
+
+        {/* Pull Today's QA Activity */}
         <button
           type="button"
           onClick={handleOpenPullModal}
-          title="Pull today's verified bugs, test sessions, and standup notes"
+          title="Tarik otomatis bug, sesi pengujian, dan catatan standup hari ini"
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-bold text-violet-700 hover:bg-violet-100 transition active:scale-95"
         >
-          <Sparkle size={14} weight="bold" className="text-violet-600" />
-          Pull Today&apos;s Work
+          <Clock size={14} weight="bold" className="text-violet-600" />
+          Tarik Aktivitas QA
         </button>
 
+        {/* Copy Standup */}
         <button
           type="button"
           onClick={handleCopyStandup}
           disabled={copying}
-          title="Copy today's work logs in Slack/Teams standup format"
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-bold text-sky-700 hover:bg-sky-100 transition active:scale-95 disabled:opacity-50"
+          title="Salin log kerja hari ini dalam format standup Slack atau Teams"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100 transition active:scale-95 disabled:opacity-50"
         >
-          <ClipboardText size={14} weight="bold" className="text-sky-600" />
-          {copying ? "Copying..." : "Copy Standup Format"}
+          <ClipboardText size={14} weight="bold" className="text-gray-600" />
+          {copying ? "Menyalin..." : "Salin Standup"}
         </button>
       </div>
 
+      {/* Submodal 1: Quick Log (1 Kalimat) */}
+      <WorkLogQuickModal
+        isOpen={isQuickLogOpen}
+        onClose={() => {
+          setIsQuickLogOpen(false);
+          fetchTodayStatus();
+        }}
+      />
+
+      {/* Submodal 2: Monthly Timesheet Audit */}
+      <WorkLogTimesheetAuditModal
+        isOpen={isAuditOpen}
+        onClose={() => {
+          setIsAuditOpen(false);
+          fetchTodayStatus();
+        }}
+      />
+
+      {/* Submodal 3: Fill Today's Gap */}
+      <WorkLogFillGapModal
+        isOpen={isFillGapOpen}
+        onClose={() => {
+          setIsFillGapOpen(false);
+          fetchTodayStatus();
+        }}
+        date={new Date().toISOString().slice(0, 10)}
+        currentMinutes={todayMinutes ?? 0}
+      />
+
+      {/* Submodal 4: Pull Today's Work Modal */}
       <ModalShell
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Today's QA Activity & Suggested Logs"
-        description="Activities detected from test sessions, verified bugs, and standup notes."
+        isOpen={isPullOpen}
+        onClose={() => setIsPullOpen(false)}
+        title="Aktivitas QA Hari Ini & Saran Log"
+        description="Aktivitas yang terdeteksi dari sesi pengujian, bug yang diverifikasi, dan catatan standup."
         maxWidth="2xl"
         icon={
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600 border border-violet-200">
@@ -275,16 +398,16 @@ export function WorkLogAiActions() {
         footer={
           <div className="flex items-center justify-between w-full">
             <span className="text-xs text-gray-500">
-              {selectedIndices.size} of {suggestions.length} selected
+              {selectedIndices.size} dari {suggestions.length} item dipilih
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setIsPullOpen(false)}
                 disabled={inserting}
                 className="h-8 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -295,12 +418,12 @@ export function WorkLogAiActions() {
                 {inserting ? (
                   <>
                     <ArrowsClockwise size={13} weight="bold" className="animate-spin" />
-                    Adding...
+                    Menambahkan...
                   </>
                 ) : (
                   <>
                     <Plus size={13} weight="bold" />
-                    Insert to Work Log ({selectedIndices.size})
+                    Masukkan ke Log ({selectedIndices.size})
                   </>
                 )}
               </button>
@@ -311,7 +434,7 @@ export function WorkLogAiActions() {
         {loadingActivity ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500 space-y-2">
             <ArrowsClockwise size={24} weight="bold" className="animate-spin text-violet-600" />
-            <p className="text-xs font-medium">Scanning today&apos;s test sessions and bug activity...</p>
+            <p className="text-xs font-medium">Memindai sesi pengujian dan aktivitas bug hari ini...</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -320,33 +443,33 @@ export function WorkLogAiActions() {
               <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
                 <div className="flex items-center gap-2 text-blue-700 mb-1">
                   <Flask size={15} weight="bold" />
-                  <span className="text-xs font-bold">Test Sessions</span>
+                  <span className="text-xs font-bold">Sesi Pengujian</span>
                 </div>
                 <div className="text-lg font-bold text-blue-900">{testSessions.length}</div>
                 <p className="text-[11px] text-blue-600">
-                  {testSessions.length > 0 ? "Executed today" : "None recorded today"}
+                  {testSessions.length > 0 ? "Dijalankan hari ini" : "Tidak ada tercatat"}
                 </p>
               </div>
 
               <div className="rounded-lg border border-rose-100 bg-rose-50/60 p-3">
                 <div className="flex items-center gap-2 text-rose-700 mb-1">
                   <Bug size={15} weight="bold" />
-                  <span className="text-xs font-bold">Bugs Verified</span>
+                  <span className="text-xs font-bold">Bug Terverifikasi</span>
                 </div>
                 <div className="text-lg font-bold text-rose-900">{bugs.length}</div>
                 <p className="text-[11px] text-rose-600">
-                  {bugs.length > 0 ? "Verified / triaged today" : "None recorded today"}
+                  {bugs.length > 0 ? "Diverifikasi hari ini" : "Tidak ada tercatat"}
                 </p>
               </div>
 
               <div className="rounded-lg border border-purple-100 bg-purple-50/60 p-3">
                 <div className="flex items-center gap-2 text-purple-700 mb-1">
                   <ChatCenteredText size={15} weight="bold" />
-                  <span className="text-xs font-bold">Standup Notes</span>
+                  <span className="text-xs font-bold">Catatan Standup</span>
                 </div>
                 <div className="text-lg font-bold text-purple-900">{standupNotes.length}</div>
                 <p className="text-[11px] text-purple-600">
-                  {standupNotes.length > 0 ? "Synced with team" : "None recorded today"}
+                  {standupNotes.length > 0 ? "Tersinkron dengan tim" : "Tidak ada tercatat"}
                 </p>
               </div>
             </div>
@@ -355,7 +478,7 @@ export function WorkLogAiActions() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700">
-                  Suggested Work Log Entries
+                  Saran Entri Log Kerja
                 </h4>
                 {suggestions.length > 0 && (
                   <button
@@ -363,14 +486,14 @@ export function WorkLogAiActions() {
                     onClick={toggleSelectAll}
                     className="text-[11px] font-semibold text-violet-600 hover:text-violet-700 hover:underline"
                   >
-                    {selectedIndices.size === suggestions.length ? "Deselect All" : "Select All"}
+                    {selectedIndices.size === suggestions.length ? "Batal Pilih Semua" : "Pilih Semua"}
                   </button>
                 )}
               </div>
 
               {suggestions.length === 0 ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-xs text-gray-500">
-                  No activities detected today to convert into work logs.
+                  Tidak ada aktivitas terdeteksi hari ini untuk dikonversi menjadi log kerja.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
