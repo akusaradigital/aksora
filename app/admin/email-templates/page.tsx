@@ -50,7 +50,7 @@ const TEMPLATES = [
     id: "assigned",
     name: "Task / Bug Assigned",
     description: "Real-time notification when user is assigned to a defect or task.",
-    defaults: { entityType: "Bug", title: "Auth token session expiration crash on reload", assignedBy: "Sarah Jenkins (PM)" },
+    defaults: { entityType: "Bug", title: "Auth token session expiration crash on reload", assignedBy: "Jessica Taylor (PM)" },
   },
   {
     id: "sprint-deadline",
@@ -83,7 +83,7 @@ export default function EmailTemplatesPage() {
     acceptedEmail: "alex@company.com",
     entityType: "Bug",
     title: "Auth token session expiration crash on reload",
-    assignedBy: "Sarah Jenkins (PM)",
+    assignedBy: "Jessica Taylor (PM)",
     sprintName: "Sprint 14 - Performance & Auth",
     endDate: "August 28, 2026",
     taskCount: 4,

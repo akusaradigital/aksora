@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Aksora Recorder</title>
+  <style>
+    :root { color-scheme: light; --ink: #0f172a; --muted: #475569; --line: #e2e8f0; --brand: #2563eb; --bad: #be123c; --ok: #047857; }
+    body { margin: 0; width: 300px; font: 13px/1.4 system-ui, sans-serif; color: var(--ink); background: #fff; }
+    main { padding: 14px; display: grid; gap: 10px; }
+    h1 { font-size: 14px; margin: 0; }
+    label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+    input { height: 30px; padding: 0 8px; border: 1px solid var(--line); font: inherit; }
+    input:focus, button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+    button { height: 32px; border: 1px solid var(--line); background: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    button.stop { background: var(--bad); border-color: var(--bad); color: #fff; }
+    #status { font-size: 12px; color: var(--muted); min-height: 1.4em; }
+    #status.error { color: var(--bad); }
+    #status.ok { color: var(--ok); }
+    details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+    details[open] { display: grid; gap: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Aksora Recorder</h1>
+    <label>Recording title <input id="title" placeholder="e.g. Checkout with saved card" /></label>
+    <button id="start" class="primary" type="button">Start recording</button>
+    <button id="stop" class="stop" type="button" hidden>Stop and send to Aksora</button>
+    <p id="status" role="status" aria-live="polite"></p>
+    <details id="settings">
+      <summary>Settings</summary>
+      <label>Aksora URL <input id="url" type="url" placeholder="https://aksora.example.com" /></label>
+      <label>API key <input id="key" type="password" autocomplete="off" placeholder="From Settings > API keys" /></label>
+      <button id="save" type="button">Save settings</button>
+    </details>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

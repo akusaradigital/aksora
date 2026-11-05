@@ -14,7 +14,7 @@ import { buildWorkspaceUrl, withUpdatedWorkspaceParams } from "@/components/modu
 import { useDetailViewUrl } from "@/hooks/use-detail-view-url";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { getUserRoleOptions } from "@/lib/roles";
-import { getLatestVersion, getNextVersion } from "@/components/module/module-workspace-content-helpers";
+import { getLatestVersion, getNextVersion, applyWorkLogsDateRowSpan } from "@/components/module/module-workspace-content-helpers";
 import { useWorkspaceRowHandlers, useColumnVisibility } from "@/components/module/module-workspace-content-handlers";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
 
@@ -265,8 +265,8 @@ export function ModuleWorkspace({
     replaceWorkspaceUrl(withUpdatedWorkspaceParams(currentSearch, (p) => { p.set("page", String(targetPage)); }));
   }, [currentSearch, replaceWorkspaceUrl]);
 
-  // All modules support manual reordering
-  const reorderable = true;
+  // All modules support manual reordering except work-logs which is strictly chronological
+  const reorderable = module !== "work-logs";
 
   const visibleRows = useMemo(() => {
     let result = localRows;
@@ -342,6 +342,13 @@ export function ModuleWorkspace({
           dateRowSpan: group && group.start === index ? group.count : 0,
         };
       });
+    }
+
+    if (module === "work-logs") {
+      const sortBy = searchParams.get("sortBy");
+      const sortDir = searchParams.get("sortDir");
+      const isCustomSort = Boolean(sortBy && sortBy !== "date");
+      return applyWorkLogsDateRowSpan(result, isCustomSort, sortDir);
     }
 
     return result;

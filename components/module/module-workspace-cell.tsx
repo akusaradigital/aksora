@@ -74,31 +74,35 @@ export function ModuleWorkspaceCell({ module, row, column, value: rawValue, onIn
   if (
     ((module === "test-suites" || module === "test-cases") && column.key === "testPlanLabel") ||
     (module === "test-plans" && column.key === "project") ||
-    (module === "tasks" && column.key === "date")
+    ((module === "tasks" || module === "work-logs") && column.key === "date")
   ) {
     const rowSpanKey =
       module === "test-plans"
         ? "projectRowSpan"
-        : module === "tasks"
+        : (module === "tasks" || module === "work-logs")
         ? "dateRowSpan"
         : "testPlanRowSpan";
     const rowSpan = Number(row[rowSpanKey] ?? 1);
     if (rowSpan === 0) return null;
+    const formattedDate =
+      (module === "tasks" || module === "work-logs") && column.key === "date"
+        ? formatDate(value == null ? null : String(value))
+        : String(value || "-");
     return (
       <td
         key={column.key}
         rowSpan={rowSpan}
         className={cn(
           "max-w-64 border-b border-gray-200/60 px-4 py-3 text-sm text-gray-700 align-top whitespace-pre-wrap break-words",
-          module === "tasks" && column.key === "date" && "font-medium text-slate-800 bg-slate-50/60 border-r border-gray-200/70",
+          (module === "tasks" || module === "work-logs") && column.key === "date" && "font-medium text-slate-800 bg-slate-50/60 border-r border-gray-200/70",
         )}
       >
         {column.internalLink && value ? (
           <Link href={column.internalLink(row)} className="break-all font-semibold text-blue-700 hover:underline">
-            <HighlightText text={String(value)} query="" linkify={false} />
+            <HighlightText text={formattedDate} query="" linkify={false} />
           </Link>
         ) : (
-          <HighlightText text={String(value || "-")} query="" linkify={!column.internalLink} />
+          <HighlightText text={formattedDate} query="" linkify={!column.internalLink} />
         )}
       </td>
     );

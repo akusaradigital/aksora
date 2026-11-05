@@ -93,7 +93,7 @@ async function syncAll() {
           t.description || t.title,
           duration,
           t.id,
-          'Wahyu Priyono',
+          'Alexander Wright',
         ]
       );
       taskCreated++;
@@ -155,7 +155,7 @@ async function syncAll() {
           projectName,
           title,
           e.notes || '',
-          'Wahyu Priyono',
+          'Alexander Wright',
           e.task_id,
           e.subtask_id || '',
           e.id,

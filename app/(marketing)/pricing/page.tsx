@@ -16,29 +16,33 @@ export default function PricingPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Pricing</p>
-          <h1 className="text-3xl font-bold sm:text-4xl">Plans that scale with your team</h1>
-          <p className="mt-4 text-[15px] text-gray-400 max-w-2xl mx-auto">
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-center text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-4xl">
+          <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+            Pricing
+          </span>
+          <h1 className="text-3xl font-extrabold sm:text-5xl tracking-tight text-white">
+            Plans that scale with your team
+          </h1>
+          <p className="mt-4 text-sm sm:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
             Start free with full functionality for small teams. Upgrade as your QA operations grow. No hidden fees, no per-feature charges, no surprises.
           </p>
         </div>
       </section>
 
       {/* Pricing Cards */}
-      <section className="border-b border-gray-100">
+      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-16">
           <PricingSection />
         </div>
       </section>
 
       {/* All plans include */}
-      <section className="border-b border-gray-100 bg-gray-50">
+      <section className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50 transition-colors">
         <div className="mx-auto max-w-4xl px-5 py-16">
           <div className="text-center mb-10">
-            <h2 className="text-xl font-bold text-gray-900">All plans include</h2>
-            <p className="mt-2 text-[13px] text-gray-500">Core capabilities available on every plan, including free.</p>
+            <h2 className="text-2xl font-bold text-slate-950 dark:text-white">All plans include</h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">Core capabilities available on every plan, including free.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <IncludedItem text="Role-based access control (8 roles)" />
@@ -55,10 +59,10 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="border-b border-gray-100">
+      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 transition-colors">
         <div className="mx-auto max-w-3xl px-5 py-16">
           <div className="text-center mb-10">
-            <h2 className="text-xl font-bold text-gray-900">Frequently Asked Questions</h2>
+            <h2 className="text-2xl font-bold text-slate-950 dark:text-white">Frequently Asked Questions</h2>
           </div>
           <div className="space-y-4">
             <FaqItem q="Is the free plan really free forever?" a="Yes. The Starter plan has no time limit and no credit card requirement. It's designed for small teams (up to 5 members) who need professional QA tools without the cost. You'll never be forced to upgrade." />
@@ -72,18 +76,17 @@ export default function PricingPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">Start building quality today</h2>
-          <p className="mt-4 text-[14px] text-gray-400 max-w-lg mx-auto">
+      <section className="bg-white dark:bg-slate-950 py-16 px-5 sm:px-8 transition-colors">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 px-8 py-16 text-center text-white shadow-xl">
+          <h2 className="text-2xl font-extrabold sm:text-4xl">Start building quality today</h2>
+          <p className="mt-4 text-sm text-blue-100 max-w-lg mx-auto">
             Create your workspace in under 2 minutes. No credit card required for free plan or Pro trial.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-7 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login" className="rounded-full bg-[#a3e635] px-7 py-3 text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#bef264]">
               Get Started Free
-              <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
-            <Link href="/contact" className="inline-flex items-center gap-1.5 border border-white/15 px-7 py-3 text-[13px] font-medium text-gray-300 hover:bg-white/5 transition-colors">
+            <Link href="/contact" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-xs font-semibold text-white hover:bg-white/20 transition">
               Contact Sales
             </Link>
           </div>
@@ -95,18 +98,18 @@ export default function PricingPage() {
 
 function IncludedItem({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-2.5 bg-white border border-gray-200 px-4 py-3">
-      <CheckCircle size={14} weight="bold" className="shrink-0 text-emerald-500" aria-hidden="true" />
-      <span className="text-[12px] text-gray-700">{text}</span>
+    <div className="flex items-center gap-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 shadow-2xs">
+      <CheckCircle size={15} weight="bold" className="shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+      <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{text}</span>
     </div>
   );
 }
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
-    <div className="border border-gray-200 bg-white p-6">
-      <h3 className="text-[13px] font-bold text-gray-900">{q}</h3>
-      <p className="mt-2 text-[12px] text-gray-500 leading-relaxed">{a}</p>
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xs">
+      <h3 className="text-sm font-bold text-slate-950 dark:text-white">{q}</h3>
+      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{a}</p>
     </div>
   );
 }

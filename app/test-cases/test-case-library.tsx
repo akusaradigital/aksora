@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from"react";
 import Link from"next/link";
 import { cn, formatDisplayText } from"@/lib/utils";
 import { Badge } from"@/components/shared/badge";
+import { MaturityBadge } from "@/components/test-management/maturity-badge";
 import {
  CheckCircle,
  XCircle,
@@ -29,11 +30,12 @@ import {
  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
- SortableContext,
- verticalListSortingStrategy,
- useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AiGenerateCasesButton } from "@/components/test-management/ai-generate-cases-button";
 
 type TestCase = {
  id: number;
@@ -48,6 +50,8 @@ type TestCase = {
  status: string;
  priority: string;
  evidence: string;
+ maturity?: string;
+ category?: string;
  suiteTitle: string | null;
  suiteToken: string | null;
  suiteStatus: string | null;
@@ -145,7 +149,10 @@ function SortableTestCaseRow({
    </td>
    <td className="max-w-[360px] px-3 py-3.5 align-top">
     <div className="space-y-1">
-     <p className="truncate font-semibold text-gray-800">{testCase.caseName}</p>
+     <div className="flex min-w-0 items-center gap-2">
+      <p className="truncate font-semibold text-gray-800">{testCase.caseName}</p>
+      <MaturityBadge maturity={testCase.maturity} className="shrink-0" />
+     </div>
      {testCase.actualResult && (
       <p className="mt-0 truncate text-xs text-gray-400">{testCase.actualResult}</p>
      )}
@@ -564,6 +571,11 @@ export function TestCaseLibrary({ cases, initialSearch ="" }: { cases: TestCase[
  <span className="flex items-center gap-1"><Warning size={13} className="text-amber-500" />{selected.blocked}</span>
  <span className="flex items-center gap-1"><Clock size={13} className="text-gray-400" />{selected.pending}</span>
  </div>
+ <AiGenerateCasesButton
+   suiteId={String(selected.cases[0]?.testSuiteId || selected.key || "")}
+   suiteLabel={selected.suiteTitle}
+   existingCases={selected.cases}
+ />
  {(selected.suiteToken || selected.key) && (
  <div ref={menuRef} className="relative">
  <button

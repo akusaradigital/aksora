@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { WorkLogQuickModal } from "./work-log-quick-modal";
 import { WorkLogTimesheetAuditModal } from "./work-log-timesheet-audit-modal";
 import { WorkLogFillGapModal } from "./work-log-fill-gap-modal";
-
+import { getSicmundusAuthPayload } from "@/lib/sicmundus-client";
 interface BugActivity {
   id: number | string;
   title: string;
@@ -271,7 +271,12 @@ export function WorkLogAiActions() {
   const handleSyncSicmundus = async () => {
     setSyncingSicmundus(true);
     try {
-      const res = await fetch("/api/work-logs/sync-sicmundus", { method: "POST" });
+      const authPayload = getSicmundusAuthPayload();
+      const res = await fetch("/api/work-logs/sync-sicmundus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(authPayload),
+      });
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.error || "Gagal sinkronisasi Sicmundus");

@@ -359,7 +359,7 @@ export function renderEmailTemplate(
     case "assigned": {
       const entityType = params.entityType || "Bug";
       const title = params.title || "Auth token session expiration crash on reload";
-      const assignedBy = params.assignedBy || "Sarah Jenkins (PM)";
+      const assignedBy = params.assignedBy || "Jessica Taylor (PM)";
 
       const subject = isId
         ? `[Aksora] Anda ditugaskan: ${title}`

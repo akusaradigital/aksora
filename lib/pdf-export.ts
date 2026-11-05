@@ -290,3 +290,83 @@ function sanitizePdfText(value: unknown) {
     .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, (char) => PDF_TEXT_REPLACEMENTS[char] ?? "?")
     .replace(PDF_SAFE_CHARACTERS, "?");
 }
+
+export type ReportPdfInput = {
+  title: string;
+  subtitle: string;
+  logo?: Buffer | null;
+  /** Label/value pairs shown on the cover, e.g. Pass rate. */
+  facts: [string, string][];
+  /** Column labels with a width weight; widths are scaled to the page. */
+  columns: { label: string; weight: number }[];
+  rows: string[][];
+};
+
+/** Cover page (optional logo, title, facts) followed by a paginated table. Used by run and suite PDF exports. */
+export async function buildReportPdf(input: ReportPdfInput) {
+  const doc = new PDFDocument({
+    size: "A4",
+    layout: "landscape",
+    margin: PAGE_MARGIN,
+    bufferPages: true,
+    info: { Title: sanitizePdfText(input.title), Author: "Aksora" },
+  });
+
+  const chunks: Buffer[] = [];
+  return new Promise<Buffer>((resolve, reject) => {
+    doc.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    doc.on("error", reject);
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+
+    registerPdfFonts(doc);
+    drawCover(doc, input);
+
+    const available = doc.page.width - PAGE_MARGIN * 2;
+    const weightSum = input.columns.reduce((s, c) => s + c.weight, 0) || 1;
+    const specs: ColumnSpec[] = input.columns.map((c) => ({
+      label: c.label,
+      fieldName: c.label,
+      width: Math.floor((c.weight / weightSum) * available),
+    }));
+
+    doc.addPage();
+    let rowTop = drawTableHeader(doc, specs, PAGE_MARGIN);
+    input.rows.forEach((values, index) => {
+      const rowHeight = measureRowHeight(doc, specs, values);
+      if (rowTop + rowHeight > doc.page.height - PAGE_MARGIN) {
+        doc.addPage();
+        rowTop = drawTableHeader(doc, specs, PAGE_MARGIN);
+      }
+      drawDataRow(doc, specs, rowTop, values, index % 2 === 1);
+      rowTop += rowHeight;
+    });
+    doc.end();
+  });
+}
+
+function drawCover(doc: PDFKit.PDFDocument, input: ReportPdfInput) {
+  let y = PAGE_MARGIN + 40;
+  if (input.logo) {
+    try {
+      doc.image(input.logo, PAGE_MARGIN + 16, y, { fit: [180, 72] });
+      y += 96;
+    } catch {
+      // Corrupt image: render the cover without it.
+    }
+  }
+  doc.font(PDF_FONT_BOLD).fontSize(28).fillColor("#0f172a")
+    .text(sanitizePdfText(input.title), PAGE_MARGIN + 16, y, { width: doc.page.width - PAGE_MARGIN * 2 - 32 });
+  doc.font(PDF_FONT_REGULAR).fontSize(12).fillColor("#475569")
+    .text(sanitizePdfText(input.subtitle), PAGE_MARGIN + 16, doc.y + 6);
+
+  y = doc.y + 28;
+  input.facts.forEach(([label, value], i) => {
+    const x = PAGE_MARGIN + 16 + (i % 4) * 190;
+    const rowY = y + Math.floor(i / 4) * 60;
+    doc.font(PDF_FONT_REGULAR).fontSize(SUBTITLE_FONT).fillColor("#64748b").text(sanitizePdfText(label.toUpperCase()), x, rowY);
+    doc.font(PDF_FONT_BOLD).fontSize(20).fillColor("#0f172a").text(sanitizePdfText(value), x, rowY + 14);
+  });
+
+  doc.font(PDF_FONT_REGULAR).fontSize(SUBTITLE_FONT).fillColor("#94a3b8")
+    .text(sanitizePdfText(`Generated ${formatIndonesiaTimestamp()} by Aksora`), PAGE_MARGIN + 16, doc.page.height - PAGE_MARGIN - 20, { lineBreak: false });
+}

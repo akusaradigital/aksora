@@ -30,12 +30,14 @@ export async function POST(request: NextRequest) {
     role?: string;
     expiresInDays?: number;
     workspaceId?: number;
+    projectId?: number;
   } | null;
 
   const result = await createInvite({
     role: isInviteRole(body?.role) ? normalizeRole(body?.role) : "qa",
     expiresInDays: body?.expiresInDays,
     workspaceId: body?.workspaceId,
+    projectId: body?.projectId,
   });
 
   if ("error" in result) {

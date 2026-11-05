@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       project: body.project,
       description: body.description,
       category: body.category,
-      assignee: user.name || "Wahyu Priyono",
+      assignee: user.name || "Alexander Wright",
       actor: user.name || "User",
       company,
       workspaceId,

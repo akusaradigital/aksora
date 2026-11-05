@@ -807,7 +807,7 @@ describe("module row queries", () => {
     const rows = await getModuleRows("users");
 
     expect(mocks.db.query).toHaveBeenCalledWith(
-      'SELECT id, name, email, role, company, "createdAt" FROM "User"  WHERE "company" = ? ORDER BY "createdAt" DESC',
+      'SELECT id, uuid, name, email, role, company, "createdAt" FROM "User"  WHERE "company" = ? ORDER BY "createdAt" DESC',
       ["acme"],
     );
     expect(rows).toEqual([

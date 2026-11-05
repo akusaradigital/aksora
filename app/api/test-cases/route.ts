@@ -32,17 +32,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
     }
 
+    const workspaceId = user.activeWorkspaceId ?? null;
     if (!isAdmin) {
-      const suite = await db.get('SELECT "company" FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL', [testSuiteId]) as { company?: string } | undefined;
-      if (!suite || suite.company !== company) {
+      const suite = await db.get('SELECT "company", "workspaceId" FROM "TestSuite" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL', [testSuiteId]) as { company?: string; workspaceId?: number | null } | undefined;
+      if (!suite || (workspaceId && suite.workspaceId && suite.workspaceId !== workspaceId) || (!workspaceId && suite.company !== company)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
+    const { randomUUID } = await import("crypto");
     await db.run(
-      `INSERT INTO "TestCase" ("company", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [company, makePublicToken(), testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, evidence, priority]
+      `INSERT INTO "TestCase" ("uuid", "company", "workspaceId", "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", "testStep", "expectedResult", "actualResult", "status", "evidence", "priority")
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [randomUUID(), company, workspaceId, makePublicToken(), testSuiteId, tcId, typeCase, preCondition, caseName, testStep, expectedResult, actualResult, status, evidence, priority]
     );
 
     revalidatePath("/test-cases");

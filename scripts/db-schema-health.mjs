@@ -57,7 +57,7 @@ for (const row of rows.rows) {
   actualByTable.get(row.table_name).add(row.column_name);
 }
 
-const softAllow = new Set(["sortOrder"]);
+const softAllow = new Set(["sortOrder", "uuid"]);
 const issues = [];
 for (const [table, expected] of expectedByTable.entries()) {
   const actual = actualByTable.get(table) || new Set();

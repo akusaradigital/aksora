@@ -132,13 +132,13 @@ const dict: Dictionary = {
       },
       {
         quote: "Akhirnya, satu tempat di mana test case, sprint task, dan daily standup hidup berdampingan. Kami sepenuhnya meninggalkan spreadsheet dan rapat sinkronisasi berulang.",
-        author: "Devi Pratama",
+        author: "Daniel Reed",
         role: "Head of Engineering",
-        company: "Nusantara Digital",
+        company: "Apex Systems",
       },
       {
         quote: "Workload heatmap dan skor kesehatan kualitas memberi PM dan manajer engineering visibilitas instan atas kapasitas tim dan risiko rilis.",
-        author: "Sarah Jenkins",
+        author: "Jessica Taylor",
         role: "Senior Engineering Manager",
         company: "CloudVibe Labs",
       },

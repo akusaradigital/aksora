@@ -1,155 +1,75 @@
 "use client";
 
 import Link from "next/link";
-import { Checks, Play, Bug, Users } from "@phosphor-icons/react";
-
-type SparklineProps = {
-  data: number[];
-  color: string;
-};
-
-function MiniSparkline({ data, color }: SparklineProps) {
-  if (!data || data.length < 2) return null;
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const width = 84;
-  const height = 30;
-  const padding = 2;
-
-  const points = data.map((val, idx) => {
-    const x = padding + (idx / (data.length - 1)) * (width - padding * 2);
-    const y = height - padding - ((val - min) / range) * (height - padding * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-
-  const pathD = `M ${points.join(" L ")}`;
-
-  return (
-    <svg
-      width={width}
-      height={height}
-      className="overflow-visible shrink-0"
-      aria-hidden="true"
-    >
-      <path
-        d={pathD}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { Checks, Play, Bug, Briefcase } from "@phosphor-icons/react";
 
 export type KpiData = {
-  testCases: { value: number; change: string; isPositive: boolean; trend: number[] };
-  testRuns: { value: number; change: string; isPositive: boolean; trend: number[] };
-  openBugs: { value: number; change: string; isPositive: boolean; trend: number[] };
-  activeTasks: { value: number; change: string; isPositive: boolean; trend: number[] };
+  testCases: { value: number; change?: string; isPositive?: boolean };
+  testRuns: { value: number; change?: string; isPositive?: boolean };
+  openBugs: { value: number; change?: string; isPositive?: boolean };
+  activeTasks: { value: number; change?: string; isPositive?: boolean };
 };
 
 export function DashboardKpiCards({ kpis }: { kpis: KpiData }) {
   const cards = [
     {
-      title: "Test Cases",
-      value: kpis.testCases.value,
-      change: kpis.testCases.change,
-      isPositive: kpis.testCases.isPositive,
-      icon: <Checks size={20} weight="bold" className="text-blue-600" />,
-      iconBg: "bg-blue-50 text-blue-600",
-      strokeColor: "#3b82f6",
+      title: "Save Test Cases",
+      value: kpis.testCases.value > 0 ? `${kpis.testCases.value}+` : "0",
+      raw: kpis.testCases.value,
+      circleBg: "bg-sky-100 text-sky-600 dark:bg-sky-950/70 dark:text-sky-300",
+      icon: <Checks size={24} weight="bold" />,
       href: "/test-cases",
-      trend: kpis.testCases.trend,
     },
     {
-      title: "Test Runs",
-      value: kpis.testRuns.value,
-      change: kpis.testRuns.change,
-      isPositive: kpis.testRuns.isPositive,
-      icon: <Play size={18} weight="bold" className="text-emerald-500 fill-emerald-500" />,
-      iconBg: "bg-emerald-50 text-emerald-600",
-      strokeColor: "#10b981",
+      title: "Active Runs & Sessions",
+      value: kpis.testRuns.value > 0 ? `${kpis.testRuns.value}+` : "0",
+      raw: kpis.testRuns.value,
+      circleBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/70 dark:text-amber-300",
+      icon: <Play size={22} weight="fill" />,
       href: "/test-execution",
-      trend: kpis.testRuns.trend,
     },
     {
-      title: "Open Bugs",
-      value: kpis.openBugs.value,
-      change: kpis.openBugs.change,
-      isPositive: false,
-      icon: <Bug size={20} weight="bold" className="text-rose-600" />,
-      iconBg: "bg-rose-50 text-rose-600",
-      strokeColor: "#ef4444",
+      title: "Defects & Open Bugs",
+      value: kpis.openBugs.value > 0 ? `${kpis.openBugs.value}+` : "0",
+      raw: kpis.openBugs.value,
+      circleBg: "bg-rose-100 text-rose-600 dark:bg-rose-950/70 dark:text-rose-300",
+      icon: <Bug size={24} weight="bold" />,
       href: "/bugs",
-      trend: kpis.openBugs.trend,
     },
     {
-      title: "Active Tasks",
-      value: kpis.activeTasks.value,
-      change: kpis.activeTasks.change,
-      isPositive: kpis.activeTasks.isPositive,
-      icon: <Users size={20} weight="bold" className="text-purple-600" />,
-      iconBg: "bg-purple-50 text-purple-600",
-      strokeColor: "#a855f7",
+      title: "Active Tasks & Sprints",
+      value: kpis.activeTasks.value > 0 ? `${kpis.activeTasks.value}+` : "0",
+      raw: kpis.activeTasks.value,
+      circleBg: "bg-purple-100 text-purple-600 dark:bg-purple-950/70 dark:text-purple-300",
+      icon: <Briefcase size={24} weight="bold" />,
       href: "/tasks",
-      trend: kpis.activeTasks.trend,
     },
   ];
 
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => {
-        const isUp = card.change.includes("↑");
-        const changeParts = card.change.split(" ");
-        const arrow = isUp ? "↑" : "↓";
-        const metricVal = changeParts[1] || "";
-        const restText = changeParts.slice(2).join(" ");
-
-        return (
-          <Link
-            key={card.title}
-            href={card.href}
-            className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-slate-200 hover:shadow-md"
+    <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {cards.map((card) => (
+        <Link
+          key={card.title}
+          href={card.href}
+          className="group flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition hover:border-slate-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+        >
+          {/* Circular colored icon matching Group 659 */}
+          <div
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105 ${card.circleBg}`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${card.iconBg}`}
-                >
-                  {card.icon}
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-slate-500">
-                    {card.title}
-                  </span>
-                  <div className="text-2xl font-black tracking-tight text-slate-900">
-                    {card.value}
-                  </div>
-                </div>
-              </div>
-              <div className="pt-2">
-                <MiniSparkline data={card.trend} color={card.strokeColor} />
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center gap-1.5 text-xs">
-              <span
-                className={`flex items-center gap-0.5 font-bold ${
-                  card.isPositive ? "text-emerald-600" : "text-rose-600"
-                }`}
-              >
-                <span>{arrow}</span>
-                <span>{metricVal}</span>
-              </span>
-              <span className="text-slate-400 font-medium">{restText}</span>
-            </div>
-          </Link>
-        );
-      })}
+            {card.icon}
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-2xl font-black tracking-tight text-slate-950 dark:text-white tabular-nums">
+              {card.value}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+              {card.title}
+            </span>
+          </div>
+        </Link>
+      ))}
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { logActivity, getAccessScope } from "@/lib/data-helpers";
+import { getEnvironmentForRun } from "@/lib/test-environments";
 
 // GET /api/execution-runs?suiteId=123 - list runs for a suite
 export async function GET(request: NextRequest) {
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
   const { company, workspaceId, andWhere, params: qParams } = getAccessScope(user);
   const body = await request.json();
   const { testSuiteId, testPlanId = "", runType = "manual", viewports = "" } = body;
+  const environmentId = body.environmentId ? Number(body.environmentId) : null;
 
   if (!testSuiteId) {
     return NextResponse.json({ error: "testSuiteId is required" }, { status: 400 });
@@ -45,6 +47,14 @@ export async function POST(request: NextRequest) {
   );
   const runNumber = (Number(lastRun?.maxNum) || 0) + 1;
 
+  if (environmentId) {
+    try {
+      await getEnvironmentForRun(environmentId, workspaceId);
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : "Invalid environment" }, { status: 400 });
+    }
+  }
+
   const caseCount = await db.get<{ cnt: number }>(
     `SELECT COUNT(*) as "cnt" FROM "TestCase"
      WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL${andWhere}`,
@@ -53,9 +63,9 @@ export async function POST(request: NextRequest) {
   const totalCases = Number(caseCount?.cnt) || 0;
 
   await db.run(
-    `INSERT INTO "ExecutionRun" ("company", "workspaceId", "testSuiteId", "testPlanId", "runNumber", "runType", "viewports", "status", "tester", "totalCases", "startedAt")
-     VALUES (?, ?, CAST(? AS INTEGER), ?, ?, ?, ?, 'in-progress', ?, ?, CURRENT_TIMESTAMP)`,
-    [company, workspaceId, testSuiteId, testPlanId, runNumber, runType, viewports, user.name || user.email || "", totalCases]
+    `INSERT INTO "ExecutionRun" ("company", "workspaceId", "testSuiteId", "testPlanId", "runNumber", "runType", "viewports", "status", "tester", "totalCases", "startedAt", "environmentId")
+     VALUES (?, ?, CAST(? AS INTEGER), ?, ?, ?, ?, 'in-progress', ?, ?, CURRENT_TIMESTAMP, ?)`,
+    [company, workspaceId, testSuiteId, testPlanId, runNumber, runType, viewports, user.name || user.email || "", totalCases, environmentId]
   );
 
   const run = await db.get<Record<string, unknown>>(

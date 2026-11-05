@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { isPlatformSuperAdmin } from "@/lib/auth-core";
 import { getCurrentUser } from "@/lib/auth";
+import { isOwnerUser } from "@/lib/workspace-memberships";
 import { buildSearchTokenClause, syncSearchTokens } from "@/lib/search-index";
 import { notifyChannel, ACTIVITY_NOTIFY_CHANNEL } from "@/lib/db-notify";
 import { dispatchWebhooks } from "@/lib/webhooks";
@@ -11,8 +12,9 @@ export type CurrentUser = Awaited<ReturnType<typeof getCurrentUser>>;
 export function getAccessScope(user: CurrentUser | null = null) {
   const company = String(user?.company ?? "").trim();
   const isAdmin = isPlatformSuperAdmin(user?.role, company);
-  const workspaceId = user?.activeWorkspaceId ?? (company ? null : 1);
-  const effectiveCompany = company || "Akusara Project";
+  const isOwner = user ? isOwnerUser(user.email) : false;
+  const workspaceId = user?.activeWorkspaceId ?? (isOwner ? 1 : null);
+  const effectiveCompany = company || (isOwner ? "Akusara Project" : "");
 
   // Primary scoping: workspaceId (integer FK) when available.
   // Fallback to company string when no workspaceId is available. Superadmin (isAdmin) gets no filter.
@@ -45,8 +47,8 @@ export function getAccessScope(user: CurrentUser | null = null) {
 }
 
 export function buildScopedCondition(isAdmin: boolean, workspaceId: number | null | undefined, company: string, prefix = "", useWhere = false) {
-  const effectiveWs = workspaceId ?? (company ? null : 1);
-  const effectiveComp = company || "Akusara Project";
+  const effectiveWs = workspaceId ?? null;
+  const effectiveComp = company || "";
   const col = effectiveWs ? '"workspaceId"' : '"company"';
   const targetCol = prefix ? `${prefix}.${col}` : col;
   const verb = useWhere ? "WHERE" : "AND";
@@ -56,8 +58,9 @@ export function buildScopedCondition(isAdmin: boolean, workspaceId: number | nul
 }
 
 export function getWriteWorkspaceId(user: CurrentUser | null, dataWorkspaceId?: number | null): number | null {
+  if (user?.activeWorkspaceId) return user.activeWorkspaceId;
   if (dataWorkspaceId) return dataWorkspaceId;
-  return user?.activeWorkspaceId ?? null;
+  return null;
 }
 
 export function getWriteCompany(user: CurrentUser | null, dataCompany?: string) {

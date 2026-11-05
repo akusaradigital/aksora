@@ -19,6 +19,8 @@ import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { WorkspaceOnboardingModal } from "@/components/layout/workspace-onboarding-modal";
 import { AppSplashScreen } from "@/components/layout/app-splash-screen";
 import { InstallPromptBanner } from "@/components/layout/install-prompt-banner";
+import { SectionSubNav } from "@/components/layout/section-sub-nav";
+import { isStandaloneRoute } from "@/lib/route-utils";
 
 type AppWrapperProps = {
   children: React.ReactNode;
@@ -62,12 +64,10 @@ export function AppWrapper({ children }: AppWrapperProps) {
   const companyName = String(user?.company || "").trim();
   const accountLabel = companyName || (user ? getRoleLabel(user?.role || "") : "Workspace");
 
-  const marketingPaths = ["/", "/login", "/register", "/features", "/pricing", "/demo", "/about", "/blog", "/contact", "/privacy", "/security", "/onboarding"];
-  const isAuthScreen = marketingPaths.includes(pathname);
-  const isSuperadminScreen = pathname.startsWith("/admin/overview");
+  const isStandalone = isStandaloneRoute(pathname);
 
   // Real-time assignment notifications via SSE (only when logged in)
-  useAssignmentNotifications(!isAuthScreen && !!user);
+  useAssignmentNotifications(!isStandalone && !!user);
 
   const refreshUser = async () => {
     try {
@@ -106,7 +106,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
   }, [collapsed, mounted]);
 
   useEffect(() => {
-    if (isAuthScreen) return;
+    if (isStandalone) return;
     void refreshUser();
     const t = setTimeout(() => {
       fetch("/api/notifications")
@@ -115,7 +115,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
         .catch(() => {});
     }, 5000);
     return () => clearTimeout(t);
-  }, [isAuthScreen, pathname]);
+  }, [isStandalone, pathname]);
 
   useEffect(() => {
     const handler = () => {
@@ -171,7 +171,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
     (String(user?.name || user?.email || "U").charCodeAt(0) + String(user?.name || user?.email || "U").length) % avatarColors.length
   ];
 
-  if (isAuthScreen || isSuperadminScreen) {
+  if (isStandalone) {
     return <>{children}</>;
   }
 
@@ -370,6 +370,7 @@ export function AppWrapper({ children }: AppWrapperProps) {
             <TrialBanner />
             <AnnouncementBanner />
             <div key={pathname} className="mx-auto max-w-7xl animate-in fade-in duration-150">
+              <SectionSubNav />
               {children}
             </div>
           </main>

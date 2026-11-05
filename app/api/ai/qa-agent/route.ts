@@ -43,18 +43,32 @@ export async function POST(req: Request) {
     const model = ai.model || DEFAULT_AI_MODELS[provider as SupportedProvider]?.[0] || "gemini-2.0-flash";
     const apiKey = ai.apiKey || "";
     const publicBaseUrl = ai.publicUrl || "";
+    const usage = { feature: `qa-agent:${body.action}`, workspaceId: user.activeWorkspaceId ?? null, userId: user.id };
 
-    // 1. Action: Generate Test Cases from User Story / Spec
+    // 1. Action: Generate Test Cases from User Story / Spec / UI Mockup
     if (body.action === "generate_cases") {
       const story = String(body.payload?.story || "").trim();
       const featureName = String(body.payload?.featureName || "").trim();
-      if (!story) {
-        return NextResponse.json({ error: "User story / spec is required" }, { status: 400 });
+      const imageBase64 = typeof body.payload?.imageBase64 === "string" ? body.payload.imageBase64.trim() : "";
+      const mimeType = typeof body.payload?.mimeType === "string" ? body.payload.mimeType : "image/png";
+
+      if (!story && !imageBase64) {
+        return NextResponse.json({ error: "User story, specification, or UI screenshot image is required" }, { status: 400 });
       }
 
-      const systemPrompt = `You are an expert QA Lead engineer.
-Analyze the user story or requirement specification and generate 4 to 8 comprehensive test cases.
-Cover positive flow, negative flow, boundary conditions, and edge cases.
+      const systemPrompt = `You are an expert QA Lead engineer specializing in requirements analysis and UI visual test design.
+Analyze the user story, requirement specification, and/or attached UI screenshot/mockup.
+Generate 6 to 15 comprehensive test cases covering positive (happy path), negative (validation errors, edge bounds, permissions), and edge (boundaries, limits, responsive state, empty/overflow data) scenarios.
+
+If a UI screenshot or design mockup is provided:
+- Visually inspect and extract all visible UI controls, buttons, forms, inputs, navigation, badges, error states, and modal dialogs.
+- Formulate specific test cases targeting the interactive elements, layout validation, input validation rules, and error states visible in the screenshot.
+- In "rationale", cite the visual element from the screenshot that justifies the test (e.g., "Generated based on the visible 'Confirm Payment' button and CVV input field in the attached UI mockup").
+
+If text specification is provided:
+- Cite the spec in "rationale": ONE sentence quoting the exact spec text that justifies it, e.g. "Generated because the spec states: 'OTP expires after 5 minutes'".
+
+Set "suggested": false when explicitly requested or directly visible in the spec/UI, and true for extra edge variants the spec/UI does not mention.
 
 Respond ONLY with valid JSON in this exact structure with no extra prose or markdown code fences:
 {
@@ -65,12 +79,15 @@ Respond ONLY with valid JSON in this exact structure with no extra prose or mark
       "testStep": "1. Step one\\n2. Step two\\n3. Step three",
       "expectedResult": "Expected outcome",
       "typeCase": "functional", // functional | negative | boundary | security
-      "priority": "high" // high | medium | low
+      "priority": "high", // high | medium | low
+      "category": "positive", // positive | negative | edge
+      "rationale": "Generated because ...",
+      "suggested": false
     }
   ]
 }`;
 
-      const userPrompt = `Feature Name: ${featureName || "General"}\n\nUser Story / Specification:\n${story}`;
+      const userPrompt = `${featureName ? `Feature Name: ${featureName}\n\n` : ""}${story ? `User Story / Specification:\n${story}` : "Attached UI screenshot/mockup for test case generation."}`;
 
       const res = await callLLM({
         provider,
@@ -79,15 +96,28 @@ Respond ONLY with valid JSON in this exact structure with no extra prose or mark
         publicBaseUrl,
         systemPrompt,
         userPrompt,
+        imageBase64: imageBase64 || undefined,
+        mimeType,
         jsonMode: true,
-        maxTokens: 2500,
+        maxTokens: 5000,
+        usage: { feature: "generate_cases", workspaceId: user.activeWorkspaceId ?? null, userId: user.id },
       });
 
-      const parsed = parseJsonSafe<{ testCases: unknown[] }>(res.content, { testCases: [] });
+      const parsed = parseJsonSafe<{ testCases: Array<Record<string, unknown>> }>(res.content, { testCases: [] });
+      const categories = ["positive", "negative", "edge"];
+      const testCases = (Array.isArray(parsed.testCases) ? parsed.testCases : []).map((tc) => {
+        const category = String(tc.category || "").toLowerCase();
+        return {
+          ...tc,
+          category: categories.includes(category) ? category : "positive",
+          rationale: String(tc.rationale || ""),
+          suggested: tc.suggested === true || tc.suggested === "true",
+        };
+      });
 
       return NextResponse.json({
         data: {
-          testCases: parsed.testCases || [],
+          testCases,
           provider,
           model,
         },
@@ -98,16 +128,23 @@ Respond ONLY with valid JSON in this exact structure with no extra prose or mark
     if (body.action === "enhance_bug") {
       const rawText = String(body.payload?.rawText || "").trim();
       const currentTitle = String(body.payload?.title || "").trim();
-      if (!rawText && !currentTitle) {
-        return NextResponse.json({ error: "Bug description or title is required" }, { status: 400 });
+      const imageBase64 = typeof body.payload?.imageBase64 === "string" ? body.payload.imageBase64.trim() : "";
+      const mimeType = typeof body.payload?.mimeType === "string" ? body.payload.mimeType : "image/png";
+
+      if (!rawText && !currentTitle && !imageBase64) {
+        return NextResponse.json({ error: "Bug description, title, or screenshot image is required" }, { status: 400 });
       }
 
-      const systemPrompt = `You are a Senior QA Specialist.
-Transform rough, informal bug notes into a standardized, professional engineering bug report.
+      const systemPrompt = `You are a Senior QA Specialist and Vision Triage Engineer.
+Transform rough, informal bug notes and/or attached error screenshot into a standardized, professional engineering bug report.
+If a screenshot is provided:
+- Visually inspect any error banners, crash traces, HTTP 4xx/5xx status codes, broken alignment, missing assets, or abnormal UI state.
+- Accurately transcribe exact error messages or code traces seen in the image.
+- Set steps to reproduce that lead to the screen depicted in the image.
 
 Respond ONLY with valid JSON in this exact structure with no extra markdown:
 {
-  "title": "Clear concise bug title (e.g., [Checkout] Payment button unclickable in Safari mobile)",
+  "title": "Clear concise bug title (e.g., [Checkout] Payment dialog displays 500 Internal Server Error)",
   "stepsToReproduce": "1. Navigate to ...\\n2. Click on ...\\n3. Observe ...",
   "expectedResult": "What should happen according to specs",
   "actualResult": "What actually failed or occurred",
@@ -115,7 +152,7 @@ Respond ONLY with valid JSON in this exact structure with no extra markdown:
   "suggestedSeverity": "Major" // Critical | Major | Minor | Low
 }`;
 
-      const userPrompt = `Title draft: ${currentTitle || "Untitled"}\n\nNotes from QA:\n${rawText || currentTitle}`;
+      const userPrompt = `${currentTitle ? `Title draft: ${currentTitle}\n\n` : ""}${rawText ? `Notes from QA:\n${rawText}\n\n` : ""}${imageBase64 ? "Attached screenshot of the error / visual defect." : ""}`;
 
       const res = await callLLM({
         provider,
@@ -124,8 +161,11 @@ Respond ONLY with valid JSON in this exact structure with no extra markdown:
         publicBaseUrl,
         systemPrompt,
         userPrompt,
+        imageBase64: imageBase64 || undefined,
+        mimeType,
         jsonMode: true,
         maxTokens: 1500,
+        usage,
       });
 
       const parsed = parseJsonSafe(res.content, {
@@ -175,6 +215,7 @@ Respond ONLY with valid JSON in this exact structure with no extra prose:
         userPrompt,
         jsonMode: true,
         maxTokens: 1200,
+        usage,
       });
 
       const parsed = parseJsonSafe(res.content, {
@@ -220,6 +261,7 @@ Respond ONLY with valid JSON in this exact structure with no extra prose:
         userPrompt,
         jsonMode: true,
         maxTokens: 2000,
+        usage,
       });
 
       const parsed = parseJsonSafe(res.content, {
@@ -232,7 +274,7 @@ Respond ONLY with valid JSON in this exact structure with no extra prose:
       return NextResponse.json({ data: { report: parsed, provider, model } });
     }
 
-    const aiCtx = { provider, model, apiKey, publicUrl: publicBaseUrl };
+    const aiCtx = { provider, model, apiKey, publicUrl: publicBaseUrl, usage };
 
     // 5. Action: Duplicate Bug Detector
     if (body.action === "check_duplicate_bugs") {

@@ -4,6 +4,8 @@ import { getTestSuiteByToken } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { RunExecutionView } from "./run-execution-view";
 import { RunSummaryPage } from "./run-summary-page";
+import { RunExtras } from "@/components/runs/run-extras";
+import { AiRunnerPanel } from "@/components/ai-runner/ai-runner-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -92,21 +94,38 @@ export default async function RunExecutionPage({
     aiAnalysis: String(v.aiAnalysis || ""),
   }));
 
+  const extras = (
+    <RunExtras
+      runId={runData.id}
+      attempt={Number(run.attempt) || 1}
+      cases={casesData.map(c => ({ testCaseId: c.testCaseId, tcId: c.tcId, caseName: c.caseName, verdict: c.verdict }))}
+    />
+  );
+
   // If run is completed, show summary view
   if (runData.status === "completed") {
     return (
-      <RunSummaryPage
-        run={runData}
-        suite={suiteData}
-      />
+      <>
+        <RunSummaryPage
+          run={runData}
+          suite={suiteData}
+        />
+        {extras}
+        <AiRunnerPanel runId={runData.id} />
+      </>
     );
   }
 
   return (
-    <RunExecutionView
-      run={runData}
-      suite={suiteData}
-      cases={casesData}
-    />
+    <>
+      <RunExecutionView
+        key={`attempt-${Number(run.attempt) || 1}`}
+        run={runData}
+        suite={suiteData}
+        cases={casesData}
+      />
+      {extras}
+      <AiRunnerPanel runId={runData.id} />
+    </>
   );
 }

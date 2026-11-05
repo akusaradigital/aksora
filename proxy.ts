@@ -14,6 +14,11 @@ const publicPaths = [
   "/api/auth/me",
   "/api/health",
   "/api/public/v1",
+  "/api/public/run-signoff/",
+  // Machine endpoints: every route below authenticates with an API key (or session) itself.
+  "/api/runner/",
+  "/api/recordings",
+  "/api/extension/",
   "/api/openapi.json",
   "/favicon.ico",
   "/apple-touch-icon.png",
@@ -97,7 +102,10 @@ export async function proxy(request: NextRequest) {
     return withLocale(request, NextResponse.next());
   }
 
-  if (publicPaths.some((path) => pathname === path || pathname.startsWith(path))) {
+  if (
+    publicPaths.some((path) => pathname === path || pathname.startsWith(path)) &&
+    !pathname.startsWith("/test-plans/projects/")
+  ) {
     return pathname.startsWith("/api") ? NextResponse.next() : withLocale(request, NextResponse.next());
   }
 

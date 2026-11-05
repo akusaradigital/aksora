@@ -83,7 +83,11 @@ export function TestCaseDetailPage({
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
-      <AiGenerateCasesButton suiteId={suiteId} suiteLabel={suiteLabel} />
+      <AiGenerateCasesButton
+        suiteId={suiteId}
+        suiteLabel={suiteLabel}
+        existingCases={rows as unknown as Array<{ id: number; tcId?: string; caseName: string }>}
+      />
       <AiSmokeSuiteButton
         suiteId={suiteId}
         suiteTitle={suiteLabel}

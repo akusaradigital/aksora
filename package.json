@@ -1,13 +1,13 @@
 {
   "name": "aksora",
-  "version": "0.11.26",
+  "version": "0.13.0",
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:3001": "next dev -p 3001",
     "build": "next build",
     "test": "vitest run",
-    "precheck": "pnpm lint && npx tsc --noEmit && next build",
+    "precheck": "pnpm lint && tsc --noEmit && next build",
     "ci:check": "pnpm test && pnpm precheck",
     "test:watch": "vitest",
     "start": "next start",
@@ -28,7 +28,9 @@
     "sicmundus:agent": "node scripts/sicmundus-agent.mjs",
     "sicmundus:same": "node scripts/sicmundus-agent.mjs --reuse",
     "sicmundus:fill": "node scripts/sicmundus-agent.mjs --fill-gaps",
-    "sicmundus:cron": "node scripts/sicmundus-cron.mjs"
+    "sicmundus:cron": "node scripts/sicmundus-cron.mjs",
+    "runner:start": "node scripts/ai-runner.mjs",
+    "mcp": "node scripts/aksora-mcp.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -48,6 +50,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@midscene/web": "1.16.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@next/bundle-analyzer": "^16.4.3",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",

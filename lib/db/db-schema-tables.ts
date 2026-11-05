@@ -6,6 +6,7 @@ export const tables = [
     name: "Project",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -22,6 +23,7 @@ export const tables = [
     name: "Sprint",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -40,6 +42,7 @@ export const tables = [
     name: "Task",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -74,6 +77,7 @@ export const tables = [
     name: "Bug",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -93,6 +97,9 @@ export const tables = [
       "relatedItems" TEXT DEFAULT '',
       "suggestedDev" TEXT DEFAULT '',
       "attachments" TEXT DEFAULT '',
+      "triageTier" TEXT DEFAULT '',
+      "triageConfidence" INTEGER,
+      "externalTicket" TEXT DEFAULT '',
       "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -103,6 +110,7 @@ export const tables = [
     name: "TestCase",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -125,6 +133,11 @@ export const tables = [
       "priority" TEXT DEFAULT 'Medium',
       "lastRunAt" TEXT,
       "relatedItems" TEXT DEFAULT '',
+      "category" TEXT DEFAULT '',
+      "rationale" TEXT DEFAULT '',
+      "maturity" TEXT DEFAULT 'draft',
+      "automationScript" TEXT DEFAULT '',
+      "customFields" TEXT DEFAULT '',
       "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -135,6 +148,7 @@ export const tables = [
     name: "TestPlan",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -156,6 +170,7 @@ export const tables = [
     name: "TestSession",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -180,6 +195,7 @@ export const tables = [
     name: "TestSuite",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -197,6 +213,7 @@ export const tables = [
     name: "ActivityLog",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "entityType" TEXT NOT NULL,
@@ -226,6 +243,7 @@ export const tables = [
     name: "MeetingNote",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -246,6 +264,7 @@ export const tables = [
     name: "Assignee",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "userId" INTEGER UNIQUE,
@@ -263,6 +282,7 @@ export const tables = [
     name: "User",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "activeWorkspaceId" INTEGER,
@@ -321,6 +341,8 @@ export const tables = [
     name: "Note",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
       "title" TEXT NOT NULL DEFAULT '',
       "content" TEXT NOT NULL DEFAULT '',
@@ -334,6 +356,8 @@ export const tables = [
     name: "VaultEntry",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
       "title" TEXT NOT NULL DEFAULT '',
       "username" TEXT NOT NULL DEFAULT '',
@@ -384,9 +408,11 @@ export const tables = [
     name: "Invite",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "token" TEXT NOT NULL UNIQUE,
       "company" TEXT NOT NULL,
       "workspaceId" INTEGER,
+      "projectId" INTEGER,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "status" TEXT NOT NULL DEFAULT 'pending',
       "createdBy" TEXT NOT NULL DEFAULT '',
@@ -397,9 +423,24 @@ export const tables = [
     `
   },
   {
+    name: "ProjectMember",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "uuid" TEXT,
+      "projectId" INTEGER NOT NULL REFERENCES "Project"("id") ON DELETE CASCADE,
+      "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+      "workspaceId" INTEGER,
+      "role" TEXT NOT NULL DEFAULT 'qa',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE ("projectId", "userId")
+    `
+  },
+  {
     name: "Workspace",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "name" TEXT NOT NULL UNIQUE,
       "slug" TEXT NOT NULL UNIQUE,
       "createdByUserId" INTEGER,
@@ -420,6 +461,7 @@ export const tables = [
       "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
       "role" TEXT NOT NULL DEFAULT 'qa',
       "status" TEXT NOT NULL DEFAULT 'active',
+      "customRoleId" INTEGER,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -428,6 +470,7 @@ export const tables = [
     name: "Deployment",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -448,6 +491,7 @@ export const tables = [
     name: "ExecutionRun",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "testSuiteId" INTEGER NOT NULL,
@@ -462,6 +506,12 @@ export const tables = [
       "failed" INTEGER NOT NULL DEFAULT 0,
       "blocked" INTEGER NOT NULL DEFAULT 0,
       "notes" TEXT DEFAULT '',
+      "attempt" INTEGER NOT NULL DEFAULT 1,
+      "environmentId" INTEGER,
+      "scheduleId" INTEGER,
+      "runnerStatus" TEXT DEFAULT '',
+      "runnerOptions" TEXT DEFAULT '',
+      "publicToken" TEXT DEFAULT '',
       "startedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "completedAt" DATE_TYPE,
       "deletedAt" DATE_TYPE,
@@ -483,7 +533,167 @@ export const tables = [
       "duration" INTEGER NOT NULL DEFAULT 0,
       "matrix" TEXT DEFAULT '',
       "aiAnalysis" TEXT DEFAULT '',
+      "attempt" INTEGER NOT NULL DEFAULT 1,
+      "steps" TEXT DEFAULT '',
+      "runnerError" TEXT DEFAULT '',
       "executedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    // One row per (run, case, attempt); CaseVerdict keeps the latest.
+    name: "CaseVerdictAttempt",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "executionRunId" INTEGER NOT NULL,
+      "testCaseId" INTEGER NOT NULL,
+      "attempt" INTEGER NOT NULL DEFAULT 1,
+      "verdict" TEXT NOT NULL DEFAULT 'Pending',
+      "actualResult" TEXT DEFAULT '',
+      "evidence" TEXT DEFAULT '',
+      "steps" TEXT DEFAULT '',
+      "duration" INTEGER NOT NULL DEFAULT 0,
+      "source" TEXT NOT NULL DEFAULT 'manual',
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "RunSignoff",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "executionRunId" INTEGER NOT NULL,
+      "name" TEXT NOT NULL,
+      "email" TEXT DEFAULT '',
+      "decision" TEXT NOT NULL DEFAULT 'pending',
+      "comment" TEXT DEFAULT '',
+      "decidedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "AiUsageLog",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "userId" INTEGER,
+      "feature" TEXT NOT NULL DEFAULT '',
+      "provider" TEXT NOT NULL DEFAULT '',
+      "model" TEXT NOT NULL DEFAULT '',
+      "promptTokens" INTEGER NOT NULL DEFAULT 0,
+      "completionTokens" INTEGER NOT NULL DEFAULT 0,
+      "durationMs" INTEGER NOT NULL DEFAULT 0,
+      "success" INTEGER NOT NULL DEFAULT 1,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "TestEnvironment",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "project" TEXT NOT NULL DEFAULT '',
+      "name" TEXT NOT NULL,
+      "baseUrl" TEXT NOT NULL DEFAULT '',
+      "variables" TEXT DEFAULT '',
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "RunSchedule",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "name" TEXT NOT NULL,
+      "testSuiteId" INTEGER NOT NULL,
+      "environmentId" INTEGER,
+      "preset" TEXT NOT NULL DEFAULT 'nightly',
+      "hour" INTEGER NOT NULL DEFAULT 0,
+      "weekdaysOnly" INTEGER NOT NULL DEFAULT 0,
+      "active" INTEGER NOT NULL DEFAULT 1,
+      "lastRunAt" DATE_TYPE,
+      "createdBy" INTEGER,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "IssueTracker",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "kind" TEXT NOT NULL,
+      "name" TEXT NOT NULL DEFAULT '',
+      "config" TEXT NOT NULL DEFAULT '',
+      "secretEncrypted" TEXT DEFAULT '',
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "CustomRole",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "name" TEXT NOT NULL,
+      "capabilities" TEXT NOT NULL DEFAULT '',
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "CaseTemplate",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "name" TEXT NOT NULL,
+      "description" TEXT DEFAULT '',
+      "fields" TEXT NOT NULL DEFAULT '',
+      "isDefault" INTEGER NOT NULL DEFAULT 0,
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "CaseFieldDef",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "key" TEXT NOT NULL,
+      "label" TEXT NOT NULL,
+      "kind" TEXT NOT NULL DEFAULT 'text',
+      "options" TEXT DEFAULT '',
+      "required" INTEGER NOT NULL DEFAULT 0,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "deletedAt" DATE_TYPE,
+      "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `
+  },
+  {
+    name: "Recording",
+    schema: `
+      "id" SERIAL_OR_PK,
+      "workspaceId" INTEGER,
+      "userId" INTEGER,
+      "title" TEXT NOT NULL DEFAULT '',
+      "startUrl" TEXT DEFAULT '',
+      "events" TEXT NOT NULL DEFAULT '',
+      "status" TEXT NOT NULL DEFAULT 'draft',
+      "testCaseId" INTEGER,
+      "deletedAt" DATE_TYPE,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -537,6 +747,7 @@ export const tables = [
     name: "WorkLog",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',
@@ -568,6 +779,7 @@ export const tables = [
       "planExpiry" TEXT,
       "maxUsers" INTEGER NOT NULL DEFAULT 10,
       "status" TEXT NOT NULL DEFAULT 'active',
+      "logoUrl" TEXT DEFAULT '',
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -696,6 +908,11 @@ export const tables = [
       "overdueBugs" INTEGER NOT NULL DEFAULT 1,
       "sprintDeadlines" INTEGER NOT NULL DEFAULT 1,
       "dailyDigest" INTEGER NOT NULL DEFAULT 1,
+      "telegramBotToken" TEXT,
+      "telegramChatId" TEXT,
+      "telegramEnabled" INTEGER NOT NULL DEFAULT 0,
+      "discordWebhook" TEXT,
+      "discordEnabled" INTEGER NOT NULL DEFAULT 0,
       "createdAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATE_TYPE NOT NULL DEFAULT CURRENT_TIMESTAMP
     `
@@ -715,6 +932,7 @@ export const tables = [
     name: "ExploratorySession",
     schema: `
       "id" SERIAL_OR_PK,
+      "uuid" TEXT,
       "company" TEXT NOT NULL DEFAULT '',
       "workspaceId" INTEGER,
       "publicToken" TEXT NOT NULL DEFAULT '',

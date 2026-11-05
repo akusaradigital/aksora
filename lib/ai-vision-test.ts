@@ -16,6 +16,7 @@ export type VisionTestParams = {
   viewport?: "desktop" | "tablet" | "mobile" | string;
   additionalNotes?: string;
   ai?: { provider?: string; model?: string; apiKey?: string; publicUrl?: string };
+  usage?: ActionAiContext["usage"];
 };
 
 export type VisionAssertion = {
@@ -142,6 +143,7 @@ Respond ONLY with valid JSON in this exact structure with no extra prose or mark
       mimeType: "image/png",
       jsonMode: true,
       maxTokens: 2000,
+      usage: params.usage,
     });
 
     const parsed = parseJsonSafe<Partial<VisionTestResult>>(rawRes.content, {});

@@ -26,15 +26,16 @@ export default function AboutPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24">
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">About Aksora</p>
-            <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl leading-tight">
-              One workspace for your whole team to
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">plan, ship, and improve together.</span>
+            <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+              About Aksora
+            </span>
+            <h1 className="text-3xl font-extrabold sm:text-5xl lg:text-6xl tracking-tight text-white leading-tight">
+              One workspace for your whole team to plan, ship, and improve together.
             </h1>
-            <p className="mt-6 text-[15px] text-gray-400 leading-relaxed max-w-2xl">
+            <p className="mt-5 text-sm sm:text-base text-blue-100 leading-relaxed max-w-2xl">
               Aksora brings test planning, execution, bug tracking, sprints, and reporting into a single flow — so every engineering team knows what was tested, what broke, and what ships next.
             </p>
           </div>
@@ -190,18 +191,17 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">Ready to modernize your QA workflow?</h2>
-          <p className="mt-4 text-[14px] text-gray-400 max-w-lg mx-auto">
+      <section className="bg-white dark:bg-slate-950 py-16 px-5 sm:px-8 transition-colors">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 px-8 py-16 text-center text-white shadow-xl">
+          <h2 className="text-2xl font-extrabold sm:text-4xl">Ready to modernize your QA workflow?</h2>
+          <p className="mt-4 text-sm text-blue-100 max-w-lg mx-auto">
             Join teams who have replaced spreadsheets and fragmented tools with a unified quality management platform.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-7 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login" className="rounded-full bg-[#a3e635] px-7 py-3 text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#bef264]">
               Start Free — No Card Required
-              <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
-            <Link href="/contact" className="inline-flex items-center gap-1.5 border border-white/15 px-7 py-3 text-[13px] font-medium text-gray-300 hover:bg-white/5 transition-colors">
+            <Link href="/contact" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-xs font-semibold text-white hover:bg-white/20 transition">
               Contact Sales
             </Link>
           </div>

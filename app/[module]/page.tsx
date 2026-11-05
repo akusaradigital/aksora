@@ -10,6 +10,7 @@ import { getTableName, getAccessScope } from "@/lib/data-helpers";
 import { getItemTitleField, buildOgDescription } from "@/lib/og-helpers";
 import { ProjectRequirementBanner } from "@/components/test-management/project-requirement-banner";
 import { formatDate } from "@/lib/utils";
+import { applyWorkLogsDateRowSpan } from "@/components/module/module-workspace-content-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -354,6 +355,11 @@ export default async function ModulePage({
           dateRowSpan: isCustomSort ? 1 : group && group.start === index ? group.count : 0,
         };
       });
+    }
+
+    if (moduleKey === "work-logs") {
+      const isCustomSort = Boolean(sortBy && sortBy !== "date");
+      rows = applyWorkLogsDateRowSpan(rows, isCustomSort, sortDir);
     }
 
     if (["test-plans", "test-sessions", "meeting-notes", "tasks", "bugs", "deployments", "work-logs"].includes(moduleKey)) {

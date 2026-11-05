@@ -8,28 +8,12 @@ import {
   Checks,
   FolderSimple,
   Kanban,
-  Note,
   NotePencil,
-  LockKey,
   SquaresFour,
-  Table,
-  ClipboardText,
   PlayCircle,
   Gear,
-  Rows,
   ClockCountdown,
   ChartLineUp,
-  ChartPieSlice,
-  ShuffleAngular,
-  MagnifyingGlass,
-  RocketLaunch,
-  Users,
-  ClockCounterClockwise,
-  Headset,
-  Key,
-  Robot,
-  MicrophoneStage,
-  Compass,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
@@ -40,7 +24,7 @@ export type SidebarIcon = React.ComponentType<{ size?: number; weight?: "bold"; 
 export type SidebarItem = { href: string; label: string; icon: SidebarIcon };
 export type SidebarGroup = { title: string; items: SidebarItem[] };
 
-// ─── Navigation Data ─────────────────────────────────────────────────────────
+// ─── Consolidated Navigation Data ───────────────────────────────────────────
 
 export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
   return [
@@ -48,63 +32,40 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
       title: "",
       items: [
         { href: "/dashboard", label: t.dashboard, icon: SquaresFour },
+        { href: "/projects", label: t.projects || "Projects", icon: FolderSimple },
       ],
     },
     {
       title: t.groupTestManagement,
       items: [
-        { href: "/projects", label: t.projects || "Projects", icon: FolderSimple },
-        { href: "/test-plans", label: t.testPlans, icon: ClipboardText },
-        { href: "/test-suites", label: t.testSuites, icon: Table },
-        { href: "/test-cases", label: t.testCases, icon: Checks },
-        { href: "/test-execution", label: t.testSessions, icon: PlayCircle },
-        { href: "/exploratory", label: t.exploratory || "Exploratory (SBTM)", icon: Compass },
+        { href: "/test-cases", label: t.testCases || "Test Repository", icon: Checks },
+        { href: "/test-execution", label: t.testSessions || "Test Execution", icon: PlayCircle },
       ],
     },
     {
       title: t.groupWorkTracking,
       items: [
-        { href: "/tasks", label: t.tasks, icon: Kanban },
-        { href: "/bugs", label: t.bugs, icon: Bug },
-        { href: "/sprints", label: t.sprints, icon: Kanban },
-        { href: "/work-logs", label: t.workLog, icon: ClockCountdown },
-        { href: "/gantt", label: t.ganttTimeline, icon: Rows },
-      ],
-    },
-    {
-      title: t.groupTeamWorkspace || t.groupDocumentation,
-      items: [
-        { href: "/standup", label: t.dailyStandup, icon: MicrophoneStage },
-        { href: "/meeting-notes", label: t.meetingNotes, icon: Note },
-        { href: "/activity-log", label: t.activityLog, icon: ClockCounterClockwise },
-      ],
-    },
-    {
-      title: t.groupPersonalTools || t.groupPersonal,
-      items: [
-        { href: "/notes", label: t.notes, icon: NotePencil },
-        { href: "/vault", label: t.passwordManager, icon: LockKey },
+        { href: "/tasks", label: t.tasks || "Tasks & Sprints", icon: Kanban },
+        { href: "/bugs", label: t.bugs || "Bugs", icon: Bug },
+        { href: "/work-logs", label: t.workLog || "Team & Logs", icon: ClockCountdown },
       ],
     },
     {
       title: t.groupReportsAnalytics || t.groupReports,
       items: [
-        { href: "/weekly-report", label: t.report, icon: ChartLineUp },
-        { href: "/reports/sprint-burndown", label: "Sprint Burndown", icon: ChartLineUp },
-        { href: "/reports/test-coverage", label: t.testCoverage, icon: ChartPieSlice },
-        { href: "/reports/flaky-tests", label: t.flakyTests, icon: ShuffleAngular },
-        { href: "/reports/test-gap", label: t.testGapAnalysis, icon: MagnifyingGlass },
-        { href: "/deployments", label: t.deploymentLog, icon: RocketLaunch },
-        { href: "/reports/workload", label: t.workloadHeatmap, icon: Users },
+        { href: "/reports", label: t.groupReports || "Reports & Analytics", icon: ChartLineUp },
+      ],
+    },
+    {
+      title: t.groupPersonalTools || t.groupPersonal,
+      items: [
+        { href: "/notes", label: t.notes || "Personal Notes", icon: NotePencil },
       ],
     },
     {
       title: t.groupSystemSettings,
       items: [
         { href: "/settings", label: t.settings, icon: Gear },
-        { href: "/settings/ai", label: t.aiSettings, icon: Robot },
-        { href: "/settings/api-keys", label: t.apiKeys, icon: Key },
-        { href: "/settings/support", label: t.support, icon: Headset },
       ],
     },
   ];
@@ -113,21 +74,111 @@ export function getGroups(t: Dictionary["sidebar"]): SidebarGroup[] {
 // ─── Role-based filtering ────────────────────────────────────────────────────
 
 const ROLE_MENU: Record<string, string[]> = {
-  admin: ["/", "/dashboard", "/standup", "/projects", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/bugs", "/tasks", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings", "/settings/ai", "/settings/api-keys", "/settings/support", "/work-logs", "/notes", "/vault"],
-  fullstack: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  ai: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  qa: ["/", "/dashboard", "/standup", "/projects", "/test-plans", "/test-suites", "/test-cases", "/test-execution", "/exploratory", "/bugs", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  fe: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  be: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/sprints", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
-  pm: ["/", "/dashboard", "/standup", "/projects", "/tasks", "/bugs", "/test-plans", "/exploratory", "/sprints", "/meeting-notes", "/deployments", "/activity-log", "/weekly-report", "/reports/sprint-burndown", "/reports/test-coverage", "/reports/flaky-tests", "/reports/test-gap", "/reports/workload", "/gantt", "/settings/ai", "/settings/api-keys", "/work-logs", "/notes", "/vault"],
+  admin: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/test-cases",
+    "/test-execution",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+    "/settings",
+  ],
+  fullstack: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/test-cases",
+    "/test-execution",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
+  ai: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/test-cases",
+    "/test-execution",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
+  qa: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/test-cases",
+    "/test-execution",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
+  fe: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
+  be: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
+  pm: [
+    "/",
+    "/dashboard",
+    "/projects",
+    "/test-cases",
+    "/tasks",
+    "/bugs",
+    "/work-logs",
+    "/reports",
+    "/notes",
+  ],
 };
 
 function canSeeHref(role: string, href: string) {
-  if (role === "superadmin") return true;
+  if (role === "superadmin" || role === "admin") return true;
   const allowed = ROLE_MENU[role] || ROLE_MENU.qa;
   if (allowed.includes(href)) return true;
+  if (href === "/reports") {
+    return allowed.some((r) => r.startsWith("/reports") || r === "/weekly-report" || r === "/deployments");
+  }
+  if (href === "/tasks") {
+    return allowed.includes("/tasks") || allowed.includes("/sprints") || allowed.includes("/gantt");
+  }
+  if (href === "/test-cases") {
+    return allowed.includes("/test-cases") || allowed.includes("/test-suites") || allowed.includes("/test-plans");
+  }
+  if (href === "/test-execution") {
+    return allowed.includes("/test-execution") || allowed.includes("/schedules") || allowed.includes("/recordings");
+  }
+  if (href === "/work-logs") {
+    return allowed.includes("/work-logs") || allowed.includes("/standup") || allowed.includes("/meeting-notes") || allowed.includes("/activity-log");
+  }
+  if (href === "/notes") {
+    return allowed.includes("/notes") || allowed.includes("/vault");
+  }
   if (href === "/settings") return role === "admin";
-  if (href === "/settings/support") return role === "admin";
   return false;
 }
 
@@ -156,16 +207,74 @@ export function SidebarNavItem({
   const router = useRouter();
   const Icon = item.icon;
   const linkRef = useRef<HTMLAnchorElement | null>(null);
-  const isSuiteExecutionRoute = pathname.startsWith("/test-execution");
+
+  const isSuiteExecutionRoute =
+    pathname.startsWith("/test-execution") ||
+    pathname.startsWith("/schedules") ||
+    pathname.startsWith("/recordings");
   const isProjectDetailRoute = pathname.startsWith("/test-plans/projects/");
+
+  const isTestCasesGroup =
+    item.href === "/test-cases" &&
+    (pathname === "/test-cases" ||
+      pathname.startsWith("/test-cases/") ||
+      pathname.startsWith("/test-suites") ||
+      (pathname.startsWith("/test-plans") && !isProjectDetailRoute) ||
+      pathname.startsWith("/exploratory"));
+
+  const isTestExecutionGroup = item.href === "/test-execution" && isSuiteExecutionRoute;
+
+  const isTasksGroup =
+    item.href === "/tasks" &&
+    (pathname === "/tasks" ||
+      pathname.startsWith("/tasks/") ||
+      pathname.startsWith("/sprints") ||
+      pathname.startsWith("/gantt"));
+
+  const isTeamGroup =
+    item.href === "/work-logs" &&
+    (pathname === "/work-logs" ||
+      pathname.startsWith("/work-logs/") ||
+      pathname.startsWith("/standup") ||
+      pathname.startsWith("/meeting-notes") ||
+      pathname.startsWith("/activity-log"));
+
+  const isReportsGroup =
+    item.href === "/reports" &&
+    (pathname === "/reports" ||
+      pathname.startsWith("/reports/") ||
+      pathname.startsWith("/weekly-report") ||
+      pathname.startsWith("/deployments"));
+
+  const isNotesGroup =
+    item.href === "/notes" &&
+    (pathname === "/notes" ||
+      pathname.startsWith("/notes/") ||
+      pathname.startsWith("/vault"));
+
+  const isSettingsGroup = item.href === "/settings" && pathname.startsWith("/settings");
+
+  const isProjectsGroup =
+    item.href === "/projects" && (pathname.startsWith("/projects/") || isProjectDetailRoute);
+
   const active =
     pathname === item.href ||
-    (item.href !== "/settings" && item.href !== "/test-suites" && item.href !== "/test-plans" && pathname.startsWith(`${item.href}/`)) ||
-    (item.href === "/projects" && (pathname.startsWith("/projects/") || isProjectDetailRoute)) ||
-    (item.href === "/test-plans" && pathname.startsWith("/test-plans/") && !isProjectDetailRoute) ||
-    (item.href === "/test-cases" && pathname.startsWith("/test-cases/")) ||
-    (item.href === "/test-suites" && pathname.startsWith("/test-suites/") && !isSuiteExecutionRoute) ||
-    (item.href === "/test-execution" && isSuiteExecutionRoute);
+    isTestCasesGroup ||
+    isTestExecutionGroup ||
+    isTasksGroup ||
+    isTeamGroup ||
+    isReportsGroup ||
+    isNotesGroup ||
+    isSettingsGroup ||
+    isProjectsGroup ||
+    (item.href !== "/settings" &&
+      item.href !== "/test-cases" &&
+      item.href !== "/test-execution" &&
+      item.href !== "/tasks" &&
+      item.href !== "/work-logs" &&
+      item.href !== "/reports" &&
+      item.href !== "/notes" &&
+      pathname.startsWith(`${item.href}/`));
 
   useEffect(() => {
     if (!active) return;

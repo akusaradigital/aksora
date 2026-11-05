@@ -16,7 +16,7 @@ import {
 import {
   AI_PROVIDER_LABELS,
   type SupportedProvider,
-} from "@/lib/ai-service";
+} from "@/lib/ai-types";
 
 export interface ProviderCardState {
   status: "connected" | "saved" | "disconnected";

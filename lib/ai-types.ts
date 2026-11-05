@@ -104,6 +104,8 @@ export interface CallLLMOptions {
   publicBaseUrl?: string;
   imageBase64?: string;
   mimeType?: string;
+  /** Optional usage attribution; when set the call is logged to AiUsageLog. */
+  usage?: { feature: string; workspaceId?: number | null; userId?: number | null };
 }
 
 export interface CallLLMResult {

@@ -36,6 +36,8 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  const [limitModal, setLimitModal] = useState<{ current: number; max: number; plan: string } | null>(null);
  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
  const [workspaceId, setWorkspaceId] = useState<string>("");
+ const [projects, setProjects] = useState<{ id: number; name: string }[]>([]);
+ const [projectId, setProjectId] = useState<string>("");
 
  const loadInvites = async () => {
  const res = await fetch("/api/invites");
@@ -54,6 +56,10 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
        if (active) setWorkspaceId(String(active));
      })
      .catch(() => {});
+   fetch("/api/projects")
+     .then((r) => r.json())
+     .then((data) => setProjects(Array.isArray(data?.data) ? data.data : []))
+     .catch(() => {});
  }, []);
 
  const createInvite = async () => {
@@ -66,6 +72,7 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
    role,
    expiresInDays: Number(expiresInDays) || 7,
    workspaceId: workspaceId ? Number(workspaceId) : undefined,
+   projectId: projectId ? Number(projectId) : undefined,
   }),
  });
 
@@ -188,7 +195,7 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
  </div>
 
  {!compact && showInviteForm && (
- <div className={embedded ?"mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]" :"mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_104px_150px_120px]"}>
+ <div className={embedded ?"mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_104px_110px_120px]" :"mt-5 grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_104px_110px_120px]"}>
 <div className="relative min-w-0">
  <select
   value={workspaceId}
@@ -201,6 +208,20 @@ export function InviteManager({ embedded = false, compact = false }: { embedded?
   {workspaces.map((workspace) => (
    <option key={workspace.id} value={workspace.id}>
     {workspace.name}
+   </option>
+  ))}
+ </select>
+</div>
+<div className="relative min-w-0">
+ <select
+  value={projectId}
+  onChange={(e) => setProjectId(e.target.value)}
+  className="h-11 w-full appearance-none border border-gray-200 bg-white px-3 pr-10 text-sm outline-none"
+ >
+  <option value="">All Projects (Workspace)</option>
+  {projects.map((project) => (
+   <option key={project.id} value={project.id}>
+    Project: {project.name}
    </option>
   ))}
  </select>

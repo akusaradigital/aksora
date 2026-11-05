@@ -155,7 +155,7 @@ export async function deleteModuleRecords(module: ModuleKey, ids: (string | numb
   }
 
   await db.run(
-    `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE id IN (${placeholderList})${companyFilter}`,
+    `UPDATE "${table}" SET "deletedAt" = CURRENT_TIMESTAMP WHERE "id" IN (${placeholderList})${companyFilter}`,
     [...ids, ...companyParam]
   );
 
@@ -182,7 +182,7 @@ export async function updateModuleStatus(module: ModuleKey, id: string | number,
     hasSortOrder ? [status, sortOrder, id, ...qParams] : [status, id, ...qParams]
   );
   await logActivity(company, table, String(id), "Status Update", `${table} status updated to ${status}`, actor);
-  const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "${table}" WHERE id = CAST(? AS INTEGER)${andWhere}`, [id, ...qParams]);
+  const updatedRow = await db.get<Record<string, unknown>>(`SELECT * FROM "${table}" WHERE "id" = CAST(? AS INTEGER)${andWhere}`, [id, ...qParams]);
   if (updatedRow) {
     await syncSearchIndex(module, company, String(id), updatedRow);
   }

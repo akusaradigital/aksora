@@ -6,6 +6,8 @@ import { cn, formatDate, formatDisplayText } from"@/lib/utils";
 import { Badge } from"@/components/shared/badge";
 import { Breadcrumb } from"@/components/layout/breadcrumb";
 import { TestCaseImportButton } from "@/components/test-management/test-case-import";
+import { TestmoImportButton } from "@/components/test-management/testmo-import-modal";
+import { CopyCasesButton } from "@/components/test-management/copy-cases-modal";
 import {
  Play,
  CheckCircle,
@@ -24,6 +26,7 @@ import {
  TrendDown,
  Minus,
  Tag,
+ FilePdf,
 } from"@phosphor-icons/react";
 
 type TestCase = {
@@ -265,6 +268,16 @@ export function SuiteDetail({
  Manage Cases
  </Link>
  <TestCaseImportButton suiteId={String(suite.id)} />
+ <TestmoImportButton suiteId={String(suite.id)} />
+ <CopyCasesButton suiteId={String(suite.id)} />
+ <a
+ href={`/api/test-suites/${suite.id}/export/pdf`}
+ download
+ className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 px-5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition"
+ >
+ <FilePdf size={15} weight="bold" />
+ Export PDF
+ </a>
  {plan && (
  <Link
  href={`/test-plans/${plan.publicToken}`}

@@ -64,11 +64,15 @@ export default function BlogPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Blog & Resources</p>
-          <h1 className="text-3xl font-bold sm:text-4xl">Insights on Quality Engineering</h1>
-          <p className="mt-4 text-[15px] text-gray-400 max-w-2xl mx-auto">
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-center text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-4xl">
+          <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+            Blog &amp; Resources
+          </span>
+          <h1 className="text-3xl font-extrabold sm:text-5xl tracking-tight text-white">
+            Insights on Quality Engineering
+          </h1>
+          <p className="mt-4 text-sm sm:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
             Expert perspectives on test management strategy, QA processes, and quality metrics. Written by practitioners, for practitioners.
           </p>
         </div>
@@ -160,16 +164,17 @@ export default function BlogPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-16 text-center">
-          <h2 className="text-2xl font-bold">Put these insights into practice</h2>
-          <p className="mt-3 text-[14px] text-gray-400 max-w-lg mx-auto">
+      <section className="bg-white dark:bg-slate-950 py-16 px-5 sm:px-8 transition-colors">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 px-8 py-16 text-center text-white shadow-xl">
+          <h2 className="text-2xl font-extrabold sm:text-4xl">Put these insights into practice</h2>
+          <p className="mt-4 text-sm text-blue-100 max-w-lg mx-auto">
             Aksora gives you the tools to implement modern QA workflows. Start free, scale when ready.
           </p>
-          <Link href="/login" className="mt-6 group inline-flex items-center gap-2 bg-blue-600 px-7 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">
-            Start Free
-            <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-          </Link>
+          <div className="mt-8 flex justify-center">
+            <Link href="/login" className="rounded-full bg-[#a3e635] px-7 py-3 text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#bef264]">
+              Start Free Workspace
+            </Link>
+          </div>
         </div>
       </section>
     </>

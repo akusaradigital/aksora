@@ -14,6 +14,9 @@ export function normalizeRow(row: Record<string, unknown>, suiteId: string): Tes
     status: String(row.status ?? ""),
     evidence: String(row.evidence ?? ""),
     priority: String(row.priority ?? ""),
+    category: String(row.category ?? ""),
+    rationale: String(row.rationale ?? ""),
+    maturity: String(row.maturity ?? "draft"),
   };
 }
 

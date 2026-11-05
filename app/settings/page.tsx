@@ -1,5 +1,5 @@
 import { PageShell } from"@/components/layout/page-shell";
-import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo, Lightning, Robot } from "@phosphor-icons/react/dist/ssr";
+import { Users, Gear, CaretRight, Info, Lock, Bell, Buildings, Moon, WebhooksLogo, Lightning, Robot, PlugsConnected, Globe, ShieldCheck, ListChecks, ChartBar } from "@phosphor-icons/react/dist/ssr";
 import Link from"next/link";
 import { getCurrentUser } from"@/lib/auth";
 import { isManagementAdmin } from"@/lib/roles";
@@ -50,6 +50,51 @@ export default async function SettingsPage() {
           icon: WebhooksLogo,
           color: "text-cyan-600",
           bg: "bg-cyan-50",
+          disabled: false,
+        },
+        {
+          title: "Integrations",
+          description: "Send bugs to Jira, Trello or Lark Base.",
+          href: "/settings/integrations",
+          icon: PlugsConnected,
+          color: "text-violet-600",
+          bg: "bg-violet-50",
+          disabled: false,
+        },
+        {
+          title: "Test Environments",
+          description: "Base URLs and {{variables}} that test runs use, with expiry dates for short-lived values.",
+          href: "/settings/environments",
+          icon: Globe,
+          color: "text-emerald-600",
+          bg: "bg-emerald-50",
+          disabled: false,
+        },
+        {
+          title: "Roles",
+          description: "Create custom roles and choose what each one is allowed to do.",
+          href: "/settings/roles",
+          icon: ShieldCheck,
+          color: "text-rose-600",
+          bg: "bg-rose-50",
+          disabled: false,
+        },
+        {
+          title: "Test Case Setup",
+          description: "Templates for new test cases and the custom fields every case can carry.",
+          href: "/settings/test-case-setup",
+          icon: ListChecks,
+          color: "text-indigo-600",
+          bg: "bg-indigo-50",
+          disabled: false,
+        },
+        {
+          title: "AI Usage",
+          description: "AI calls and tokens per feature and model over time.",
+          href: "/settings/ai-usage",
+          icon: ChartBar,
+          color: "text-orange-600",
+          bg: "bg-orange-50",
           disabled: false,
         },
         {

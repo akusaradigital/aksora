@@ -373,6 +373,63 @@ describe("module route", () => {
     expect(props.rows[0].dateRowSpan).toBe(1);
     expect(props.rows[1].dateRowSpan).toBe(1);
   });
+
+  it("groups work-logs by date, sorts times chronologically, and calculates dateRowSpan", async () => {
+    mocks.getModuleRowsPage.mockResolvedValueOnce({
+      rows: [
+        { id: 1, date: "2026-11-04", startTime: "08:30", endTime: "10:40", project: "Enhancement" },
+        { id: 2, date: "2026-11-04", startTime: "06:00", endTime: "08:30", project: "Asset" },
+        { id: 3, date: "2026-11-04", startTime: "02:00", endTime: "05:20", project: "AuraCheck" },
+        { id: 4, date: "2026-11-03", startTime: "08:40", endTime: "11:00", project: "Enhancement" },
+        { id: 5, date: "2026-11-03", startTime: "06:00", endTime: "08:40", project: "Asset" },
+      ],
+      total: 5,
+    });
+
+    const element = await ModulePage({
+      params: Promise.resolve({ module: "work-logs" }),
+      searchParams: Promise.resolve({ page: "1" }),
+    });
+
+    renderToStaticMarkup(element);
+
+    const props = getModuleWorkspaceProps();
+    expect(props.rows).toHaveLength(5);
+    // First date group: 2026-11-04, sorted chronologically: 02:00, 06:00, 08:30
+    expect(props.rows[0].startTime).toBe("02:00");
+    expect(props.rows[0].dateRowSpan).toBe(3);
+    expect(props.rows[1].startTime).toBe("06:00");
+    expect(props.rows[1].dateRowSpan).toBe(0);
+    expect(props.rows[2].startTime).toBe("08:30");
+    expect(props.rows[2].dateRowSpan).toBe(0);
+    // Second date group: 2026-11-03, sorted chronologically: 06:00, 08:40
+    expect(props.rows[3].startTime).toBe("06:00");
+    expect(props.rows[3].dateRowSpan).toBe(2);
+    expect(props.rows[4].startTime).toBe("08:40");
+    expect(props.rows[4].dateRowSpan).toBe(0);
+  });
+
+  it("sets dateRowSpan to 1 when work-logs are sorted by non-date columns", async () => {
+    mocks.getModuleRowsPage.mockResolvedValueOnce({
+      rows: [
+        { id: 1, date: "2026-11-04", startTime: "08:30", project: "Beta" },
+        { id: 2, date: "2026-11-04", startTime: "06:00", project: "Alpha" },
+      ],
+      total: 2,
+    });
+
+    const element = await ModulePage({
+      params: Promise.resolve({ module: "work-logs" }),
+      searchParams: Promise.resolve({ sortBy: "project", sortDir: "asc" }),
+    });
+
+    renderToStaticMarkup(element);
+
+    const props = getModuleWorkspaceProps();
+    expect(props.rows).toHaveLength(2);
+    expect(props.rows[0].dateRowSpan).toBe(1);
+    expect(props.rows[1].dateRowSpan).toBe(1);
+  });
 });
 
 

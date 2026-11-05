@@ -13,18 +13,18 @@ export default function PrivacyPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <div className="max-w-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Legal</p>
-            <h1 className="text-3xl font-bold">Privacy Policy</h1>
-            <p className="mt-4 text-[14px] text-gray-400">
-              Effective date: May 20, 2026 · Last updated: May 20, 2026
-            </p>
-            <p className="mt-3 text-[13px] text-gray-500">
-              This policy describes how Akusara Digital (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) collects, uses, and protects information through Aksora.
-            </p>
-          </div>
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-4xl">
+          <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+            Legal
+          </span>
+          <h1 className="text-3xl font-extrabold sm:text-5xl tracking-tight text-white">Privacy Policy</h1>
+          <p className="mt-4 text-xs sm:text-sm text-blue-100">
+            Effective date: May 20, 2026 · Last updated: May 20, 2026
+          </p>
+          <p className="mt-2 text-xs sm:text-sm text-blue-100/90 leading-relaxed max-w-2xl">
+            This policy describes how Akusara Digital (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) collects, uses, and protects information through Aksora.
+          </p>
         </div>
       </section>
 

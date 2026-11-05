@@ -27,7 +27,7 @@ type GoogleTokenInfo = {
   exp?: string;
 };
 
-type UserRow = { id: number; name: string; email: string; role: string; company: string; avatar: string; activeWorkspaceId?: number | null; mfaEnabled: number };
+type UserRow = { id: number; uuid?: string; name: string; email: string; role: string; company: string; avatar: string; activeWorkspaceId?: number | null; mfaEnabled: number };
 
 // Verify the Google ID token via Google's tokeninfo endpoint.
 // Returns decoded claims, or null when invalid/expired/not-for-us.
@@ -81,7 +81,7 @@ function respondWithToken(token: string, role: string, company: string) {
 
 async function findUserByEmail(email: string) {
   return db.get<UserRow>(
-    `SELECT u."id", u."name", u."email", u."role", u."company", u."avatar", u."mfaEnabled", w."id" AS "activeWorkspaceId"
+    `SELECT u."id", u."uuid", u."name", u."email", u."role", u."company", u."avatar", u."mfaEnabled", COALESCE(u."activeWorkspaceId", w."id") AS "activeWorkspaceId"
      FROM "User" u
      LEFT JOIN "Workspace" w ON w."name" = u."company"
      WHERE u."email" = ?`,
@@ -171,7 +171,18 @@ export async function POST(request: NextRequest) {
     if (existing) {
       clearRateLimit(key);
       const nextRole = invite ? normalizeRole(invite.role) : normalizeRole(existing.role);
-      const nextCompany = invite ? inviteCompany : (existing.company || "");
+      let nextCompany = invite ? inviteCompany : (existing.company || "");
+      let activeWsId = existing.activeWorkspaceId ?? null;
+
+      // Ensure user has uuid
+      let existingUuid = existing.uuid;
+      if (!existingUuid) {
+        const { randomUUID } = await import("crypto");
+        existingUuid = randomUUID();
+        try {
+          await db.run('UPDATE "User" SET "uuid" = ? WHERE "id" = CAST(? AS INTEGER)', [existingUuid, existing.id]);
+        } catch { /* ignore non-critical */ }
+      }
 
       if (invite) {
         await db.run(
@@ -182,10 +193,28 @@ export async function POST(request: NextRequest) {
         if (updated) {
           if (invite.workspaceId) {
             await ensureWorkspaceMembership(invite.workspaceId, updated.id, nextRole);
+            activeWsId = invite.workspaceId;
           } else {
-            await ensureWorkspaceForUser(nextCompany, updated.id, nextRole);
+            const ws = await ensureWorkspaceForUser(nextCompany, updated.id, nextRole);
+            if (ws) activeWsId = ws.id;
+          }
+          if ((invite as { projectId?: number | null }).projectId) {
+            const { addProjectMember } = await import("@/lib/project-members");
+            await addProjectMember(
+              Number((invite as { projectId: number }).projectId),
+              updated.id,
+              nextRole,
+              activeWsId,
+            );
           }
           await markInviteAccepted(inviteToken, email);
+        }
+      } else {
+        const { ensurePersonalWorkspaceForUser } = await import("@/lib/workspace-memberships");
+        const personalWs = await ensurePersonalWorkspaceForUser(existing.id, name, email, existing.company);
+        if (personalWs) {
+          activeWsId = personalWs.id;
+          nextCompany = personalWs.name;
         }
       }
 
@@ -200,10 +229,11 @@ export async function POST(request: NextRequest) {
 
       const token = await createSessionToken(email, {
         id: existing.id,
+        uuid: existingUuid,
         name,
         role: nextRole,
         company: nextCompany,
-        activeWorkspaceId: existing.activeWorkspaceId ?? null,
+        activeWorkspaceId: activeWsId,
       });
       await updateUserProfile(existing.id, name, avatar);
       return respondWithToken(token, nextRole, nextCompany);
@@ -228,18 +258,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Account creation failed." }, { status: 500 });
     }
 
+    let activeWsId = user.activeWorkspaceId ?? null;
+    let effectiveWsCompany = user.company || "";
     if (invite?.workspaceId) {
       await ensureWorkspaceMembership(invite.workspaceId, user.id, normalizeRole(user.role));
+      activeWsId = invite.workspaceId;
     } else {
-      await ensureWorkspaceForUser(user.company || String(invite?.company ?? ""), user.id, normalizeRole(user.role));
+      const { ensurePersonalWorkspaceForUser } = await import("@/lib/workspace-memberships");
+      const personalWs = await ensurePersonalWorkspaceForUser(user.id, name, email);
+      if (personalWs) {
+        activeWsId = personalWs.id;
+        effectiveWsCompany = personalWs.name;
+      }
+    }
+
+    if (invite && (invite as { projectId?: number | null }).projectId) {
+      const { addProjectMember } = await import("@/lib/project-members");
+      await addProjectMember(
+        Number((invite as { projectId: number }).projectId),
+        user.id,
+        normalizeRole(user.role),
+        activeWsId,
+      );
     }
 
     const token = await createSessionToken(email, {
       id: user.id,
+      uuid: user.uuid,
       name,
       role: normalizeRole(user.role),
-      company: user.company || "",
-      activeWorkspaceId: user.activeWorkspaceId ?? null,
+      company: effectiveWsCompany,
+      activeWorkspaceId: activeWsId,
     });
 
     return respondWithToken(token, user.role, user.company || "");

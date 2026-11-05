@@ -195,7 +195,7 @@ export async function getProjectData(projectName: string) {
   if (suiteIds.length > 0) {
     const placeholders = suiteIds.map(() => "?").join(",");
     cases = await selectAll(
-      `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase" WHERE "testSuiteId" IN (${placeholders}) AND "deletedAt" IS NULL ${scope.andWhere}`,
+      `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "category", "rationale", "maturity", "updatedAt" FROM "TestCase" WHERE "testSuiteId" IN (${placeholders}) AND "deletedAt" IS NULL ${scope.andWhere}`,
       [...suiteIds, ...scope.params],
     );
   }
@@ -277,7 +277,7 @@ export async function getTestCasesByScenario(suiteId: string | number) {
   const cached = getCached<Array<Record<string, string | number | null>>>(cacheKey("cases-suite", scope, String(suiteId)));
   if (cached !== null) return cached;
   const rows = await selectAll(
-    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL ${scope.andWhere} ORDER BY id ASC`,
+    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "category", "rationale", "maturity", "updatedAt" FROM "TestCase" WHERE "testSuiteId" = CAST(? AS TEXT) AND "deletedAt" IS NULL ${scope.andWhere} ORDER BY id ASC`,
     [suiteId, ...scope.params],
   );
   return setCached(cacheKey("cases-suite", scope, String(suiteId)), rows);
@@ -293,7 +293,7 @@ export async function getTestCasesByScenarioIds(suiteIds: Array<string | number>
   if (cached !== null) return cached;
 
   const rows = await selectAll(
-    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "updatedAt" FROM "TestCase"
+    `SELECT id, company, "publicToken", "testSuiteId", "tcId", "typeCase", "preCondition", "caseName", assignee, "testStep", "expectedResult", "actualResult", status, priority, evidence, "category", "rationale", "maturity", "updatedAt" FROM "TestCase"
      WHERE "deletedAt" IS NULL
      ${scope.andWhere}
      AND "testSuiteId" IN (${ids.map(() => "CAST(? AS TEXT)").join(", ")})

@@ -13,7 +13,7 @@ import {
 import { invalidateDashboardCache } from "@/lib/data/data-dashboard-stats";
 import { evaluateAutomationRules } from "@/lib/automation-engine";
 import { broadcastCriticalBug } from "@/lib/chat-broadcast";
-import { calculateDurationFromTime, addMinutesToTime } from "@/lib/utils";
+import { calculateDurationFromTime, addMinutesToTime, normalizeTimeString } from "@/lib/utils";
 
 type ModuleData = Record<string, unknown>;
 
@@ -169,9 +169,9 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
     case "test-cases": {
       const res = await db.run(
         `UPDATE "TestCase"
-         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "updatedAt" = CURRENT_TIMESTAMP
+         SET "testSuiteId" = ?, "tcId" = ?, "typeCase" = ?, "preCondition" = ?, "caseName" = ?, "assignee" = ?, "testStep" = ?, "expectedResult" = ?, "actualResult" = ?, "status" = ?, "evidence" = ?, "priority" = ?, "category" = COALESCE(NULLIF(?, ''), "category"), "rationale" = COALESCE(NULLIF(?, ''), "rationale"), "updatedAt" = CURRENT_TIMESTAMP
          WHERE "id" = CAST(? AS INTEGER)${companyFilter}`,
-        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition ?? "", data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", id, ...companyParam]
+        [data.testSuiteId, data.tcId, data.typeCase, data.preCondition ?? "", data.caseName, data.assignee ?? "", data.testStep, data.expectedResult, data.actualResult ?? "", data.status, data.evidence ?? "", data.priority ?? "Medium", data.category ?? "", data.rationale ?? "", id, ...companyParam]
       );
       await logActivity(company, "TestCase", String(data.caseName), "Updated", `Test case ${data.caseName} updated`, actor, undefined, workspaceId);
       invalidateDashboardCache(company);
@@ -317,11 +317,11 @@ export async function updateModuleRecord(module: ModuleKey, id: string | number,
       if (duration === 0 && data.startTime && data.endTime) {
         duration = calculateDurationFromTime(data.startTime, data.endTime) ?? 0;
       }
-      let endTime = data.endTime ? String(data.endTime) : "";
-      if (!endTime && data.startTime && duration > 0) {
-        endTime = addMinutesToTime(data.startTime, duration) ?? "";
+      const startTime = data.startTime ? normalizeTimeString(data.startTime) : "";
+      let endTime = data.endTime ? normalizeTimeString(data.endTime) : "";
+      if (!endTime && startTime && duration > 0) {
+        endTime = addMinutesToTime(startTime, duration) ?? "";
       }
-      const startTime = data.startTime ? String(data.startTime) : "";
 
       // Check existing Sicmundus entry ID
       const existing = await db.get<{ sicmundusEntryId?: string; sicmundusTaskId?: string }>(

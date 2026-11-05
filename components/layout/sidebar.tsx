@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { normalizeRole } from "@/lib/roles";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { filterGroups, SidebarSection } from "@/components/layout/sidebar-nav";
+import { ProjectSwitcher } from "@/components/layout/project-switcher";
 import { useTranslation } from "@/hooks/use-translation";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
@@ -114,6 +115,9 @@ export function Sidebar({
               )}
             />
           </div>
+
+          {/* Global Project Switcher */}
+          <ProjectSwitcher collapsed={collapsed} />
 
           {/* Nav */}
           <div className={cn("flex-1 overflow-y-auto py-3", collapsed ? "px-1" : "px-0")}>

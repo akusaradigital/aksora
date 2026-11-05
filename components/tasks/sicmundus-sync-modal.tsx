@@ -20,6 +20,7 @@ import {
 } from "@/components/tasks/sicmundus-sync-parts";
 import { DurationInput } from "@/components/shared/duration-input";
 import { getAiRequestPayload } from "@/lib/ai-keys";
+import { getStoredSicmundusCreds } from "@/lib/sicmundus-client";
 
 export type { SicmundusTaskProp, SicmundusSyncResult };
 
@@ -70,8 +71,8 @@ export function SicmundusSyncModal({
   const [notes, setNotes] = useState(task.description || "");
 
   const [showCredentials, setShowCredentials] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(() => getStoredSicmundusCreds()?.username || "");
+  const [password, setPassword] = useState(() => getStoredSicmundusCreds()?.password || "");
 
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);

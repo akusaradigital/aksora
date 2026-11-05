@@ -7,6 +7,8 @@ import { getWorkspaceMembershipsForUser } from "@/lib/workspace-memberships";
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
 import { InviteManager } from "@/components/shared/invite-manager";
 import { WorkspaceBrandingForm } from "@/components/layout/workspace-branding-form";
+import { MemberCustomRoleSelect } from "@/components/roles/member-custom-role-select";
+import { hasCapability } from "@/lib/capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +26,16 @@ export default async function WorkspacesPage() {
       )
     : [];
   const members = activeWorkspace
-    ? await db.query<{ userId: number; name: string; email: string; role: string }>(
-        'SELECT u."id" as "userId", u."name", u."email", wm."role" FROM "WorkspaceMembership" wm INNER JOIN "User" u ON u."id" = wm."userId" WHERE wm."workspaceId" = CAST(? AS INTEGER) ORDER BY u."name" ASC',
+    ? await db.query<{ userId: number; name: string; email: string; role: string; customRoleId: number | null }>(
+        'SELECT u."id" as "userId", u."name", u."email", wm."role", wm."customRoleId" FROM "WorkspaceMembership" wm INNER JOIN "User" u ON u."id" = wm."userId" WHERE wm."workspaceId" = CAST(? AS INTEGER) ORDER BY u."name" ASC',
         [activeWorkspace.workspaceId],
+      )
+    : [];
+  const canAssignRoles = activeWorkspace ? await hasCapability(user, "roles.manage") : false;
+  const customRoles = canAssignRoles
+    ? await db.query<{ id: number; name: string }>(
+        'SELECT "id", "name" FROM "CustomRole" WHERE "workspaceId" = CAST(? AS INTEGER) AND "deletedAt" IS NULL AND "enabled" = 1 ORDER BY "name" ASC',
+        [activeWorkspace!.workspaceId],
       )
     : [];
 
@@ -89,7 +98,12 @@ export default async function WorkspacesPage() {
                           <p className="font-semibold text-gray-900">{member.name || member.email}</p>
                           <p className="text-xs text-gray-500">{member.email}</p>
                         </div>
-                        <span className="text-xs font-semibold text-gray-700">{member.role}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-gray-700">{member.role}</span>
+                          {canAssignRoles && customRoles.length > 0 && member.role !== "admin" && (
+                            <MemberCustomRoleSelect userId={member.userId} value={member.customRoleId} roles={customRoles} />
+                          )}
+                        </div>
                       </div>
                     ))
                   )}

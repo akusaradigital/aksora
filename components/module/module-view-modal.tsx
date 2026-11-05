@@ -14,6 +14,8 @@ import { SicmundusSyncModal } from "@/components/tasks/sicmundus-sync-modal";
 import { workLogToSicmundusProp } from "@/components/tasks/sicmundus-sync-parts";
 import { AiBugToCaseButton } from "@/components/bugs/ai-bug-to-case-button";
 import { AiRootCauseButton } from "@/components/bugs/ai-root-cause-button";
+import { BugTriageButton } from "@/components/bugs/bug-triage-button";
+import { BugTicketButton } from "@/components/bugs/bug-ticket-button";
 import { AiExportAutomationButton } from "@/components/test-management/ai-export-automation-button";
 import { AiSessionSummaryButton } from "@/components/test-sessions/ai-session-summary-button";
 import type { TableRow } from "@/components/module/module-workspace-table-row";
@@ -327,6 +329,8 @@ export function ViewModal({ row, config, fieldIcons, onClose, onEdit, canEdit, m
                 project={String(row.project || "")}
               />
               <AiBugToCaseButton bug={row} />
+              <BugTriageButton bugId={row.id} tier={row.triageTier} confidence={row.triageConfidence} />
+              <BugTicketButton bugId={row.id} externalTicket={row.externalTicket} />
             </>
           )}
           {module === "test-cases" && (

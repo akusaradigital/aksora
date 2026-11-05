@@ -33,6 +33,7 @@ vi.mock("@phosphor-icons/react", () => ({
   Table: (props: Record<string, unknown>) => <svg data-testid="table" {...props} />,
   Funnel: (props: Record<string, unknown>) => <svg data-testid="funnel" {...props} />,
   X: (props: Record<string, unknown>) => <svg data-testid="x" {...props} />,
+  Sparkle: (props: Record<string, unknown>) => <svg data-testid="sparkle" {...props} />,
 }));
 
 import { TestCaseLibrary } from "@/app/test-cases/test-case-library";

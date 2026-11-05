@@ -103,6 +103,7 @@ export async function POST(req: Request) {
       systemPrompt: "You are a healthcheck bot.",
       userPrompt: "Respond with 'OK'.",
       maxTokens: 10,
+      usage: { feature: "ai-validate", workspaceId: user.activeWorkspaceId ?? null, userId: user.id },
     });
     const latencyMs = Date.now() - start;
     const dynamicModels = await fetchProviderModels(provider, apiKey);

@@ -27,15 +27,17 @@ export default function SecurityPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 lg:py-24">
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-7">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Security</p>
-              <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl leading-tight">
+              <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+                Security
+              </span>
+              <h1 className="text-3xl font-extrabold sm:text-5xl lg:text-6xl tracking-tight text-white leading-tight">
                 Your QA data deserves enterprise-grade security
               </h1>
-              <p className="mt-5 text-[15px] text-gray-400 leading-relaxed max-w-xl">
+              <p className="mt-5 text-sm sm:text-base text-blue-100 leading-relaxed max-w-xl">
                 Test plans, bug reports, and quality metrics are sensitive intellectual property. We protect them with the same rigor that enterprise organizations expect — encryption, isolation, access controls, and full auditability.
               </p>
             </div>
@@ -141,19 +143,19 @@ export default function SecurityPage() {
       </section>
 
       {/* Contact */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-          <h2 className="text-2xl font-bold">Security questions or vulnerability reports?</h2>
-          <p className="mt-4 text-[14px] text-gray-400 max-w-lg mx-auto">
+      <section className="bg-white dark:bg-slate-950 py-16 px-5 sm:px-8 transition-colors">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 px-8 py-16 text-center text-white shadow-xl">
+          <h2 className="text-2xl font-extrabold sm:text-4xl">Security questions or vulnerability reports?</h2>
+          <p className="mt-4 text-sm text-blue-100 max-w-lg mx-auto">
             We take security seriously. If you&apos;ve found a vulnerability or have security-related questions about our platform, please reach out.
           </p>
           <p className="mt-6">
-            <a href="mailto:security@akusaradigital.com" className="text-[14px] font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+            <a href="mailto:security@akusaradigital.com" className="rounded-full bg-[#a3e635] px-6 py-2.5 text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#bef264]">
               security@akusaradigital.com
             </a>
           </p>
-          <p className="mt-8 text-[12px] text-gray-500">
-            See also: <Link href="/privacy" className="text-blue-400 hover:underline">Privacy Policy</Link>
+          <p className="mt-8 text-xs text-blue-200">
+            See also: <Link href="/privacy" className="text-white font-semibold underline hover:text-blue-100">Privacy Policy</Link>
           </p>
         </div>
       </section>

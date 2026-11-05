@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Buildings, Users, ShieldCheck, WarningCircle, Info, CalendarBlank } from "@phosphor-icons/react";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { CompanyLogoField } from "./company-logo-field";
 
 type WorkspaceData = {
   companyName: string;
@@ -113,6 +114,7 @@ export function WorkspaceClient() {
 
   return (
     <div className="w-full space-y-6">
+      <CompanyLogoField />
       {/* Workspace Header Card */}
       <div className="flex flex-col gap-4 border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-4">

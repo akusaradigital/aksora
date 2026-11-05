@@ -35,7 +35,26 @@ export async function GET(
     [id]
   );
 
-  return NextResponse.json({ data: { run, verdicts } });
+  let safeRunnerOptions: Record<string, unknown> | null = null;
+  if (run.runnerOptions) {
+    try {
+      const parsed = typeof run.runnerOptions === "string" ? JSON.parse(run.runnerOptions) : run.runnerOptions;
+      if (parsed && typeof parsed === "object") {
+        const { apiKeyEnc: _k, ...cleanOptions } = parsed as Record<string, unknown>;
+        void _k;
+        safeRunnerOptions = cleanOptions;
+      }
+    } catch {
+      safeRunnerOptions = null;
+    }
+  }
+
+  const sanitizedRun = {
+    ...run,
+    runnerOptions: safeRunnerOptions,
+  };
+
+  return NextResponse.json({ data: { run: sanitizedRun, verdicts } });
 }
 
 // PATCH /api/execution-runs/[id] - update run (finish, update notes, etc.)

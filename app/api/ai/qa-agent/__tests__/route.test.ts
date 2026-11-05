@@ -83,6 +83,53 @@ describe("QA AI Agent API (/api/ai/qa-agent)", () => {
     expect(json.data.testCases[0].caseName).toBe("Valid Login");
   });
 
+  it("handles action: generate_cases with UI image mockup", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(mockUser);
+    vi.mocked(callLLM).mockResolvedValue({
+      content: JSON.stringify({
+        testCases: [
+          {
+            caseName: "Verify payment button renders and triggers QRIS modal",
+            preCondition: "Cart has items",
+            testStep: "1. View checkout screen\n2. Click Pay with QRIS",
+            expectedResult: "QRIS dynamic code displays",
+            typeCase: "functional",
+            priority: "high",
+            category: "positive",
+            rationale: "Generated based on visible QRIS button in attached mockup",
+          },
+        ],
+      }),
+      provider: "google",
+      model: "gemini-2.0-flash",
+    });
+
+    const req = new Request("http://localhost/api/ai/qa-agent", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "generate_cases",
+        payload: {
+          featureName: "Checkout Mockup",
+          imageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          mimeType: "image/png",
+        },
+        ai: { provider: "google" },
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.testCases).toHaveLength(1);
+    expect(json.data.testCases[0].rationale).toContain("attached mockup");
+    expect(callLLM).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageBase64: expect.stringContaining("iVBORw0KGgo"),
+        mimeType: "image/png",
+      })
+    );
+  });
+
   it("handles action: enhance_bug successfully", async () => {
     vi.mocked(getCurrentUser).mockResolvedValue(mockUser);
     vi.mocked(callLLM).mockResolvedValue({

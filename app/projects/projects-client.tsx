@@ -16,8 +16,10 @@ import {
   Archive,
   ArrowCounterClockwise,
   Trash,
+  Users,
 } from "@phosphor-icons/react";
 import { QuickProjectModal } from "@/components/projects/quick-project-modal";
+import { ProjectMembersModal } from "@/components/projects/project-members-modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +49,7 @@ export function ProjectsClient() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("active");
   const [modalOpen, setModalOpen] = useState(false);
+  const [membersProject, setMembersProject] = useState<ProjectItem | null>(null);
 
   // Deletion state
   const [deleteTarget, setDeleteTarget] = useState<ProjectItem | null>(null);
@@ -312,6 +315,16 @@ export function ProjectsClient() {
                         )}
                       </button>
 
+                      {/* Members / Team button */}
+                      <button
+                        type="button"
+                        onClick={() => setMembersProject(project)}
+                        title="Project members & access"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition"
+                      >
+                        <Users size={14} weight="bold" />
+                      </button>
+
                       {/* Delete button */}
                       <button
                         type="button"
@@ -381,6 +394,13 @@ export function ProjectsClient() {
           })}
         </div>
       )}
+
+      {/* Project Members Modal */}
+      <ProjectMembersModal
+        project={membersProject}
+        isOpen={Boolean(membersProject)}
+        onClose={() => setMembersProject(null)}
+      />
 
       {/* Creation Modal */}
       <QuickProjectModal

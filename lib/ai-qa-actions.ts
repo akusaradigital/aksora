@@ -5,6 +5,8 @@ export interface ActionAiContext {
   model: string;
   apiKey: string;
   publicUrl?: string;
+  /** Usage attribution forwarded to callLLM so the call is logged to AiUsageLog. */
+  usage?: { feature: string; workspaceId?: number | null; userId?: number | null };
 }
 
 export function parseJsonSafe<T>(content: string, fallback: T): T {
@@ -78,6 +80,7 @@ Respond ONLY with valid JSON in this structure:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -96,13 +99,49 @@ Respond ONLY with valid JSON in this structure:
   return { duplicates };
 }
 
-// 2. Export test case to Playwright / Cypress automation code
+// 2. Export test case to Playwright / Cypress automation code, or Midscene YAML for the AI runner
+export const MIDSCENE_YAML_RULES = `Midscene YAML format (the only verbs allowed in "flow"):
+- aiTap: "<human description of the element>"
+- aiInput: "<text to type>" with locate: "<element description>"
+- aiAssert: "<statement that must be true on screen>"
+- aiWaitFor: "<condition>" with optional timeout: <ms>
+- aiAction: "<free-form multi-step instruction>" (only when no specific verb fits)
+- aiScroll: { direction: up|down, scrollType: once|untilBottom|untilTop }
+- aiHover: "<element description>"
+- aiKeyboardPress: "<key name, e.g. Enter>"
+- sleep: <ms>
+- aiHumanInput: "<question for the human, e.g. Enter the OTP sent by SMS>" with locate: "<input description>" (pauses the run for a person to answer, then types the answer)
+Header must be exactly:
+web:
+  url: "{{baseUrl}}"
+tasks:
+  - name: "<case name>"
+    flow: [...]
+Use {{variableName}} placeholders for credentials and environment data instead of literal secrets.`;
+
 export async function actionExportAutomation(
-  payload: { caseName: string; preCondition?: string; testStep: string; expectedResult: string; framework?: "playwright" | "cypress" },
+  payload: { caseName: string; preCondition?: string; testStep: string; expectedResult: string; framework?: "playwright" | "cypress" | "midscene" },
   ai: ActionAiContext
 ) {
   const { caseName, preCondition, testStep, expectedResult, framework = "playwright" } = payload;
   if (!caseName) throw new Error("Case name is required");
+
+  const userPrompt = `Test Case: ${caseName}\nPreconditions: ${preCondition || "None"}\nSteps:\n${testStep}\nExpected Result: ${expectedResult}\nTarget Framework: ${framework}`;
+
+  if (framework === "midscene") {
+    const systemPrompt = `You are a Principal Test Automation Engineer.
+Convert the manual test case into a Midscene.js YAML script that a vision model executes in a browser.
+Describe elements the way a person sees them (visible label, placeholder, button text), never CSS selectors.
+End the flow with aiAssert steps that check the expected result.
+${MIDSCENE_YAML_RULES}
+Respond ONLY with valid JSON:
+{ "code": "<the YAML script as a string>", "fileName": "case.yaml", "notes": "Short notes on assumptions and variables used" }`;
+    const res = await callLLM({
+      provider: ai.provider, model: ai.model, apiKey: ai.apiKey, publicBaseUrl: ai.publicUrl, usage: ai.usage,
+      systemPrompt, userPrompt, jsonMode: true, maxTokens: 2500,
+    });
+    return parseJsonSafe(res.content, { code: "", fileName: "case.yaml", notes: "Generation failed; write the script by hand." });
+  }
 
   const systemPrompt = `You are a Principal Test Automation Engineer.
 Convert manual test case instructions into production-ready, clean TypeScript ${framework === "cypress" ? "Cypress" : "Playwright"} automated test code.
@@ -114,13 +153,12 @@ Respond ONLY with valid JSON:
   "notes": "Short bullet instructions to run"
 }`;
 
-  const userPrompt = `Test Case: ${caseName}\nPreconditions: ${preCondition || "None"}\nSteps:\n${testStep}\nExpected Result: ${expectedResult}\nTarget Framework: ${framework}`;
-
   const res = await callLLM({
     provider: ai.provider,
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -163,6 +201,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -201,6 +240,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -240,6 +280,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -280,6 +321,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     imageBase64,
@@ -333,6 +375,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -371,6 +414,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,
@@ -412,6 +456,7 @@ Respond ONLY with valid JSON:
     model: ai.model,
     apiKey: ai.apiKey,
     publicBaseUrl: ai.publicUrl,
+    usage: ai.usage,
     systemPrompt,
     userPrompt,
     jsonMode: true,

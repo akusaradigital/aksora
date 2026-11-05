@@ -88,7 +88,7 @@ export async function POST(req: Request) {
             t.description || t.title,
             duration,
             t.id,
-            user.name || "Wahyu Priyono",
+            user.name || "Alexander Wright",
           ]
         );
         tasksSynced++;
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
             projectName,
             title,
             e.notes || "",
-            user.name || "Wahyu Priyono",
+            user.name || "Alexander Wright",
             e.task_id,
             e.subtask_id || "",
             e.id,

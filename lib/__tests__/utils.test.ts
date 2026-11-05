@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn, codeFromId, formatDate, formatDisplayText, normalizeMultiline, toDateInput } from "@/lib/utils";
+import { cn, codeFromId, formatDate, formatDisplayText, normalizeMultiline, toDateInput, parseTimeToMinutes, calculateDurationFromTime, addMinutesToTime, normalizeTimeString } from "@/lib/utils";
 
 describe("utils", () => {
   it("joins class values", () => {
@@ -32,5 +32,20 @@ describe("utils", () => {
 
   it("generates stable codes", () => {
     expect(codeFromId("BUG", 7)).toBe("BUG-007");
+  });
+
+  it("parses time strings to minutes and calculates durations", () => {
+    expect(parseTimeToMinutes("08:30")).toBe(510);
+    expect(parseTimeToMinutes("8:30")).toBe(510);
+    expect(parseTimeToMinutes("02:00")).toBe(120);
+    expect(parseTimeToMinutes("2026-11-04T08:30:00.000Z")).toBe(510);
+    expect(parseTimeToMinutes("")).toBeUndefined();
+    expect(parseTimeToMinutes(null)).toBeUndefined();
+    expect(normalizeTimeString("8:30")).toBe("08:30");
+    expect(normalizeTimeString("08:30")).toBe("08:30");
+    expect(normalizeTimeString("2026-11-04T08:30:00.000Z")).toBe("08:30");
+    expect(normalizeTimeString("")).toBe("");
+    expect(calculateDurationFromTime("08:30", "10:40")).toBe(130);
+    expect(addMinutesToTime("08:30", 130)).toBe("10:40");
   });
 });

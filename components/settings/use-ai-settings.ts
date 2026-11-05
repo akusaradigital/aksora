@@ -18,7 +18,7 @@ import {
   DEFAULT_AI_MODELS,
   AI_PROVIDER_LABELS,
   type SupportedProvider,
-} from "@/lib/ai-service";
+} from "@/lib/ai-types";
 import type { ProviderCardState } from "./ai-provider-card";
 
 export function useAISettings() {

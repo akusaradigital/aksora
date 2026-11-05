@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Task title is required" }, { status: 400 });
     }
 
-    const formatted = await formatSicmundusTaskWithAI(body, body.ai);
+    const formatted = await formatSicmundusTaskWithAI(body, body.ai && { ...body.ai, usage: { feature: "sicmundus-format", workspaceId: user.activeWorkspaceId ?? null, userId: user.id } });
     return NextResponse.json({ data: formatted });
   } catch (err) {
     return NextResponse.json(

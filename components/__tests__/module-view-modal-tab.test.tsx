@@ -24,7 +24,7 @@ vi.mock("@phosphor-icons/react", () => {
     "DotsThree", "DotsSixVertical", "CopySimple", "EnvelopeSimple", "Eye", "EyeSlash",
     "Lock", "PaperPlaneTilt", "Rows", "SlidersHorizontal", "Warning", "WarningCircle",
     "Bug", "CalendarBlank", "Clock", "Compass", "Gear", "Info", "List", "PlayCircle",
-    "ShieldCheck", "SignOut", "Sparkle", "Wrench", "Cpu", "GearSix", "ArrowRight", "FileCode",
+    "ShieldCheck", "SignOut", "Sparkle", "Wrench", "Cpu", "GearSix", "ArrowRight", "FileCode", "Ticket",
   ];
   return Object.fromEntries(
     icons.map((name) => [name, (props: Record<string, unknown>) => <IconStub name={name} {...props} />])

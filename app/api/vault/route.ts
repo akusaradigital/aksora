@@ -8,7 +8,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const data = await listVaultEntriesForUser(user.id);
+  const data = await listVaultEntriesForUser(user.id, user.activeWorkspaceId);
   return NextResponse.json({ data: JSON.parse(JSON.stringify(data)) }, {
     headers: { "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate" },
   });
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       category: String(body?.category ?? "general"),
       password,
       notes: String(body?.notes ?? ""),
+      workspaceId: user.activeWorkspaceId,
     });
     return NextResponse.json({ data: { id } }, { status: 201 });
   } catch (error) {

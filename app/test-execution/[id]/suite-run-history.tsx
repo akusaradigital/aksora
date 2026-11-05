@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/shared/badge";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { ResponsiveContainer } from "@/components/shared/responsive-container";
+import { EnvironmentSelect } from "@/components/environments/environment-select";
 
 type Run = {
   id: number;
@@ -35,6 +36,7 @@ type Suite = {
 export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [environmentId, setEnvironmentId] = useState("");
   const [trend, setTrend] = useState<{ runNumber: number; passRate: number }[]>([]);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
       const res = await fetch("/api/execution-runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testSuiteId: suite.id, testPlanId: suite.testPlanId }),
+        body: JSON.stringify({ testSuiteId: suite.id, testPlanId: suite.testPlanId, environmentId: environmentId || undefined }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -71,6 +73,13 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
     <div className="space-y-6">
       {/* Actions */}
       <div className="flex items-center gap-3">
+        <a
+          href={`/api/test-suites/${suite.id}/export/pdf`}
+          download
+          className="order-last ml-auto inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+        >
+          Export PDF
+        </a>
         {inProgressRun ? (
           <Link
             href={`/test-execution/${suite.publicToken}/run/${inProgressRun.id}`}
@@ -79,6 +88,8 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
             <Lightning size={16} weight="fill" /> Continue Run #{inProgressRun.runNumber}
           </Link>
         ) : (
+          <>
+          <EnvironmentSelect value={environmentId} onChange={setEnvironmentId} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500" />
           <button
             onClick={startNewRun}
             disabled={creating || suite.caseCount === 0}
@@ -86,6 +97,7 @@ export function SuiteRunHistory({ suite, runs }: { suite: Suite; runs: Run[] }) 
           >
             <Play size={16} weight="fill" /> {creating ? "Starting..." : "Start New Run"}
           </button>
+          </>
         )}
         {suite.caseCount === 0 && (
           <p className="text-xs text-slate-400">Add test cases to this suite before starting a run.</p>

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     if (!projectNames.includes("Oronamin C")) projectNames.unshift("Oronamin C");
 
     const dateStr = body.date || new Date().toISOString().slice(0, 10);
-    const parsedItems = await parseNaturalLanguageWorkLogsWithAI(body.text, dateStr, projectNames, body.ai);
+    const parsedItems = await parseNaturalLanguageWorkLogsWithAI(body.text, dateStr, projectNames, body.ai && { ...body.ai, usage: { feature: "work-log-quick-ai", workspaceId, userId: user.id } });
 
     if (parsedItems.length === 0) {
       return NextResponse.json({ error: "Could not parse any work log entries from input." }, { status: 422 });
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
     if (body.saveDirectly) {
       const inserted = [];
-      const assignee = user.name || "Wahyu Priyono";
+      const assignee = user.name || "Alexander Wright";
 
       for (const item of parsedItems) {
         const publicToken = Math.random().toString(36).slice(2) + Date.now().toString(36);

@@ -47,26 +47,27 @@ export default function FeaturesPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent" />
-        <div className="mx-auto max-w-6xl px-5 py-28 text-center relative">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Platform Features</p>
-          <h1 className="text-3xl font-bold sm:text-4xl lg:text-5xl leading-tight">
-            A complete quality management<br className="hidden sm:block" /> platform for modern teams
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-center text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-4xl">
+          <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+            Platform Features
+          </span>
+          <h1 className="text-3xl font-extrabold sm:text-5xl lg:text-6xl tracking-tight text-white leading-tight">
+            A complete quality management platform for modern teams
           </h1>
-          <p className="mt-5 text-[15px] text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-5 text-sm sm:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
             Six integrated modules covering the full QA lifecycle — from test planning through execution, bug tracking, and automated reporting. No plugins, no add-ons, no fragmentation.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-8 text-[13px] text-gray-500">
-            <span className="flex items-center gap-2"><Lightning size={14} weight="bold" className="text-amber-400" /> Setup in 2 minutes</span>
-            <span className="flex items-center gap-2"><Users size={14} weight="bold" className="text-emerald-400" /> Built for teams of 3–100</span>
-            <span className="flex items-center gap-2"><Globe size={14} weight="bold" className="text-blue-400" /> 99.9% uptime SLA</span>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-blue-200">
+            <span className="flex items-center gap-2"><Lightning size={14} weight="bold" className="text-[#a3e635]" /> Setup in 2 minutes</span>
+            <span className="flex items-center gap-2"><Users size={14} weight="bold" className="text-emerald-300" /> Built for teams of 3–100</span>
+            <span className="flex items-center gap-2"><Globe size={14} weight="bold" className="text-blue-300" /> 99.9% uptime SLA</span>
           </div>
         </div>
       </section>
 
       {/* Stats Bar */}
-      <section className="border-b border-gray-100 bg-white">
+      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             <StatItem value="10,000+" label="Test cases managed" />
@@ -78,12 +79,12 @@ export default function FeaturesPage() {
       </section>
 
       {/* Core Modules - Detailed with Mock UI */}
-      <section className="border-b border-gray-100">
+      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="text-center mb-14">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-2">Core Modules</p>
-            <h2 className="text-2xl font-bold text-gray-900">Six modules. One unified workflow.</h2>
-            <p className="mt-2 text-[13px] text-gray-500 max-w-lg mx-auto">Each module is designed to work independently or together as a complete system.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-2">Core Modules</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-white">Six modules. One unified workflow.</h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">Each module is designed to work independently or together as a complete system.</p>
           </div>
 
           <div className="space-y-20">
@@ -98,12 +99,12 @@ export default function FeaturesPage() {
       </section>
 
       {/* Platform Capabilities */}
-      <section className="border-b border-gray-100 bg-gray-50">
+      <section className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50 transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="text-center mb-12">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-2">Platform Capabilities</p>
-            <h2 className="text-2xl font-bold text-gray-900">Built-in features that enterprise teams expect</h2>
-            <p className="mt-2 text-[13px] text-gray-500 max-w-lg mx-auto">No plugins or third-party integrations required. Everything works out of the box.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-2">Platform Capabilities</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-white">Built-in features that enterprise teams expect</h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">No plugins or third-party integrations required. Everything works out of the box.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MiniFeature icon={<ShieldCheck size={18} weight="bold" />} title="Role-Based Access Control" desc="8 granular roles with scoped permissions. Each team member sees exactly what they need." />
@@ -123,12 +124,12 @@ export default function FeaturesPage() {
       </section>
 
       {/* Comparison Table */}
-      <section className="border-b border-gray-100">
+      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="text-center mb-12">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-2">Why Switch</p>
-            <h2 className="text-2xl font-bold text-gray-900">Aksora vs the alternatives</h2>
-            <p className="mt-2 text-[13px] text-gray-500 max-w-lg mx-auto">Stop duct-taping spreadsheets and generic project tools. Use a platform built specifically for QA.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-2">Why Switch</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-white">Aksora vs the alternatives</h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">Stop duct-taping spreadsheets and generic project tools. Use a platform built specifically for QA.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[12px]">
@@ -159,11 +160,11 @@ export default function FeaturesPage() {
       </section>
 
       {/* Workflow Timeline */}
-      <section className="border-b border-gray-100 bg-gray-50">
+      <section className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50 transition-colors">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="text-center mb-14">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600 mb-2">How It Works</p>
-            <h2 className="text-2xl font-bold text-gray-900">From zero to full QA coverage in minutes</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-2">How It Works</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 dark:text-white">From zero to full QA coverage in minutes</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <TimelineStep step={1} icon={<Rocket size={20} weight="bold" />} title="Create workspace" desc="Sign up, name your workspace, invite your team. Done in under 2 minutes." />
@@ -175,18 +176,17 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-          <h2 className="text-2xl font-bold sm:text-3xl">See it in action</h2>
-          <p className="mt-3 text-[14px] text-gray-400 max-w-lg mx-auto">
+      <section className="bg-white dark:bg-slate-950 py-16 px-5 sm:px-8 transition-colors">
+        <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-800 px-8 py-16 text-center text-white shadow-xl">
+          <h2 className="text-2xl font-extrabold sm:text-4xl">See it in action</h2>
+          <p className="mt-4 text-sm text-blue-100 max-w-lg mx-auto">
             Create a free workspace and explore every feature. No credit card, no time limit on the free plan.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/login" className="group inline-flex items-center gap-2 bg-blue-600 px-7 py-3 text-[13px] font-semibold text-white hover:bg-blue-500 transition-all hover:translate-y-[-1px]">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login" className="rounded-full bg-[#a3e635] px-7 py-3 text-xs font-bold text-slate-950 shadow-md transition hover:bg-[#bef264]">
               Start Free — Takes 2 Minutes
-              <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
-            <Link href="/demo" className="inline-flex items-center gap-1.5 border border-white/15 px-7 py-3 text-[13px] font-medium text-gray-300 hover:bg-white/5 transition-colors">
+            <Link href="/demo" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-xs font-semibold text-white hover:bg-white/20 transition">
               Try Live Demo
             </Link>
           </div>
@@ -201,8 +201,8 @@ export default function FeaturesPage() {
 function StatItem({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-[11px] text-gray-500 mt-0.5">{label}</p>
+      <p className="text-2xl font-extrabold text-slate-950 dark:text-white tabular-nums">{value}</p>
+      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -217,8 +217,8 @@ function TimelineStep({ step, icon, title, desc }: { step: number; icon: React.R
         </div>
         <span className="text-blue-600">{icon}</span>
       </div>
-      <h3 className="text-[13px] font-bold text-gray-900">{title}</h3>
-      <p className="mt-1.5 text-[11px] text-gray-500 leading-relaxed">{desc}</p>
+      <h3 className="text-sm font-bold text-slate-950 dark:text-white">{title}</h3>
+      <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{desc}</p>
     </div>
   );
 }
@@ -226,10 +226,10 @@ function TimelineStep({ step, icon, title, desc }: { step: number; icon: React.R
 // ─── Mini Feature Card ───────────────────────────────────────────────────────
 function MiniFeature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="border border-gray-200 bg-white p-5 hover:border-blue-200 hover:shadow-sm transition-all group">
-      <span className="text-blue-600 mb-3 block group-hover:scale-110 transition-transform origin-left" aria-hidden="true">{icon}</span>
-      <p className="text-[12px] font-bold text-gray-900">{title}</p>
-      <p className="mt-1 text-[11px] text-gray-500 leading-relaxed">{desc}</p>
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xs hover:border-blue-300 dark:hover:border-blue-600 transition-all group">
+      <span className="text-blue-600 dark:text-blue-400 mb-3 block group-hover:scale-110 transition-transform origin-left" aria-hidden="true">{icon}</span>
+      <p className="text-xs font-bold text-slate-950 dark:text-white">{title}</p>
+      <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{desc}</p>
     </div>
   );
 }

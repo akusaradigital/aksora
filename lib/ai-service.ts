@@ -4,6 +4,8 @@
  * Designed for task formatting, QA generation, and intelligent assistant workflows.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import {
   SUPPORTED_PROVIDERS,
   DEFAULT_AI_MODELS,
@@ -103,6 +105,36 @@ export function extractModelsFromPayload(data: unknown): string[] {
 }
 
 /**
+ * Auto-resolves the local 9Router API key if available on host.
+ */
+function getAutoLocal9RouterKey(): string {
+  if (process.env.NINEROUTER_API_KEY) return process.env.NINEROUTER_API_KEY.trim();
+  try {
+    const appData = process.env.APPDATA || (process.platform === "win32" ? path.join(process.env.USERPROFILE || "", "AppData", "Roaming") : "");
+    const candidates = [
+      appData ? path.join(appData, "9router", "db", "data.sqlite") : "",
+      path.join(process.env.HOME || process.env.USERPROFILE || "", ".9router", "db", "data.sqlite"),
+    ].filter(Boolean);
+
+    for (const dbPath of candidates) {
+      if (fs.existsSync(dbPath)) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { DatabaseSync } = require("node:sqlite");
+        const db = new DatabaseSync(dbPath, { readOnly: true });
+        const row = db.prepare("SELECT key FROM apiKeys WHERE name = ? OR name = ? ORDER BY id ASC LIMIT 1").get("api-local", "default");
+        db.close?.();
+        if (row && typeof row === "object" && "key" in row && typeof (row as { key: string }).key === "string") {
+          return (row as { key: string }).key.trim();
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return "";
+}
+
+/**
  * Resilient discovery for local 9Router instance.
  * Checks IPv4 (127.0.0.1) and localhost (IPv6/IPv4), /v1/models and /models.
  */
@@ -117,9 +149,10 @@ export async function queryLocal9Router(
     "http://localhost:20128/models",
   ];
 
+  const resolvedKey = apiKey?.trim() || getAutoLocal9RouterKey();
   const headers: Record<string, string> = {};
-  if (apiKey?.trim()) {
-    headers.Authorization = `Bearer ${apiKey.trim()}`;
+  if (resolvedKey) {
+    headers.Authorization = `Bearer ${resolvedKey}`;
   }
 
   for (const endpoint of endpoints) {
@@ -296,6 +329,33 @@ export async function fetchProviderModels(
  * Execute universal LLM call across any configured provider.
  */
 export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
+  if (!opts.usage) return callProvider(opts);
+  const started = Date.now();
+  try {
+    const result = await callProvider(opts);
+    void logAiUsage(opts, result.provider, result.model, result.totalTokens || 0, Date.now() - started, true);
+    return result;
+  } catch (error) {
+    void logAiUsage(opts, opts.provider, opts.model || "", 0, Date.now() - started, false);
+    throw error;
+  }
+}
+
+async function logAiUsage(opts: CallLLMOptions, provider: string, model: string, tokens: number, durationMs: number, success: boolean) {
+  try {
+    const { db } = await import("./db");
+    // shortcut: providers only report a total here, so it is stored as promptTokens; split when per-direction counts matter.
+    await db.run(
+      `INSERT INTO "AiUsageLog" ("workspaceId", "userId", "feature", "provider", "model", "promptTokens", "completionTokens", "durationMs", "success")
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [opts.usage?.workspaceId ?? null, opts.usage?.userId ?? null, opts.usage?.feature || "", provider, model, tokens, durationMs, success ? 1 : 0],
+    );
+  } catch {
+    // usage logging must never break the AI call
+  }
+}
+
+async function callProvider(opts: CallLLMOptions): Promise<CallLLMResult> {
   const p = normalizeProvider(opts.provider);
   const model = opts.model || DEFAULT_AI_MODELS[p]?.[0] || "gemini-2.0-flash";
   const apiKey = (opts.apiKey || "").trim();
@@ -443,7 +503,7 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
     throw new Error(`API key is required for ${p}`);
   }
 
-  const effectiveKey = p === "9router" && !apiKey ? "9router-local-key" : apiKey;
+  const effectiveKey = p === "9router" && !apiKey ? (getAutoLocal9RouterKey() || "9router-local-key") : apiKey;
 
   const messages: Array<{ role: "system" | "user"; content: unknown }> = [];
   if (opts.systemPrompt) {
@@ -470,6 +530,7 @@ export async function callLLM(opts: CallLLMOptions): Promise<CallLLMResult> {
     messages,
     temperature: 0.2,
     max_tokens: maxTokens,
+    stream: false,
   };
 
   if (opts.jsonMode) {

@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     viewport: String(viewport),
     additionalNotes: String(additionalNotes || ""),
     ai: ai as { provider?: string; model?: string; apiKey?: string; publicUrl?: string } | undefined,
+    usage: { feature: "vision-test", workspaceId: user.activeWorkspaceId ?? null, userId: user.id },
   });
 
   let saved = false;

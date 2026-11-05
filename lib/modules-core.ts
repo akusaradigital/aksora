@@ -165,7 +165,7 @@ export const taskSchema = z.object({
   project: requiredText("Project"),
   relatedFeature: optionalText,
   category: z.enum(["Feature", "Enhancement", "Bug Fix", "Tech Debt", "Research", "Support", "Refactor", "Documentation", "Improvement"]),
-  status: z.enum(["todo", "doing", "review", "done", "blocked"]),
+  status: z.enum(["backlog", "todo", "in_progress", "need_to_test", "completed", "hold", "doing", "review", "done", "blocked"]),
   priority: z.enum(["P0", "P1", "P2", "P3"]),
   durationMinutes: z.union([z.string(), z.number()]).optional().default(""),
   startDate: z.string().optional().default(""),
@@ -208,6 +208,8 @@ export const testCaseSchema = z.object({
   actualResult: optionalText,
   status: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Pending", "Passed", "Failed", "Blocked"]).default("Pending")),
   priority: z.preprocess((v) => (v === "" || v === undefined ? undefined : v), z.enum(["Critical", "High", "Medium", "Low"]).default("Medium")),
+  category: z.enum(["", "positive", "negative", "edge"]).default(""),
+  rationale: optionalText,
 });
 
 export const testPlanStatusOptions: Option[] = [

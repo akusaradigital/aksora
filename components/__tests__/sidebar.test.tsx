@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/test-execution/session-1",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     prefetch: vi.fn(),
     push: vi.fn(),
@@ -121,72 +122,48 @@ describe("Sidebar", () => {
       support: "Support",
     } as unknown as Parameters<typeof getGroups>[0]);
 
-    // Section A: Main Navigation (Dashboard)
+    // Section A: Main Navigation (Dashboard, Projects)
     expect(groups[0].title).toBe("");
-    expect(groups[0].items.map((i) => i.href)).toEqual(["/dashboard"]);
+    expect(groups[0].items.map((i) => i.href)).toEqual(["/dashboard", "/projects"]);
 
-    // Section B: Test Management (Projects, Test Plans, Test Suites, Test Cases, Test Sessions, Exploratory)
+    // Section B: Test Management (Test Repository, Test Execution)
     expect(groups[1].title).toBe("Test Management");
     expect(groups[1].items.map((i) => i.href)).toEqual([
-      "/projects",
-      "/test-plans",
-      "/test-suites",
       "/test-cases",
       "/test-execution",
-      "/exploratory",
     ]);
 
-    // Section C: Work Tracking (Tasks, Bugs, Sprints, Work Log, Gantt / Timeline)
+    // Section C: Work Tracking (Tasks & Sprints, Bugs, Team & Logs)
     expect(groups[2].title).toBe("Work Tracking");
     expect(groups[2].items.map((i) => i.href)).toEqual([
       "/tasks",
       "/bugs",
-      "/sprints",
       "/work-logs",
-      "/gantt",
     ]);
 
-    // Section D: Team Workspace (Daily Standup, Meeting Notes, Activity Log)
-    expect(groups[3].title).toBe("Team Workspace");
+    // Section D: Reports & Analytics
+    expect(groups[3].title).toBe("Reports & Analytics");
     expect(groups[3].items.map((i) => i.href)).toEqual([
-      "/standup",
-      "/meeting-notes",
-      "/activity-log",
+      "/reports",
     ]);
 
-    // Section E: Personal Tools (Notes, Password Manager)
+    // Section E: Personal Tools
     expect(groups[4].title).toBe("Personal Tools");
     expect(groups[4].items.map((i) => i.href)).toEqual([
       "/notes",
-      "/vault",
     ]);
 
-    // Section F: Reports & Analytics (Report, Sprint Burndown, Test Coverage, Flaky Tests, Test Gap Analysis, Deployment Log, Workload Heatmap)
-    expect(groups[5].title).toBe("Reports & Analytics");
+    // Section F: System Settings
+    expect(groups[5].title).toBe("System Settings");
     expect(groups[5].items.map((i) => i.href)).toEqual([
-      "/weekly-report",
-      "/reports/sprint-burndown",
-      "/reports/test-coverage",
-      "/reports/flaky-tests",
-      "/reports/test-gap",
-      "/deployments",
-      "/reports/workload",
-    ]);
-
-    // Section G: System Settings (Settings, AI & Models, API Keys, Support)
-    expect(groups[6].title).toBe("System Settings");
-    expect(groups[6].items.map((i) => i.href)).toEqual([
       "/settings",
-      "/settings/ai",
-      "/settings/api-keys",
-      "/settings/support",
     ]);
 
     // Ensure no duplicate routes across all groups
     const allHrefs = groups.flatMap((g) => g.items.map((i) => i.href));
     const uniqueHrefs = new Set(allHrefs);
     expect(allHrefs.length).toBe(uniqueHrefs.size);
-    expect(allHrefs.length).toBe(28);
+    expect(allHrefs.length).toBe(10);
   });
 });
 

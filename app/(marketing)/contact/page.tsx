@@ -22,11 +22,15 @@ export default function ContactPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-gray-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400 mb-3">Contact Us</p>
-          <h1 className="text-3xl font-bold sm:text-4xl">Let&apos;s talk about your QA needs</h1>
-          <p className="mt-4 text-[15px] text-gray-400 max-w-xl mx-auto">
+      <section className="relative overflow-visible bg-gradient-to-b from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] pt-20 pb-24 text-center text-white px-5 sm:px-8 border-b border-blue-900/60 shadow-inner">
+        <div className="mx-auto max-w-4xl">
+          <span className="inline-block rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-200 border border-blue-400/30 mb-3">
+            Contact Us
+          </span>
+          <h1 className="text-3xl font-extrabold sm:text-5xl tracking-tight text-white">
+            Let&apos;s talk about your QA needs
+          </h1>
+          <p className="mt-4 text-sm sm:text-base text-blue-100 max-w-xl mx-auto leading-relaxed">
             Whether you&apos;re evaluating Aksora for your team, need technical support, or want to explore a partnership — we&apos;re here to help.
           </p>
         </div>

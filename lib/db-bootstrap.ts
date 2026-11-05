@@ -143,7 +143,22 @@ async function ensureKanbanSortOrderColumns(deps: DbBootstrapDeps) {
 
 const globalBootstrap = globalThis as unknown as { __schemaBootstrapDone?: boolean; __schemaVersion?: number };
 
-const CURRENT_MIGRATION_VERSION = 12;
+const CURRENT_MIGRATION_VERSION = 13;
+
+async function backfillUuids(deps: DbBootstrapDeps) {
+  const pool = await deps.getPostgresPool();
+  const tables = [
+    "User", "Workspace", "Project", "Sprint", "Task", "Bug", "TestCase",
+    "TestPlan", "TestSession", "TestSuite", "ActivityLog", "MeetingNote",
+    "Deployment", "WorkLog", "Note", "VaultEntry", "ExploratorySession",
+    "ExecutionRun", "Assignee"
+  ];
+  for (const table of tables) {
+    try {
+      await pool.query(`UPDATE "${table}" SET "uuid" = gen_random_uuid()::text WHERE "uuid" IS NULL OR "uuid" = ''`);
+    } catch { /* non-critical */ }
+  }
+}
 
 async function getMigrationVersion(deps: DbBootstrapDeps): Promise<number> {
   try {
@@ -374,6 +389,7 @@ export async function ensureSchemaBootstrap(deps: DbBootstrapDeps) {
             await backfillWorkspaceIds(deps);
             await pruneOrphanWorkspaceMemberships(deps);
             await backfillProjectsFromExistingData(deps);
+            await backfillUuids(deps);
             await setMigrationVersion(deps, CURRENT_MIGRATION_VERSION);
           }
           globalBootstrap.__schemaBootstrapDone = true;

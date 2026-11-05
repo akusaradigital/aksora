@@ -130,13 +130,13 @@ const dict = {
       },
       {
         quote: "Finally, one place where test cases, sprint tasks, and daily standups live together. We completely eliminated Google Sheets and sync meetings.",
-        author: "Devi Pratama",
+        author: "Daniel Reed",
         role: "Head of Engineering",
-        company: "Nusantara Digital",
+        company: "Apex Systems",
       },
       {
         quote: "The workload heatmap and quality health score give our PMs and engineering managers immediate visibility on team capacity and release risks.",
-        author: "Sarah Jenkins",
+        author: "Jessica Taylor",
         role: "Senior Engineering Manager",
         company: "CloudVibe Labs",
       },

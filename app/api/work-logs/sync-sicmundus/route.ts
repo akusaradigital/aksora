@@ -3,24 +3,32 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAccessScope, makePublicToken } from "@/lib/data-helpers";
 import { db } from "@/lib/db";
 import { loginSicmundus, getSicmundusEntries, getSicmundusTasks } from "@/lib/sicmundus";
+import { normalizeTimeString } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = (await req.json().catch(() => ({}))) as {
+    username?: string;
+    password?: string;
+  };
+  const customUser = body.username ? String(body.username).trim() : undefined;
+  const customPass = body.password ? String(body.password) : undefined;
+
   const { company, workspaceId } = getAccessScope(user);
   const targetWorkspaceId = workspaceId || 1;
   const targetCompany = company || "Akusara Project";
-  const assigneeName = String(user.name || "Wahyu Priyono").trim();
 
   try {
-    const auth = await loginSicmundus();
+    const auth = await loginSicmundus(customUser, customPass);
+    const assigneeName = String(auth.user?.full_name || auth.user?.username || user.name || "Alexander Wright").trim();
     const [tasks, entries] = await Promise.all([
-      getSicmundusTasks(auth.token),
+      getSicmundusTasks(auth.token, auth.user?.id),
       getSicmundusEntries(auth.token),
     ]);
 
@@ -34,7 +42,8 @@ export async function POST() {
     }
 
     const existingRows = await db.query<{ id: number; sicmundusEntryId: string; durationMinutes: number }>(
-      'SELECT "id", "sicmundusEntryId", "durationMinutes" FROM "WorkLog" WHERE "deletedAt" IS NULL AND "sicmundusEntryId" IS NOT NULL'
+      'SELECT "id", "sicmundusEntryId", "durationMinutes" FROM "WorkLog" WHERE "deletedAt" IS NULL AND "sicmundusEntryId" IS NOT NULL AND "company" = ?',
+      [targetCompany]
     );
     const existingMap = new Map<string, { id: number; durationMinutes: number }>();
     for (const row of existingRows) {
@@ -56,8 +65,8 @@ export async function POST() {
       if (existing) {
         if (existing.durationMinutes !== dur) {
           await db.run(
-            'UPDATE "WorkLog" SET "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER)',
-            [dur, existing.id]
+            'UPDATE "WorkLog" SET "durationMinutes" = ?, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = CAST(? AS INTEGER) AND "company" = ?',
+            [dur, existing.id, targetCompany]
           );
           updatedCount++;
         }
@@ -85,8 +94,8 @@ export async function POST() {
           targetWorkspaceId,
           publicToken,
           dateStr,
-          entry.start_time || `${dateStr}T02:00:00.000Z`,
-          entry.end_time || `${dateStr}T10:00:00.000Z`,
+          entry.start_time ? normalizeTimeString(entry.start_time) : "02:00",
+          entry.end_time ? normalizeTimeString(entry.end_time) : "10:00",
           dur,
           cat,
           proj,

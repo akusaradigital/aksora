@@ -14,12 +14,17 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null);
 function resolveIsDark(theme: Theme) {
   if (theme === "dark") return true;
   if (theme === "light") return false;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark") return true;
+    if (stored === "light") return false;
+  }
+  return false; // Default: Day (Light) mode
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() =>
-    typeof window === "undefined" ? "system" : (localStorage.getItem("theme") as Theme | null) ?? "system",
+    typeof window === "undefined" ? "light" : (localStorage.getItem("theme") as Theme | null) ?? "light",
   );
 
   useEffect(() => {

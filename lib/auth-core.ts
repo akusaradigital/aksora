@@ -1,6 +1,5 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { syncAssigneeFromUser } from "@/lib/user-assignee-sync";
-import { ensureWorkspaceForUser } from "@/lib/workspace-memberships";
 import {
   WORKSPACE_ROLES,
   INVITE_ROLES,
@@ -128,11 +127,25 @@ export function verifySharedSecret(provided: unknown, expected: string | null | 
 export async function validateCredentials(email: string, password: string) {
   try {
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; password: string; mfaEnabled: number; mfaSecret: string | null; emailVerified: number; activeWorkspaceId: number | null; locale?: string }>(
-      `SELECT u."id", u."name", u."email", COALESCE(wm."role", u."role") AS "role", u."company", u."password", u."mfaEnabled", u."mfaSecret", u."emailVerified", w."id" AS "activeWorkspaceId", u."locale"
+    const { randomUUID } = await import("crypto");
+    const user = await db.get<{
+      id: number;
+      uuid?: string;
+      name: string;
+      email: string;
+      role: string;
+      company: string;
+      password: string;
+      mfaEnabled: number;
+      mfaSecret: string | null;
+      emailVerified: number;
+      activeWorkspaceId: number | null;
+      locale?: string;
+    }>(
+      `SELECT u."id", u."uuid", u."name", u."email", COALESCE(wm."role", u."role") AS "role", u."company", u."password", u."mfaEnabled", u."mfaSecret", u."emailVerified", COALESCE(u."activeWorkspaceId", w."id") AS "activeWorkspaceId", u."locale"
        FROM "User" u
        LEFT JOIN "Workspace" w ON w."name" = u."company"
-       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
+       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = COALESCE(u."activeWorkspaceId", w."id") AND wm."userId" = u."id"
        WHERE u."email" = ?`,
       [email]
     );
@@ -149,8 +162,29 @@ export async function validateCredentials(email: string, password: string) {
       );
     }
 
+    // Ensure user has uuid
+    let userUuid = user.uuid;
+    if (!userUuid) {
+      userUuid = randomUUID();
+      try {
+        await db.run('UPDATE "User" SET "uuid" = ? WHERE "id" = CAST(? AS INTEGER)', [userUuid, user.id]);
+        user.uuid = userUuid;
+      } catch { /* ignore non-critical */ }
+    }
+
+    // Ensure dedicated workspace for user so users don't share workspace 1 / Wahyu's data
+    try {
+      const { ensurePersonalWorkspaceForUser } = await import("./workspace-memberships");
+      const ws = await ensurePersonalWorkspaceForUser(user.id, user.name, user.email, user.company);
+      if (ws) {
+        user.activeWorkspaceId = ws.id;
+        user.company = ws.name;
+      }
+    } catch { /* non-critical */ }
+
     return {
       id: user.id,
+      uuid: user.uuid || userUuid,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -170,15 +204,45 @@ export async function validateCredentials(email: string, password: string) {
 export async function registerUser(email: string, password: string, name?: string, role: string = "qa", company: string = "") {
   try {
     const { db } = await import("./db");
-    const hashedPassword = await hashPassword(password);
-    await db.run('INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)', [email, hashedPassword, name || email, role, company]);
-    const user = await db.get<{ id: number; company: string; name: string | null; email: string | null; role: string | null }>(
-      'SELECT "id", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
+    const { randomUUID } = await import("crypto");
+    const userUuid = randomUUID();
+    const hashedPassword = password ? await hashPassword(password) : "";
+    try {
+      await db.run(
+        'INSERT INTO "User" ("uuid", "email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?, ?)',
+        [userUuid, email, hashedPassword, name || email, role, company],
+      );
+    } catch (insertErr: unknown) {
+      const errObj = insertErr as { code?: unknown; message?: unknown } | null;
+      if (errObj?.code === "23505" || String(errObj?.message ?? "").includes("UNIQUE constraint")) {
+        throw insertErr;
+      }
+      // If column uuid does not exist yet (in older test mocks), fallback to 5-param insert
+      await db.run(
+        'INSERT INTO "User" ("email", "password", "name", "role", "company") VALUES (?, ?, ?, ?, ?)',
+        [email, hashedPassword, name || email, role, company],
+      );
+    }
+
+    const user = await db.get<{ id: number; uuid?: string; company: string; name: string | null; email: string | null; role: string | null }>(
+      'SELECT "id", "uuid", "company", "name", "email", "role" FROM "User" WHERE "email" = ?',
       [email],
     );
     if (user) {
+      if (!user.uuid) {
+        try {
+          await db.run('UPDATE "User" SET "uuid" = ? WHERE "id" = CAST(? AS INTEGER)', [userUuid, user.id]);
+          user.uuid = userUuid;
+        } catch { /* ignore non-critical */ }
+      }
+      try {
+        const { ensurePersonalWorkspaceForUser } = await import("./workspace-memberships");
+        const ws = await ensurePersonalWorkspaceForUser(user.id, user.name, user.email, company || user.company);
+        if (ws) {
+          user.company = ws.name;
+        }
+      } catch { /* non-critical */ }
       await syncAssigneeFromUser(user);
-      await ensureWorkspaceForUser(user.company, user.id, String(user.role || role));
     }
     return { success: true };
   } catch (err: unknown) {
@@ -222,7 +286,7 @@ export async function verifyTempMfaToken(token: string | undefined | null) {
 
 export async function createSessionToken(
   email: string,
-  user?: { id: number; name: string; role: string; company: string; activeWorkspaceId?: number | null; locale?: string },
+  user?: { id: number; uuid?: string; name: string; role: string; company: string; activeWorkspaceId?: number | null; locale?: string },
   ttlMs?: number,
 ) {
   const { secret } = getAuthConfig();
@@ -248,7 +312,15 @@ export async function createSessionToken(
     ts: Date.now(),
     ...(ttlMs ? { ttl: ttlMs } : {}),
     ...(pv ? { pv } : {}),
-    ...(user ? { id: user.id, name: user.name, role: user.role, company: user.company, activeWorkspaceId: user.activeWorkspaceId ?? null, locale: user.locale || "en" } : {}),
+    ...(user ? {
+      id: user.id,
+      uuid: user.uuid,
+      name: user.name,
+      role: user.role,
+      company: user.company,
+      activeWorkspaceId: user.activeWorkspaceId ?? null,
+      locale: user.locale || "en",
+    } : {}),
   }));
   const signature = await sign(payload, secret);
   return `${payload}.${signature}`;
@@ -307,7 +379,7 @@ export async function getCurrentUser() {
   try {
     const decoded = JSON.parse(fromBase64UrlBytes(payload)) as {
       email?: string; ts?: number; pv?: string;
-      id?: number; name?: string; role?: string; company?: string; activeWorkspaceId?: number | null; locale?: string;
+      id?: number; uuid?: string; name?: string; role?: string; company?: string; activeWorkspaceId?: number | null; locale?: string;
     };
     if (!decoded.email) return null;
     if (decoded.ts && Date.now() - decoded.ts > SESSION_DURATION) return null;
@@ -315,12 +387,12 @@ export async function getCurrentUser() {
     // Fast path: user data embedded in token (new tokens after login)
     if (decoded.id && decoded.name !== undefined && decoded.role !== undefined && decoded.company !== undefined) {
       let validUserId = decoded.id;
-      let userDbRow: { id: number; password: string; company?: string; role?: string; workspaceId?: number | null } | undefined;
+      let userDbRow: { id: number; uuid?: string; password: string; company?: string; role?: string; workspaceId?: number | null; activeWorkspaceId?: number | null } | undefined;
       // Verify session hasn't been revoked and user exists in current DB
       try {
         const { db } = await import("./db");
-        userDbRow = await db.get<{ id: number; password: string; company?: string; role?: string; workspaceId?: number | null }>(
-          'SELECT "id", "password", "company", "role", "workspaceId" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
+        userDbRow = await db.get<{ id: number; uuid?: string; password: string; company?: string; role?: string; workspaceId?: number | null; activeWorkspaceId?: number | null }>(
+          'SELECT "id", "uuid", "password", "company", "role", "workspaceId", "activeWorkspaceId" FROM "User" WHERE "id" = CAST(? AS INTEGER)',
           [decoded.id],
         );
         if (userDbRow) {
@@ -329,8 +401,8 @@ export async function getCurrentUser() {
           }
         } else if (decoded.email) {
           // User id not found in DB (e.g. after DB reset/reseed) - look up by email
-          const byEmail = await db.get<{ id: number; password: string }>(
-            'SELECT "id", "password" FROM "User" WHERE "email" = ?',
+          const byEmail = await db.get<{ id: number; uuid?: string; password: string }>(
+            'SELECT "id", "uuid", "password" FROM "User" WHERE "email" = ?',
             [decoded.email],
           );
           if (byEmail?.id) {
@@ -339,12 +411,14 @@ export async function getCurrentUser() {
             // User exists in cryptographically verified token but missing in DB.
             // Re-create user record so foreign key constraints on userId never fail.
             try {
+              const { randomUUID } = await import("crypto");
+              const genUuid = decoded.uuid || randomUUID();
               const inserted = await db.get<{ id: number }>(
-                `INSERT INTO "User" ("name", "email", "password", "role", "company")
-                 VALUES (?, ?, 'session-restored', ?, ?)
+                `INSERT INTO "User" ("uuid", "name", "email", "password", "role", "company")
+                 VALUES (?, ?, ?, 'session-restored', ?, ?)
                  ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
                  RETURNING "id"`,
-                [decoded.name || decoded.email, decoded.email, decoded.role || "admin", decoded.company || ""]
+                [genUuid, decoded.name || decoded.email, decoded.email, decoded.role || "admin", decoded.company || ""]
               );
               if (inserted?.id) {
                 validUserId = inserted.id;
@@ -358,10 +432,20 @@ export async function getCurrentUser() {
         /* non-critical fallback */
       }
 
+      let userUuid = userDbRow?.uuid || decoded.uuid || "";
+      if (!userUuid && validUserId) {
+        try {
+          const { randomUUID } = await import("crypto");
+          userUuid = randomUUID();
+          const { db } = await import("./db");
+          await db.run('UPDATE "User" SET "uuid" = ? WHERE "id" = CAST(? AS INTEGER)', [userUuid, validUserId]);
+        } catch { /* non-critical */ }
+      }
+
       // Resolve company and activeWorkspaceId from DB if missing or outdated in token
       let effectiveCompany = userDbRow?.company || decoded.company || "";
-      let activeWorkspaceId = userDbRow?.workspaceId ?? decoded.activeWorkspaceId ?? null;
-      if (activeWorkspaceId === null && effectiveCompany) {
+      let activeWorkspaceId = decoded.activeWorkspaceId ?? userDbRow?.activeWorkspaceId ?? userDbRow?.workspaceId ?? null;
+      if (activeWorkspaceId === null && effectiveCompany && effectiveCompany !== "Akusara Project") {
         try {
           const { db } = await import("./db");
           const ws = await db.get<{ id: number }>(
@@ -374,27 +458,41 @@ export async function getCurrentUser() {
       if (activeWorkspaceId === null) {
         try {
           const { db } = await import("./db");
-          const mem = await db.get<{ workspaceId: number }>(
-            'SELECT "workspaceId" FROM "WorkspaceMembership" WHERE "userId" = CAST(? AS INTEGER) ORDER BY "id" ASC LIMIT 1',
+          const mem = await db.get<{ workspaceId: number; name: string }>(
+            `SELECT wm."workspaceId", w."name"
+             FROM "WorkspaceMembership" wm
+             INNER JOIN "Workspace" w ON w."id" = wm."workspaceId"
+             WHERE wm."userId" = CAST(? AS INTEGER)
+             ORDER BY (CASE WHEN w."id" = 1 THEN 1 ELSE 0 END) ASC, wm."id" ASC LIMIT 1`,
             [validUserId],
           );
           if (mem?.workspaceId) {
             activeWorkspaceId = mem.workspaceId;
-            if (!effectiveCompany) {
-              const ws = await db.get<{ name: string }>(
-                'SELECT "name" FROM "Workspace" WHERE "id" = CAST(? AS INTEGER)',
-                [activeWorkspaceId],
-              );
-              if (ws?.name) effectiveCompany = ws.name;
-            }
+            effectiveCompany = mem.name;
           }
         } catch { /* non-critical */ }
       }
-      if (!activeWorkspaceId) activeWorkspaceId = 1;
-      if (!effectiveCompany) effectiveCompany = "Akusara Project";
+      if (!activeWorkspaceId) {
+        try {
+          const { ensurePersonalWorkspaceForUser } = await import("./workspace-memberships");
+          const personalWs = await ensurePersonalWorkspaceForUser(validUserId, decoded.name, decoded.email, effectiveCompany);
+          if (personalWs) {
+            activeWorkspaceId = personalWs.id;
+            effectiveCompany = personalWs.name;
+          }
+        } catch { /* non-critical */ }
+      }
+      const { isOwnerUser } = await import("./workspace-memberships");
+      if (!activeWorkspaceId && (isOwnerUser(decoded.email) || validUserId === 9)) {
+        activeWorkspaceId = 1;
+      }
+      if (!effectiveCompany && (isOwnerUser(decoded.email) || validUserId === 9)) {
+        effectiveCompany = "Akusara Project";
+      }
 
       return {
         id: validUserId,
+        uuid: userUuid,
         name: decoded.name,
         email: decoded.email,
         role: normalizeRole(userDbRow?.role || decoded.role),
@@ -406,20 +504,37 @@ export async function getCurrentUser() {
 
     // Fallback: old tokens without embedded user data - hit DB once
     const { db } = await import("./db");
-    const user = await db.get<{ id: number; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null; locale?: string }>(
-      `SELECT u.id, u.name, u.email, COALESCE(wm.role, u.role) AS "role", u.company, w.id AS "activeWorkspaceId", u.locale
+    const user = await db.get<{ id: number; uuid?: string; name: string; email: string; role: string; company: string; activeWorkspaceId: number | null; locale?: string }>(
+      `SELECT u.id, u.uuid, u.name, u.email, COALESCE(wm.role, u.role) AS "role", u.company, COALESCE(u."activeWorkspaceId", w.id) AS "activeWorkspaceId", u.locale
        FROM "User" u
        LEFT JOIN "Workspace" w ON w.name = u.company
-       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = w."id" AND wm."userId" = u."id"
+       LEFT JOIN "WorkspaceMembership" wm ON wm."workspaceId" = COALESCE(u."activeWorkspaceId", w."id") AND wm."userId" = u."id"
        WHERE u.email = ?`,
       [decoded.email]
     );
     if (!user) return null;
+    let fallbackActiveWs = user.activeWorkspaceId;
+    let fallbackCompany = user.company;
+    if (!fallbackActiveWs) {
+      try {
+        const { ensurePersonalWorkspaceForUser } = await import("./workspace-memberships");
+        const ws = await ensurePersonalWorkspaceForUser(user.id, user.name, user.email, user.company);
+        if (ws) {
+          fallbackActiveWs = ws.id;
+          fallbackCompany = ws.name;
+        }
+      } catch {}
+    }
+    const { isOwnerUser } = await import("./workspace-memberships");
+    if (!fallbackActiveWs && isOwnerUser(user.email)) fallbackActiveWs = 1;
+    if (!fallbackCompany && isOwnerUser(user.email)) fallbackCompany = "Akusara Project";
+
     return {
       ...user,
+      uuid: user.uuid || "",
       role: normalizeRole(user.role),
-      company: user.company || "Akusara Project",
-      activeWorkspaceId: user.activeWorkspaceId ?? 1,
+      company: fallbackCompany || "Personal Workspace",
+      activeWorkspaceId: fallbackActiveWs ?? null,
       locale: user.locale || "en",
     };
   } catch {

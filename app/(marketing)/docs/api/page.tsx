@@ -6,6 +6,7 @@ import {
   FileCode,
 } from "@phosphor-icons/react/dist/ssr";
 import { moduleOrder, moduleConfigs } from "@/lib/modules";
+import { DocsEndpointsAccordion } from "@/components/landing/docs-endpoints-accordion";
 
 export const metadata = {
   title: "REST API & Webhooks Documentation | Aksora",
@@ -13,14 +14,20 @@ export const metadata = {
 };
 
 export default function ApiDocsPage() {
+  const apiModules = moduleOrder.map((mod) => ({
+    key: mod,
+    title: moduleConfigs[mod]?.title || mod,
+    shortTitle: moduleConfigs[mod]?.shortTitle || mod,
+  }));
+
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
+    <div className="mx-auto max-w-6xl px-5 py-12 transition-colors">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
           REST API &amp; Webhooks Reference
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
           Integrate Aksora into your CI/CD pipelines, automated test suites, and internal tools. Query and mutate tasks, test cases, bugs, sprints, and meeting notes programmatically.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -28,19 +35,35 @@ export default function ApiDocsPage() {
             href="/api/openapi.json"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <FileCode size={16} weight="bold" />
             OpenAPI 3.0 Spec (JSON)
           </a>
           <Link
             href="/settings/api-keys"
-            className="inline-flex items-center gap-1.5 bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#a3e635] px-4 py-2 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-[#bef264]"
           >
             <Key size={16} weight="bold" />
             Get API Keys
           </Link>
         </div>
+      </div>
+
+      {/* Mobile Table of Contents */}
+      <div className="mt-6 block lg:hidden">
+        <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <summary className="cursor-pointer font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+            On this page
+          </summary>
+          <div className="mt-3 grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <a href="#authentication" className="text-blue-600 dark:text-blue-400 hover:underline">Authentication</a>
+            <a href="#scopes" className="text-blue-600 dark:text-blue-400 hover:underline">Granular Scopes</a>
+            <a href="#rate-limits" className="text-blue-600 dark:text-blue-400 hover:underline">Rate Limiting</a>
+            <a href="#sdk" className="text-blue-600 dark:text-blue-400 hover:underline">TypeScript SDK</a>
+            <a href="#webhooks-overview" className="text-blue-600 dark:text-blue-400 hover:underline">Webhooks</a>
+          </div>
+        </details>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-4">
@@ -49,19 +72,19 @@ export default function ApiDocsPage() {
           <div className="sticky top-20 space-y-6 text-xs">
             <div>
               <div className="font-bold uppercase tracking-wider text-slate-400">Overview</div>
-              <ul className="mt-2 space-y-1.5 font-medium text-slate-600">
-                <li><a href="#authentication" className="hover:text-blue-600">Authentication</a></li>
-                <li><a href="#scopes" className="hover:text-blue-600">Granular Scopes</a></li>
-                <li><a href="#rate-limits" className="hover:text-blue-600">Rate Limiting</a></li>
-                <li><a href="#sdk" className="hover:text-blue-600">TypeScript SDK</a></li>
+              <ul className="mt-2 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
+                <li><a href="#authentication" className="hover:text-blue-600 dark:hover:text-blue-400">Authentication</a></li>
+                <li><a href="#scopes" className="hover:text-blue-600 dark:hover:text-blue-400">Granular Scopes</a></li>
+                <li><a href="#rate-limits" className="hover:text-blue-600 dark:hover:text-blue-400">Rate Limiting</a></li>
+                <li><a href="#sdk" className="hover:text-blue-600 dark:hover:text-blue-400">TypeScript SDK</a></li>
               </ul>
             </div>
             <div>
               <div className="font-bold uppercase tracking-wider text-slate-400">Modules (CRUD)</div>
-              <ul className="mt-2 space-y-1.5 font-medium text-slate-600">
+              <ul className="mt-2 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
                 {moduleOrder.map((mod) => (
                   <li key={mod}>
-                    <a href={`#module-${mod}`} className="capitalize hover:text-blue-600">
+                    <a href={`#module-${mod}`} className="capitalize hover:text-blue-600 dark:hover:text-blue-400">
                       {mod.replace(/-/g, " ")}
                     </a>
                   </li>
@@ -70,9 +93,9 @@ export default function ApiDocsPage() {
             </div>
             <div>
               <div className="font-bold uppercase tracking-wider text-slate-400">Webhooks</div>
-              <ul className="mt-2 space-y-1.5 font-medium text-slate-600">
-                <li><a href="#webhooks-overview" className="hover:text-blue-600">Outbound Webhooks</a></li>
-                <li><a href="#webhooks-security" className="hover:text-blue-600">HMAC Verification</a></li>
+              <ul className="mt-2 space-y-1.5 font-medium text-slate-600 dark:text-slate-300">
+                <li><a href="#webhooks-overview" className="hover:text-blue-600 dark:hover:text-blue-400">Outbound Webhooks</a></li>
+                <li><a href="#webhooks-security" className="hover:text-blue-600 dark:hover:text-blue-400">HMAC Verification</a></li>
               </ul>
             </div>
           </div>
@@ -82,9 +105,9 @@ export default function ApiDocsPage() {
         <div className="space-y-14 lg:col-span-3">
           {/* Section: Authentication */}
           <section id="authentication" className="scroll-mt-20">
-            <h2 className="text-xl font-bold text-slate-900">Authentication</h2>
-            <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-              All requests to the Aksora REST API must include your API key in the <code className="rounded border border-slate-200 bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-800">Authorization</code> header using the Bearer token scheme.
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Authentication</h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 sm:text-sm">
+              All requests to the Aksora REST API must include your API key in the <code className="rounded border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 px-1 py-0.5 font-mono text-xs text-slate-800">Authorization</code> header using the Bearer token scheme.
             </p>
             <div className="mt-4 overflow-x-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs font-mono text-slate-100">
               <code>Authorization: Bearer aksora_live_xxxxxxxxxxxxxxxxxxxx</code>
@@ -93,38 +116,47 @@ export default function ApiDocsPage() {
 
           {/* Section: Granular Scopes */}
           <section id="scopes" className="scroll-mt-20">
-            <h2 className="text-xl font-bold text-slate-900">Granular Scopes &amp; Module Isolation</h2>
-            <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-              When creating an API key, you can configure both permission scopes and module restrictions to enforce least privilege:
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Granular Scopes &amp; Module Isolation</h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 sm:text-sm">
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded border border-slate-200 bg-white p-4">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-                  <ShieldCheck size={18} className="text-emerald-600" weight="bold" />
+              <div className="rounded border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white text-sm">
+                  <ShieldCheck size={18} className="text-emerald-600 dark:text-emerald-400" weight="bold" />
                   Access Level Scope
                 </div>
-                <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                  <li><strong className="text-slate-800">Read &amp; Write:</strong> Allows GET, POST, PATCH, and DELETE.</li>
-                  <li><strong className="text-slate-800">Read-only:</strong> Allows GET only. Mutating endpoints return 403 Forbidden.</li>
+                <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <li><strong className="text-slate-800 dark:text-slate-100">Read &amp; Write:</strong> Allows GET, POST, PATCH, and DELETE.</li>
+                  <li><strong className="text-slate-800 dark:text-slate-100">Read-only:</strong> Allows GET only. Mutating endpoints return 403 Forbidden.</li>
                 </ul>
               </div>
-              <div className="rounded border border-slate-200 bg-white p-4">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-                  <Lightning size={18} className="text-blue-600" weight="bold" />
+              <div className="rounded border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white text-sm">
+                  <Lightning size={18} className="text-blue-600 dark:text-blue-400" weight="bold" />
                   Module Whitelist
                 </div>
-                <p className="mt-2 text-xs text-slate-600">
-                  Restrict keys to specific entities (e.g. only <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px]">bugs</code> and <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px]">test-cases</code>). Requests to omitted modules return 403.
+                <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                  Restrict keys to specific entities (e.g. only <code className="rounded bg-slate-100 dark:bg-slate-800 dark:text-slate-200 px-1 py-0.5 font-mono text-[11px]">bugs</code> and <code className="rounded bg-slate-100 dark:bg-slate-800 dark:text-slate-200 px-1 py-0.5 font-mono text-[11px]">test-cases</code>). Requests to omitted modules return 403.
                 </p>
               </div>
             </div>
           </section>
 
+          {/* Section: Rate Limiting */}
+          <section id="rate-limits" className="scroll-mt-20">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Rate Limiting</h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 sm:text-sm">
+              To protect system availability and prevent abuse, all public REST API endpoints enforce a rate limit of 120 requests per minute per IP address.
+            </p>
+            <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              When an application exceeds this quota, the API responds with HTTP <code>429 Too Many Requests</code> along with a <code>Retry-After</code> header specifying the number of seconds to back off before retrying.
+            </div>
+          </section>
+
           {/* Section: TypeScript SDK */}
           <section id="sdk" className="scroll-mt-20">
-            <h2 className="text-xl font-bold text-slate-900">TypeScript SDK</h2>
-            <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-              Use our zero-dependency official TypeScript client to integrate directly into Node.js, Deno, Bun, or Cloudflare Workers:
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">TypeScript SDK</h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300 sm:text-sm">
             </p>
             <div className="mt-4 overflow-x-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs font-mono text-slate-100 leading-relaxed">
               <pre>{`import { AksoraClient } from "./sdk/aksora-client";
@@ -147,58 +179,8 @@ const { data: newCase } = await aksora.create("test-cases", {
             </div>
           </section>
 
-          {/* Section: Module Endpoints */}
-          <section className="space-y-10">
-            <h2 className="text-xl font-bold text-slate-900">Core REST Endpoints</h2>
-
-            {moduleOrder.map((mod) => {
-              const cfg = moduleConfigs[mod];
-              return (
-                <div key={mod} id={`module-${mod}`} className="scroll-mt-20 rounded border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="text-base font-bold capitalize text-slate-900">
-                      {cfg?.shortTitle || mod} API
-                    </h3>
-                    <span className="font-mono text-xs text-slate-400">/api/public/v1/{mod}</span>
-                  </div>
-
-                  <div className="mt-4 space-y-4 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800">GET</span>
-                        <span className="text-slate-800">/api/public/v1/{mod}</span>
-                      </div>
-                      <p className="mt-1 text-slate-500">List items with pagination (?page=1&amp;limit=50&amp;search=keyword).</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="rounded bg-blue-100 px-2 py-0.5 font-bold text-blue-800">POST</span>
-                        <span className="text-slate-800">/api/public/v1/{mod}</span>
-                      </div>
-                      <p className="mt-1 text-slate-500">Create a new {cfg?.shortTitle?.toLowerCase() || mod}. Requires write scope.</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="rounded bg-amber-100 px-2 py-0.5 font-bold text-amber-800">PATCH</span>
-                        <span className="text-slate-800">/api/public/v1/{mod}?id=:id</span>
-                      </div>
-                      <p className="mt-1 text-slate-500">Update specific fields of an existing item.</p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="rounded bg-rose-100 px-2 py-0.5 font-bold text-rose-800">DELETE</span>
-                        <span className="text-slate-800">/api/public/v1/{mod}?id=:id</span>
-                      </div>
-                      <p className="mt-1 text-slate-500">Soft-delete or permanently remove an item.</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </section>
+          {/* Section: Module Endpoints (Collapsible Dropdowns) */}
+          <DocsEndpointsAccordion modules={apiModules} />
 
           {/* Section: Webhooks */}
           <section id="webhooks-overview" className="scroll-mt-20">

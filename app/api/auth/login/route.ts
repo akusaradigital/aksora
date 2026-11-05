@@ -64,7 +64,13 @@ export async function POST(request: NextRequest) {
 
     const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 6; // 30 days if rememberMe, else 6 hours
     const token = await createSessionToken(email, user, maxAge * 1000);
-    const response = NextResponse.json({ ok: true, role: user.role, company: user.company });
+    const response = NextResponse.json({
+      ok: true,
+      role: user.role,
+      company: user.company,
+      uuid: user.uuid,
+      workspaceId: user.activeWorkspaceId,
+    });
     response.cookies.set(sessionCookieName(), token, {
       httpOnly: true,
       sameSite: "lax",

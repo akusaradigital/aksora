@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export type ApiUser = {
   id: number;
+  uuid?: string;
   name: string;
   email: string;
   role: string;

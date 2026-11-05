@@ -108,6 +108,15 @@ export async function POST(request: NextRequest) {
       } else {
         await ensureWorkspaceForUser(createdUser.company, createdUser.id, normalizeRole(createdUser.role));
       }
+      if ((invite as { projectId?: number | null }).projectId) {
+        const { addProjectMember } = await import("@/lib/project-members");
+        await addProjectMember(
+          Number((invite as { projectId: number }).projectId),
+          createdUser.id,
+          normalizeRole(createdUser.role),
+          (invite as { workspaceId?: number | null }).workspaceId ?? null,
+        );
+      }
     }
     const consume = await markInviteAccepted(inviteToken, email);
     if ("error" in consume) {

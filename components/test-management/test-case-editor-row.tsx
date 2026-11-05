@@ -1,6 +1,6 @@
 "use client";
 
-import { Bug, DotsSixVertical, PencilSimple, Trash } from "@phosphor-icons/react";
+import { Bug, DotsSixVertical, PencilSimple, SlidersHorizontal, Trash } from "@phosphor-icons/react";
 import {
   BadgeCell,
   CustomSelect,
@@ -13,6 +13,7 @@ import {
   type FieldKey,
   typeOptions,
 } from "@/components/test-management/test-case-detail-helpers";
+import { CategoryBadge, MaturityBadge } from "@/components/test-management/maturity-badge";
 import { cn } from "@/lib/utils";
 
 export type FieldRef = HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement;
@@ -33,6 +34,7 @@ export function TestCaseGridRow({
   onEdit,
   onDelete,
   onReportBug,
+  onDetails,
   setRef,
   focusNext,
   isDragOver,
@@ -53,6 +55,7 @@ export function TestCaseGridRow({
   onEdit?: () => void;
   onDelete: () => void;
   onReportBug?: () => void;
+  onDetails?: () => void;
   setRef?: (field: string, el: FieldRef | null) => void;
   focusNext?: (field: FieldKey) => void;
   focusPrevious?: (field: FieldKey) => void;
@@ -152,7 +155,21 @@ export function TestCaseGridRow({
       </td>
 
       {renderTextCell("tcId", String(row.tcId ?? ""))}
-      {renderTextCell("caseName", String(row.caseName ?? ""), true)}
+      {mode === "view" && row.id ? (
+        <td
+          style={{ width: colMap.caseName, minWidth: colMap.caseName, maxWidth: colMap.caseName }}
+          className="border-b border-r border-gray-100 px-[6px] py-[4px] align-top text-[12px] leading-[1.4] text-gray-700"
+        >
+          <div className="whitespace-pre-wrap break-words">{row.caseName || <span className="text-gray-300">-</span>}</div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <MaturityBadge maturity={row.maturity} />
+            <CategoryBadge category={row.category} />
+          </div>
+          {row.rationale && <p className="mt-1 text-[11px] italic text-gray-500">{row.rationale}</p>}
+        </td>
+      ) : (
+        renderTextCell("caseName", String(row.caseName ?? ""), true)
+      )}
       {renderToneCell("typeCase", String(row.typeCase ?? ""), typeOptions)}
       {renderTextCell("preCondition", String(row.preCondition ?? ""), true)}
       {renderTextCell("testStep", String(row.testStep ?? ""), true)}
@@ -177,6 +194,17 @@ export function TestCaseGridRow({
               >
                 <PencilSimple size={12} weight="bold" />
               </button>
+              {onDetails && (
+                <button
+                  type="button"
+                  onClick={onDetails}
+                  className="inline-flex h-8 w-8 items-center justify-center  bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                  title="Custom fields and automation"
+                  aria-label="Custom fields and automation"
+                >
+                  <SlidersHorizontal size={12} weight="bold" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onDelete}

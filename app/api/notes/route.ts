@@ -8,7 +8,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const data = await listNotesForUser(user.id);
+  const data = await listNotesForUser(user.id, user.activeWorkspaceId);
   return NextResponse.json({ data: JSON.parse(JSON.stringify(data)) }, {
     headers: { "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate" },
   });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const id = await createNoteForUser(user.id, title, content, String(body?.color ?? "default"));
+    const id = await createNoteForUser(user.id, title, content, String(body?.color ?? "default"), user.activeWorkspaceId);
     return NextResponse.json({ data: { id } }, { status: 201 });
   } catch (error) {
     console.error("Notes POST error:", error);

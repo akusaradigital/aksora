@@ -347,7 +347,7 @@ export const moduleConfigs: Record<ModuleKey, ModuleConfig> = {
       { name: "date", label: "Date", kind: "date", required: true },
       { name: "project", label: "Project Name", kind: "select", options: [] },
       { name: "title", label: "Topic", kind: "text", placeholder: "e.g. Daily Standup", required: true },
-      { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. John, Sarah, Mike" },
+      { name: "attendees", label: "Attendees", kind: "text", placeholder: "e.g. John, Emma, Mike" },
     ],
     columns: [
       { key: "date", label: "Date" },

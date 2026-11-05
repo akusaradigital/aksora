@@ -10,12 +10,14 @@ interface AiGenerateCasesButtonProps {
   suiteId: string;
   suiteLabel: string;
   className?: string;
+  existingCases?: Array<{ id?: number; tcId?: string; caseName: string; [key: string]: unknown }>;
 }
 
 export function AiGenerateCasesButton({
   suiteId,
   suiteLabel,
   className,
+  existingCases,
 }: AiGenerateCasesButtonProps) {
   const [showGenModal, setShowGenModal] = useState(false);
   const [showUnconfiguredModal, setShowUnconfiguredModal] = useState(false);
@@ -42,18 +44,23 @@ export function AiGenerateCasesButton({
         AI Generate Cases
       </button>
 
-      <AiUnconfiguredModal
-        isOpen={showUnconfiguredModal}
-        onClose={() => setShowUnconfiguredModal(false)}
-        featureName="AI Test Case Generator"
-      />
+      {showUnconfiguredModal && (
+        <AiUnconfiguredModal
+          isOpen={showUnconfiguredModal}
+          onClose={() => setShowUnconfiguredModal(false)}
+          featureName="AI Test Case Generator"
+        />
+      )}
 
-      <AiGenerateCasesModal
-        isOpen={showGenModal}
-        onClose={() => setShowGenModal(false)}
-        suiteId={suiteId}
-        suiteLabel={suiteLabel}
-      />
+      {showGenModal && (
+        <AiGenerateCasesModal
+          isOpen={showGenModal}
+          onClose={() => setShowGenModal(false)}
+          suiteId={suiteId}
+          suiteLabel={suiteLabel}
+          existingCases={existingCases}
+        />
+      )}
     </>
   );
 }

@@ -24,6 +24,8 @@ import {
   getInvalidFields,
 } from "@/components/test-management/test-case-editor-utils";
 import { useLocalDraft, readLocalDraft } from "@/components/test-management/use-local-draft";
+import { CaseDetailsDrawer } from "@/components/test-management/case-details-drawer";
+import { AutomationScriptEditor } from "@/components/ai-runner/automation-script-editor";
 
 export type { TestCaseRow } from "@/components/test-management/test-case-detail-helpers";
 export { TestCaseGridRow } from "@/components/test-management/test-case-editor-row";
@@ -42,6 +44,7 @@ export function TestCaseDetailEditor({
   const [pending, startTransition] = useTransition();
   const [cases, setCases] = useState<TestCaseRow[]>(() => initialCases.map((row) => normalizeRow(row, suiteId)));
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [detailsCase, setDetailsCase] = useState<TestCaseRow | null>(null);
   const [editForm, setEditForm] = useState<TestCaseRow | null>(null);
   const [draftRow, setDraftRow] = useState<TestCaseRow>(() => {
     const saved = readLocalDraft(suiteId);
@@ -523,6 +526,7 @@ export function TestCaseDetailEditor({
                   onSave={saveEdit}
                   onEdit={() => startEdit(row, "caseName")}
                   onDelete={() => row.id && deleteCase(row.id)}
+                  onDetails={row.id ? () => setDetailsCase(row) : undefined}
                   onReportBug={
                     isFailedStatus(row.status)
                       ? () => {
@@ -570,6 +574,15 @@ export function TestCaseDetailEditor({
       </div>
 
       <TestCaseEditorFooter cases={cases} />
+      {detailsCase?.id && (
+        <CaseDetailsDrawer
+          testCaseId={Number(detailsCase.id)}
+          title={`${detailsCase.tcId} · ${detailsCase.caseName}`}
+          onClose={() => setDetailsCase(null)}
+        >
+          <AutomationScriptEditor testCaseId={Number(detailsCase.id)} />
+        </CaseDetailsDrawer>
+      )}
     </div>
   );
 }

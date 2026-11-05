@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ModuleRowActions } from "@/components/module/module-row-actions";
 import { ModuleWorkspaceCell } from "@/components/module/module-workspace-cell";
+import { TriageBadge } from "@/components/bugs/triage-badge";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { CheckSquare, Square, DotsSixVertical } from "@phosphor-icons/react";
@@ -151,6 +152,7 @@ export const SortableRow = memo(function SortableRow({
               </span>
             ) : null;
           })()}
+          {module === "bugs" && <TriageBadge tier={row.triageTier} confidence={row.triageConfidence} />}
         </div>
       </td>
       {visibleColumns.map((column) => (

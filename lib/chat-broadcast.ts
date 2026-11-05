@@ -60,6 +60,22 @@ export async function broadcastCriticalBug(alert: CriticalBugAlert) {
     targetUrls.push(process.env.DISCORD_WEBHOOK_URL.trim());
   }
 
+  // Telegram alert support (zero DB load)
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  const tgChatId = process.env.TELEGRAM_CHAT_ID?.trim();
+  if (tgToken && tgChatId) {
+    const text = `🚨 *[${alert.severity.toUpperCase()}] Critical Bug Alert*\n\n*Title:* ${alert.title}\n*Project:* ${alert.project}\n*Reporter:* ${alert.actor || "Team"}\n[Open in Aksora](${itemUrl})`;
+    fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: tgChatId,
+        text,
+        parse_mode: "Markdown",
+      }),
+    }).catch((e) => console.warn("[Telegram Alert] broadcast failed:", e));
+  }
+
   // Also discover any company webhooks targeting Slack or Discord
   try {
     const hooks = await db.query<{ url: string }>(
@@ -71,6 +87,55 @@ export async function broadcastCriticalBug(alert: CriticalBugAlert) {
     }
   } catch {
     // Non-critical if query fails
+  }
+
+  // Personal user bots (Telegram / Discord) configured in Settings
+  try {
+    const userPrefs = await db.query<{
+      telegramBotToken: string | null;
+      telegramChatId: string | null;
+      telegramEnabled: number;
+      discordWebhook: string | null;
+      discordEnabled: number;
+    }>(
+      `SELECT np."telegramBotToken", np."telegramChatId", np."telegramEnabled", np."discordWebhook", np."discordEnabled"
+       FROM "NotificationPreference" np
+       WHERE (np."telegramEnabled" = 1 OR np."discordEnabled" = 1)
+         ${alert.workspaceId ? 'AND np."workspaceId" = CAST(? AS INTEGER)' : 'AND np."company" = ?'}`,
+      alert.workspaceId ? [alert.workspaceId] : [alert.company],
+    );
+
+    for (const up of userPrefs) {
+      if (up.telegramEnabled === 1 && up.telegramBotToken && up.telegramChatId) {
+        try {
+          const { decryptSecret } = await import("@/lib/vault-crypto");
+          const token = decryptSecret(up.telegramBotToken);
+          const text = `🚨 *[${alert.severity.toUpperCase()}] Critical Bug Alert*\n\n*Title:* ${alert.title}\n*Project:* ${alert.project}\n*Reporter:* ${alert.actor || "Team"}\n[Open in Aksora](${itemUrl})`;
+          fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: up.telegramChatId,
+              text,
+              parse_mode: "Markdown",
+            }),
+          }).catch((e) => console.warn("[User Telegram Bot] failed:", e));
+        } catch {
+          /* ignore decrypt error */
+        }
+      }
+      if (up.discordEnabled === 1 && up.discordWebhook) {
+        try {
+          const { decryptSecret } = await import("@/lib/vault-crypto");
+          const hook = decryptSecret(up.discordWebhook);
+          if (!targetUrls.includes(hook)) targetUrls.push(hook);
+        } catch {
+          /* ignore decrypt error */
+        }
+      }
+    }
+  } catch {
+    // Non-critical
   }
 
   await Promise.allSettled(

@@ -2,6 +2,8 @@
 
 import { CheckCircle, ArrowSquareOut, CaretDown, CaretUp, PaperPlaneTilt, X } from "@phosphor-icons/react";
 import { cn, formatDuration, calculateDurationFromTime } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
+import { setStoredSicmundusCreds } from "@/lib/sicmundus-client";
 
 export interface SicmundusTaskProp {
   id: string | number;
@@ -259,6 +261,20 @@ export function SicmundusCredentialsFields({
               />
             </div>
           </div>
+          {username && password && (
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setStoredSicmundusCreds({ username: username.trim(), password });
+                  toast("Sicmundus login saved to browser localStorage!", "success");
+                }}
+                className="text-[10px] font-bold text-sky-700 hover:underline"
+              >
+                Save as default login in this browser (never sent to database)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

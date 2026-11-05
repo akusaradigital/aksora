@@ -63,11 +63,11 @@ describe("Email multi-language support (lib/email.ts)", () => {
   });
 
   it("renders assigned email in both locales", () => {
-    const en = renderEmailTemplate("assigned", { entityType: "Bug", title: "Login bug", assignedBy: "Sarah" }, "en");
+    const en = renderEmailTemplate("assigned", { entityType: "Bug", title: "Login bug", assignedBy: "Jessica" }, "en");
     expect(en.subject).toBe("[Aksora] You were assigned: Login bug");
     expect(en.html).toContain("You were assigned a bug");
 
-    const id = renderEmailTemplate("assigned", { entityType: "Bug", title: "Login bug", assignedBy: "Sarah" }, "id");
+    const id = renderEmailTemplate("assigned", { entityType: "Bug", title: "Login bug", assignedBy: "Jessica" }, "id");
     expect(id.subject).toBe("[Aksora] Anda ditugaskan: Login bug");
     expect(id.html).toContain("Anda ditugaskan pada bug");
   });

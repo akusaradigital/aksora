@@ -20,10 +20,11 @@ export function ScrollToTop() {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-5 right-5 z-50 flex h-9 w-9 items-center justify-center border border-gray-200 bg-white text-gray-600 shadow-md transition-all hover:bg-gray-900 hover:text-white hover:border-gray-900"
-      aria-label="Scroll to top"
+      className="fixed bottom-5 right-5 z-50 inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-300 bg-white/95 px-3.5 text-xs font-bold text-slate-800 shadow-md backdrop-blur-sm transition-all hover:border-slate-900 hover:bg-slate-900 hover:text-white dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100 dark:hover:border-white dark:hover:bg-white dark:hover:text-slate-950"
+      aria-label="Back to top"
     >
-      <CaretUp size={16} weight="bold" />
+      <CaretUp size={14} weight="bold" />
+      <span>Back to top</span>
     </button>
   );
 }

@@ -137,6 +137,8 @@ export async function getDashboardOverviewData(filterProject?: string): Promise<
     recentExecutionRunsRows,
     recentActivityRows,
     projectsRows,
+    trendRows,
+    realProjectsRows,
   ] = await Promise.all([
     safeQuery(db.get<{ count?: number | string }>(
       `SELECT COUNT(*) as count FROM "TestCase" WHERE "deletedAt" IS NULL${companyAndWhere}`,
@@ -215,11 +217,37 @@ export async function getDashboardOverviewData(filterProject?: string): Promise<
        LIMIT 10`,
       [...companyParams, ...companyParams, ...companyParams]
     ), []),
+    safeQuery(selectAll(
+      `SELECT COALESCE(NULLIF(date, ''), TO_CHAR("createdAt", 'YYYY-MM-DD')) as day,
+              SUM(CAST(NULLIF(COALESCE(passed, '0'), '') AS INTEGER)) as passed,
+              SUM(CAST(NULLIF(COALESCE(failed, '0'), '') AS INTEGER)) as failed,
+              SUM(CAST(NULLIF(COALESCE(blocked, '0'), '') AS INTEGER)) as blocked,
+              SUM(CAST(NULLIF(COALESCE("totalCases", '0'), '') AS INTEGER)) as total
+       FROM "TestSession"
+       WHERE "deletedAt" IS NULL AND COALESCE(date, '') != '' ${projectAndWhere}
+       GROUP BY COALESCE(NULLIF(date, ''), TO_CHAR("createdAt", 'YYYY-MM-DD'))
+       ORDER BY day ASC
+       LIMIT 14`,
+      projectParams
+    ), []),
+    safeQuery(selectAll(
+      `SELECT p.name as project,
+             (SELECT COUNT(*) FROM "TestCase" tc 
+              JOIN "TestSuite" ts ON CAST(ts.id AS TEXT) = CAST(tc."testSuiteId" AS TEXT)
+              JOIN "TestPlan" tp ON CAST(tp.id AS TEXT) = CAST(ts."testPlanId" AS TEXT)
+              WHERE tp.project = p.name AND tc."deletedAt" IS NULL) as test_cases,
+             (SELECT COUNT(*) FROM "Bug" b WHERE b.project = p.name AND b."deletedAt" IS NULL AND b.status NOT IN ('closed', 'fixed', 'resolved', 'rejected')) as open_bugs,
+             (SELECT COUNT(*) FROM "TestSession" ts WHERE ts.project = p.name AND ts."deletedAt" IS NULL) as test_runs
+      FROM "Project" p
+      WHERE p."deletedAt" IS NULL ${companyAndWhere}
+      ORDER BY test_cases DESC, open_bugs DESC
+      LIMIT 6`,
+      companyParams
+    ), []),
   ]);
-
   // Total Test Cases
   const rawTotalCases = Number(totalCasesRow?.count ?? 0);
-  const totalCases = rawTotalCases > 0 ? rawTotalCases : 142;
+  const totalCases = rawTotalCases;
 
   // Breakdown of Test Cases: passed, failed, blocked, notRun
   let passedCount = 0;
@@ -241,245 +269,185 @@ export async function getDashboardOverviewData(filterProject?: string): Promise<
         notRunCount += cnt;
       }
     }
-  } else {
-    // Default matching screenshot: 96 Passed (67%), 24 Failed (17%), 8 Blocked (6%), 14 Not Run (10%)
-    passedCount = 96;
-    failedCount = 24;
-    blockedCount = 8;
-    notRunCount = 14;
   }
 
-  const breakdownSum = passedCount + failedCount + blockedCount + notRunCount || 1;
+  const breakdownSum = passedCount + failedCount + blockedCount + notRunCount;
   const resultBreakdown = {
-    total: rawTotalCases > 0 ? rawTotalCases : 142,
-    passed: { count: passedCount, percent: Math.round((passedCount / breakdownSum) * 100) },
-    failed: { count: failedCount, percent: Math.round((failedCount / breakdownSum) * 100) },
-    blocked: { count: blockedCount, percent: Math.round((blockedCount / breakdownSum) * 100) },
-    notRun: { count: notRunCount, percent: Math.round((notRunCount / breakdownSum) * 100) },
+    total: rawTotalCases,
+    passed: { count: passedCount, percent: breakdownSum > 0 ? Math.round((passedCount / breakdownSum) * 100) : 0 },
+    failed: { count: failedCount, percent: breakdownSum > 0 ? Math.round((failedCount / breakdownSum) * 100) : 0 },
+    blocked: { count: blockedCount, percent: breakdownSum > 0 ? Math.round((blockedCount / breakdownSum) * 100) : 0 },
+    notRun: { count: notRunCount, percent: breakdownSum > 0 ? Math.round((notRunCount / breakdownSum) * 100) : 0 },
   };
 
   // Test Runs
   const rawSessionCount = Number(totalSessionsRow?.count ?? 0);
-  const totalTestRuns = rawSessionCount > 0 ? rawSessionCount : 24;
+  const totalTestRuns = rawSessionCount + (recentExecutionRunsRows?.length || 0);
 
   // Open Bugs
   const rawOpenBugs = Number(totalBugsRow?.count ?? 0);
-  const openBugsCount = rawOpenBugs > 0 ? rawOpenBugs : 7;
-  const criticalBugsCount = Number(critBugsRow?.count ?? (rawOpenBugs > 0 ? 0 : 2));
+  const openBugsCount = rawOpenBugs;
+  const criticalBugsCount = Number(critBugsRow?.count ?? 0);
 
   // Active Tasks
   const rawActiveTasks = Number(totalTasksRow?.count ?? 0);
-  const activeTasksCount = rawActiveTasks > 0 ? rawActiveTasks : 18;
+  const activeTasksCount = rawActiveTasks;
 
   // KPIs
   const kpis = {
     testCases: {
       value: totalCases,
-      change: "↑ 12% vs last week",
+      change: `${totalCases} total cases`,
       isPositive: true,
-      trend: [110, 118, 122, 128, 134, 138, totalCases],
+      trend: [totalCases, totalCases, totalCases],
     },
     testRuns: {
       value: totalTestRuns,
-      change: "↑ 33% vs last week",
+      change: `${totalTestRuns} runs executed`,
       isPositive: true,
-      trend: [14, 16, 17, 19, 21, 22, totalTestRuns],
+      trend: [totalTestRuns, totalTestRuns, totalTestRuns],
     },
     openBugs: {
       value: openBugsCount,
-      change: "↑ 2 vs yesterday",
-      isPositive: false,
-      trend: [4, 5, 4, 6, 5, 6, openBugsCount],
+      change: criticalBugsCount > 0 ? `${criticalBugsCount} critical` : "Tracked",
+      isPositive: openBugsCount === 0,
+      trend: [openBugsCount, openBugsCount, openBugsCount],
     },
     activeTasks: {
       value: activeTasksCount,
-      change: "↑ 28% vs last week",
+      change: "Active sprints",
       isPositive: true,
-      trend: [12, 14, 13, 15, 16, 17, activeTasksCount],
+      trend: [activeTasksCount, activeTasksCount, activeTasksCount],
     },
   };
 
-  // 14-day execution trend
-  const dates14 = [
-    "14 Oct", "15 Oct", "16 Oct", "17 Oct", "18 Oct", "19 Oct", "20 Oct",
-    "21 Oct", "22 Oct", "23 Oct", "24 Oct", "25 Oct", "26 Oct", "27 Oct"
-  ];
-  const baselinePassed = [40, 44, 43, 46, 38, 42, 45, 50, 58, 54, 48, 52, 54, 66];
-  const baselineFailed = [14, 18, 17, 16, 15, 17, 18, 16, 17, 14, 15, 16, 13, 14];
-  const baselineBlocked = [6, 8, 7, 6, 6, 7, 7, 8, 5, 6, 7, 6, 6, 6];
-  const baselineNotRun = [26, 24, 25, 28, 30, 27, 26, 25, 20, 24, 28, 25, 26, 28];
+  // Real 7-14 day execution trend
+  let executionTrend = (trendRows || []).map((r) => {
+    const d = new Date(String(r.day));
+    const label = !isNaN(d.getTime())
+      ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+      : String(r.day);
+    const passed = Number(r.passed || 0);
+    const failed = Number(r.failed || 0);
+    const blocked = Number(r.blocked || 0);
+    const total = Number(r.total || passed + failed + blocked);
+    const notRun = Math.max(0, total - passed - failed - blocked);
+    return {
+      date: label,
+      passed,
+      failed,
+      blocked,
+      notRun,
+    };
+  });
 
-  const executionTrend = dates14.map((date, idx) => ({
-    date,
-    passed: baselinePassed[idx] ?? 45,
-    failed: baselineFailed[idx] ?? 15,
-    blocked: baselineBlocked[idx] ?? 6,
-    notRun: baselineNotRun[idx] ?? 25,
-  }));
-
-  // Recent Bugs (5 items)
-  let recentBugs: OverviewBugItem[] = [];
-  if (recentBugsRows.length > 0) {
-    recentBugs = recentBugsRows.slice(0, 5).map((r) => {
-      const sev = String(r.severity || "medium").toLowerCase();
-      const validSev = (sev === "critical" || sev === "high" || sev === "low") ? sev : "medium";
+  if (executionTrend.length === 0) {
+    const now = new Date();
+    executionTrend = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i));
       return {
-        id: Number(r.id),
-        code: codeFromId("BUG", Number(r.id)),
-        title: String(r.title || "Bug issue"),
-        project: String(r.project || "BugSnap (Capture)"),
-        severity: validSev as "critical" | "high" | "medium" | "low",
-        timeAgo: formatTimeAgo(r.createdAt ? String(r.createdAt) : null),
+        date: d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+        passed: 0,
+        failed: 0,
+        blocked: 0,
+        notRun: 0,
       };
     });
   }
 
-  // Fill up to 5 items if sparse
-  const sampleBugs: OverviewBugItem[] = [
-    { id: 123, code: "BUG-123", title: "Login failed with valid credential", project: "BugSnap (Capture)", severity: "critical", timeAgo: "2 hours ago" },
-    { id: 122, code: "BUG-122", title: "UI broken on mobile view", project: "SnapTest (AI QA)", severity: "high", timeAgo: "5 hours ago" },
-    { id: 121, code: "BUG-121", title: "API timeout on product search", project: "BugSnap (Capture)", severity: "medium", timeAgo: "1 day ago" },
-    { id: 120, code: "BUG-120", title: "Typo in error message", project: "SnapTest (AI QA)", severity: "low", timeAgo: "1 day ago" },
-    { id: 119, code: "BUG-119", title: "Cannot upload large file", project: "BugSnap (Capture)", severity: "high", timeAgo: "2 days ago" },
-  ];
-  if (recentBugs.length < 5) {
-    const existingCodes = new Set(recentBugs.map((b) => b.code));
-    for (const sample of sampleBugs) {
-      if (!existingCodes.has(sample.code)) {
-        recentBugs.push(sample);
-      }
-      if (recentBugs.length >= 5) break;
-    }
-  }
+  // Recent Bugs (real only)
+  const recentBugs: OverviewBugItem[] = (recentBugsRows || []).slice(0, 5).map((r) => {
+    const sev = String(r.severity || "medium").toLowerCase();
+    const validSev = (sev === "critical" || sev === "high" || sev === "low") ? sev : "medium";
+    return {
+      id: Number(r.id),
+      code: codeFromId("BUG", Number(r.id)),
+      title: String(r.title || "Bug issue"),
+      project: String(r.project || "Default"),
+      severity: validSev as "critical" | "high" | "medium" | "low",
+      timeAgo: formatTimeAgo(r.createdAt ? String(r.createdAt) : null),
+    };
+  });
 
-  // Today's Test Runs (5 items)
-  let todayTestRuns: OverviewTestRunItem[] = [];
-  const runCandidates = [...recentSessionsRows, ...recentExecutionRunsRows];
-  if (runCandidates.length > 0) {
-    todayTestRuns = runCandidates.slice(0, 5).map((r, i) => {
-      const passed = Number(r.passed ?? 0);
-      const total = Number(r.totalCases ?? 24) || 24;
-      const rate = total > 0 ? Math.round((passed / total) * 100) : 100;
-      const isPass = rate >= 70;
-      return {
-        id: Number(r.id || i + 41),
-        code: `RUN-${String(r.id || i + 41).padStart(3, "0")}`,
-        project: String(r.project || (i % 2 === 0 ? "BugSnap (Capture)" : "SnapTest (AI QA)")),
-        passed,
-        total,
-        passRate: rate,
-        status: isPass ? "passed" : "failed",
-      };
-    });
-  }
+  // Real Test Runs
+  const runCandidates = [...(recentSessionsRows || []), ...(recentExecutionRunsRows || [])];
+  const todayTestRuns: OverviewTestRunItem[] = runCandidates.slice(0, 5).map((r, i) => {
+    const passed = Number(r.passed ?? 0);
+    const total = Number(r.totalCases ?? 1) || 1;
+    const rate = total > 0 ? Math.round((passed / total) * 100) : 100;
+    const isPass = rate >= 70;
+    return {
+      id: Number(r.id || i + 1),
+      code: `RUN-${String(r.id || i + 1).padStart(3, "0")}`,
+      project: String(r.project || "Default"),
+      passed,
+      total,
+      passRate: rate,
+      status: isPass ? "passed" : "failed",
+    };
+  });
 
-  const sampleRuns: OverviewTestRunItem[] = [
-    { id: 45, code: "RUN-045", project: "BugSnap (Capture)", passed: 24, total: 24, passRate: 100, status: "passed" },
-    { id: 44, code: "RUN-044", project: "SnapTest (AI QA)", passed: 18, total: 24, passRate: 75, status: "passed" },
-    { id: 43, code: "RUN-043", project: "BugSnap (Capture)", passed: 12, total: 24, passRate: 50, status: "failed" },
-    { id: 42, code: "RUN-042", project: "SnapTest (AI QA)", passed: 24, total: 24, passRate: 100, status: "passed" },
-    { id: 41, code: "RUN-041", project: "BugSnap (Capture)", passed: 6, total: 24, passRate: 25, status: "failed" },
-  ];
-  if (todayTestRuns.length < 5) {
-    const existingCodes = new Set(todayTestRuns.map((r) => r.code));
-    for (const sample of sampleRuns) {
-      if (!existingCodes.has(sample.code)) {
-        todayTestRuns.push(sample);
-      }
-      if (todayTestRuns.length >= 5) break;
-    }
-  }
+  // Team Activity (real only)
+  const teamActivity: OverviewActivityItem[] = (recentActivityRows || []).slice(0, 5).map((r, i) => {
+    const actorName = String(r.actor || user?.name || "User");
+    const summaryText = String(r.summary || `${r.action} ${r.entityType}`);
+    const entType = String(r.entityType || "").toLowerCase();
+    let normType: "bug" | "test_run" | "test_case" | "task" | "comment" = "bug";
+    if (entType.includes("run") || entType.includes("session")) normType = "test_run";
+    else if (entType.includes("case")) normType = "test_case";
+    else if (entType.includes("task")) normType = "task";
+    else if (entType.includes("comment")) normType = "comment";
 
-  // Team Activity (5 items)
-  let teamActivity: OverviewActivityItem[] = [];
-  if (recentActivityRows.length > 0) {
-    teamActivity = recentActivityRows.slice(0, 5).map((r, i) => {
-      const actorName = String(r.actor || "Dimas Nugraha");
-      const summaryText = String(r.summary || `${r.action} ${r.entityType}`);
-      const entType = String(r.entityType || "").toLowerCase();
-      let normType: "bug" | "test_run" | "test_case" | "task" | "comment" = "bug";
-      if (entType.includes("run") || entType.includes("session")) normType = "test_run";
-      else if (entType.includes("case")) normType = "test_case";
-      else if (entType.includes("task")) normType = "task";
-      else if (entType.includes("comment")) normType = "comment";
+    return {
+      id: Number(r.id || i + 1),
+      actor: actorName,
+      initials: getInitials(actorName),
+      action: String(r.action || "created"),
+      summary: summaryText,
+      entityType: normType,
+      timeAgo: formatTimeAgo(r.createdAt ? String(r.createdAt) : null),
+    };
+  });
 
-      return {
-        id: Number(r.id || i + 1),
-        actor: actorName,
-        initials: getInitials(actorName),
-        action: String(r.action || "created"),
-        summary: summaryText,
-        entityType: normType,
-        timeAgo: formatTimeAgo(r.createdAt ? String(r.createdAt) : null),
-      };
-    });
-  }
-
-  const sampleActivities: OverviewActivityItem[] = [
-    { id: 1, actor: "Dimas Nugraha", initials: "DN", action: "created bug", summary: "Dimas Nugraha created bug BUG-123", entityType: "bug", timeAgo: "2 hours ago" },
-    { id: 2, actor: "Siti Wulandari", initials: "SW", action: "completed test run", summary: "Siti Wulandari completed test run RUN-045", entityType: "test_run", timeAgo: "3 hours ago" },
-    { id: 3, actor: "Andi Rahman", initials: "AR", action: "updated test case", summary: "Andi Rahman updated test case TC-018", entityType: "test_case", timeAgo: "5 hours ago" },
-    { id: 4, actor: "Mega Fitri", initials: "MF", action: "commented on", summary: "Mega Fitri commented on BUG-122", entityType: "comment", timeAgo: "6 hours ago" },
-    { id: 5, actor: "Dimas Nugraha", initials: "DN", action: "assigned task to", summary: "Dimas Nugraha assigned task to Siti Wulandari", entityType: "task", timeAgo: "8 hours ago" },
-  ];
-  if (teamActivity.length < 5) {
-    const existingSummaries = new Set(teamActivity.map((a) => a.summary));
-    for (const sample of sampleActivities) {
-      if (!existingSummaries.has(sample.summary)) {
-        teamActivity.push(sample);
-      }
-      if (teamActivity.length >= 5) break;
-    }
-  }
-
-  // Attention Needed
-  const failedRunsCount = todayTestRuns.filter((r) => r.status === "failed").length || 3;
-  const blockedCasesCount = blockedCount || 2;
+  // Attention Needed (pure counts from real data)
+  const failedRunsCount = todayTestRuns.filter((r) => r.status === "failed").length;
+  const blockedCasesCount = blockedCount;
   const attentionNeeded = {
-    openBugs: { total: openBugsCount, critical: criticalBugsCount || 2 },
+    openBugs: { total: openBugsCount, critical: criticalBugsCount },
     failedTestRuns: failedRunsCount,
     blockedCases: blockedCasesCount,
   };
 
-  // Project Overview
-  const projectNames = projectsRows.map((r) => String(r.project)).filter(Boolean);
+  // Real Project Overview
   let projectOverview: OverviewProjectItem[] = [];
-
-  if (projectNames.length > 0) {
-    projectOverview = projectNames.slice(0, 5).map((name, i) => ({
+  if (realProjectsRows && realProjectsRows.length > 0) {
+    projectOverview = realProjectsRows.map((r) => {
+      const tcCount = Number(r.test_cases || 0);
+      const bugCount = Number(r.open_bugs || 0);
+      const runCount = Number(r.test_runs || 0);
+      return {
+        name: String(r.project),
+        iconType: "code",
+        testCases: tcCount,
+        openBugs: bugCount,
+        testRuns: runCount,
+        passRate: bugCount === 0 ? 100 : Math.max(50, Math.round(100 - (bugCount * 5))),
+        lastActivity: "Active",
+      };
+    });
+  } else {
+    const projectNames = (projectsRows || []).map((r) => String(r.project)).filter(Boolean);
+    projectOverview = projectNames.slice(0, 6).map((name) => ({
       name,
-      iconType: i % 2 === 0 ? "camera" : "code",
-      testCases: Math.round(totalCases / (projectNames.length || 1)),
-      openBugs: Math.max(1, Math.round(openBugsCount / (projectNames.length || 1))),
-      testRuns: Math.max(1, Math.round(totalTestRuns / (projectNames.length || 1))),
-      passRate: i % 2 === 0 ? 78 : 82,
-      lastActivity: i % 2 === 0 ? "2 hours ago" : "5 hours ago",
+      iconType: "code",
+      testCases: 0,
+      openBugs: 0,
+      testRuns: 0,
+      passRate: 100,
+      lastActivity: "Active",
     }));
   }
-
-  if (projectOverview.length === 0) {
-    projectOverview = [
-      {
-        name: "BugSnap (Capture)",
-        iconType: "camera",
-        testCases: 86,
-        openBugs: 5,
-        testRuns: 14,
-        passRate: 78,
-        lastActivity: "2 hours ago",
-      },
-      {
-        name: "SnapTest (AI QA)",
-        iconType: "code",
-        testCases: 56,
-        openBugs: 2,
-        testRuns: 10,
-        passRate: 82,
-        lastActivity: "5 hours ago",
-      },
-    ];
-  }
-
   return {
     kpis,
     executionTrend,

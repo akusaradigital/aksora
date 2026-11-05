@@ -101,5 +101,42 @@ describe("ModuleWorkspace splits", () => {
 
     expect(siblingCell).not.toContain("<td");
   });
+
+  it("renders merged date cell with rowSpan for work-logs and formats date value", () => {
+    const parentCell = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <tr>
+            <ModuleWorkspaceCell
+              module="work-logs"
+              row={{ id: 1, dateRowSpan: 3, date: "2026-11-04", startTime: "02:00" }}
+              column={{ key: "date", label: "Date" }}
+              value="2026-11-04"
+            />
+          </tr>
+        </tbody>
+      </table>,
+    );
+
+    expect(parentCell).toContain('rowSpan="3"');
+    expect(parentCell).toContain("04 Nov 2026");
+
+    const siblingCell = renderToStaticMarkup(
+      <table>
+        <tbody>
+          <tr>
+            <ModuleWorkspaceCell
+              module="work-logs"
+              row={{ id: 2, dateRowSpan: 0, date: "2026-11-04", startTime: "06:00" }}
+              column={{ key: "date", label: "Date" }}
+              value="2026-11-04"
+            />
+          </tr>
+        </tbody>
+      </table>,
+    );
+
+    expect(siblingCell).not.toContain("<td");
+  });
 });
 

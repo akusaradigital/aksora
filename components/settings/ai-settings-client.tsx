@@ -1,7 +1,7 @@
 "use client";
 
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SUPPORTED_PROVIDERS } from "@/lib/ai-service";
+import { SUPPORTED_PROVIDERS } from "@/lib/ai-types";
 import { AIProviderCard } from "./ai-provider-card";
 import { AIStatusCard } from "./ai-status-card";
 import { useAISettings } from "./use-ai-settings";

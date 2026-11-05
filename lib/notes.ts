@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
+import { randomUUID } from "crypto";
 
 export type NoteRow = {
   id: number;
+  uuid?: string;
+  workspaceId?: number | null;
   title: string;
   content: string;
   color: string;
@@ -14,6 +17,8 @@ async function ensureNotesTable() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS "Note" (
       "id" SERIAL PRIMARY KEY,
+      "uuid" TEXT,
+      "workspaceId" INTEGER,
       "userId" INTEGER NOT NULL,
       "title" TEXT NOT NULL DEFAULT '',
       "content" TEXT NOT NULL DEFAULT '',
@@ -25,24 +30,28 @@ async function ensureNotesTable() {
   `);
 }
 
-export async function listNotesForUser(userId: number) {
+export async function listNotesForUser(userId: number, workspaceId?: number | null) {
   await ensureNotesTable();
+  const wsFilter = workspaceId ? ' AND ("workspaceId" = CAST(? AS INTEGER) OR "workspaceId" IS NULL)' : "";
+  const params = workspaceId ? [Number(userId), Number(workspaceId)] : [Number(userId)];
   return db.query<NoteRow>(
-    `SELECT "id", "title", "content", "color", "pinned", "createdAt", "updatedAt"
-     FROM "Note" WHERE "userId" = CAST(? AS INTEGER) ORDER BY "pinned" DESC, "updatedAt" DESC`,
-    [Number(userId)],
+    `SELECT "id", "uuid", "workspaceId", "title", "content", "color", "pinned", "createdAt", "updatedAt"
+     FROM "Note" WHERE "userId" = CAST(? AS INTEGER)${wsFilter} ORDER BY "pinned" DESC, "updatedAt" DESC`,
+    params,
   );
 }
 
-export async function createNoteForUser(userId: number, title: string, content: string, color: string) {
+export async function createNoteForUser(userId: number, title: string, content: string, color: string, workspaceId?: number | null) {
   await ensureNotesTable();
   const uid = Number(userId);
   if (!Number.isFinite(uid) || uid <= 0) {
     throw new Error("Invalid user ID.");
   }
-  const created = await db.get<{ id: number }>(
-    `INSERT INTO "Note" ("userId", "title", "content", "color") VALUES (CAST(? AS INTEGER), ?, ?, ?) RETURNING "id"`,
-    [uid, title, content, color],
+  const itemUuid = randomUUID();
+  const created = await db.get<{ id: number; uuid: string }>(
+    `INSERT INTO "Note" ("uuid", "workspaceId", "userId", "title", "content", "color")
+     VALUES (?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?) RETURNING "id", "uuid"`,
+    [itemUuid, workspaceId ?? null, uid, title, content, color],
   );
   if (!created?.id) {
     throw new Error("Failed to create note.");

@@ -9,6 +9,7 @@ import {
   Plus,
   CaretDown,
   Note,
+  CalendarBlank,
 } from "@phosphor-icons/react";
 import { DashboardKpiCards, type KpiData } from "@/components/dashboard/dashboard-kpi-cards";
 import {
@@ -18,14 +19,9 @@ import {
   type ResultBreakdownData,
 } from "@/components/dashboard/dashboard-charts";
 import {
-  RecentBugsCard,
-  TodayTestRunsCard,
-  TeamActivityCard,
-} from "@/components/dashboard/dashboard-recent-cards";
-import {
-  AttentionNeededCard,
-  ProjectOverviewCard,
-} from "@/components/dashboard/dashboard-bottom-cards";
+  RecentActivityTableCard,
+  TopProjectsCard,
+} from "@/components/dashboard/dashboard-bottom-row";
 import { CanaryHealthWidget } from "@/components/dashboard/canary-health-widget";
 import { TimesheetWidget } from "@/components/dashboard/timesheet-widget";
 import { ResolutionRateMetric } from "@/components/dashboard/dashboard-stat-cards";
@@ -64,15 +60,6 @@ export type DashboardProps = {
     tasks: { name: string; value: number }[];
     bugs: { name: string; value: number }[];
     bugByModule: { module: string; count: number }[];
-  };
-  personalSuccessRate?: number;
-  spotlight?: {
-    projectName: string;
-    totalScenarios: number;
-    totalBugs: number;
-    completionRate: number;
-    criticalBugs: Array<{ id?: number | string; code: string; title: string; severity: string }>;
-    priorityTasks: Array<{ id?: number | string; code: string; title: string; priority: string }>;
   };
   recent?: {
     tasks: Array<{ id: number; code: string; title: string; priority: string; status: string }>;
@@ -120,180 +107,154 @@ export type DashboardProps = {
 export function Dashboard(props: DashboardProps) {
   const [showStandup, setShowStandup] = useState(false);
   const [newRunMenuOpen, setNewRunMenuOpen] = useState(false);
+  const [dateRangePreset, setDateRangePreset] = useState<"7d" | "30d" | "all">("7d");
 
-  // Extract or fallback metrics
+  // Real database metrics with zero hardcoding
   const tcVal = props.metrics?.find((m) => m.label === "Test Cases")?.value;
   const bugsVal = props.metrics?.find((m) => m.label === "Bug Entries")?.value;
   const tasksVal = props.metrics?.find((m) => m.label === "Open Tasks")?.value;
   const runsVal = props.metrics?.find((m) => m.label === "Sessions" || m.label === "Test Runs")?.value;
 
-  // Resolve KPIs with real data or screenshot defaults
   const kpis: KpiData = {
     testCases: {
-      value: tcVal !== undefined ? tcVal : props.overview?.kpis.testCases.value ?? 142,
-      change: props.overview?.kpis.testCases.change ?? "↑ 12% vs last week",
-      isPositive: true,
-      trend: props.overview?.kpis.testCases.trend ?? [110, 118, 122, 128, 134, 138, 142],
+      value: tcVal !== undefined ? tcVal : props.overview?.kpis.testCases.value ?? 0,
     },
     testRuns: {
-      value: runsVal !== undefined ? runsVal : props.overview?.kpis.testRuns.value ?? 24,
-      change: props.overview?.kpis.testRuns.change ?? "↑ 33% vs last week",
-      isPositive: true,
-      trend: props.overview?.kpis.testRuns.trend ?? [14, 16, 17, 19, 21, 22, 24],
+      value: runsVal !== undefined ? runsVal : props.overview?.kpis.testRuns.value ?? 0,
     },
     openBugs: {
-      value: bugsVal !== undefined ? bugsVal : props.overview?.kpis.openBugs.value ?? 7,
-      change: props.overview?.kpis.openBugs.change ?? "↑ 2 vs yesterday",
-      isPositive: false,
-      trend: props.overview?.kpis.openBugs.trend ?? [4, 5, 4, 6, 5, 6, 7],
+      value: bugsVal !== undefined ? bugsVal : props.overview?.kpis.openBugs.value ?? 0,
     },
     activeTasks: {
-      value: tasksVal !== undefined ? tasksVal : props.overview?.kpis.activeTasks.value ?? 18,
-      change: props.overview?.kpis.activeTasks.change ?? "↑ 28% vs last week",
-      isPositive: true,
-      trend: props.overview?.kpis.activeTasks.trend ?? [12, 14, 13, 15, 16, 17, 18],
+      value: tasksVal !== undefined ? tasksVal : props.overview?.kpis.activeTasks.value ?? 0,
     },
   };
 
-  // Execution trend
-  const executionTrend: ExecutionTrendPoint[] =
-    props.overview?.executionTrend ?? [
-      { date: "14 Oct", passed: 40, failed: 14, blocked: 6, notRun: 26 },
-      { date: "16 Oct", passed: 43, failed: 17, blocked: 7, notRun: 25 },
-      { date: "18 Oct", passed: 38, failed: 15, blocked: 6, notRun: 30 },
-      { date: "20 Oct", passed: 45, failed: 18, blocked: 7, notRun: 26 },
-      { date: "22 Oct", passed: 58, failed: 17, blocked: 5, notRun: 20 },
-      { date: "24 Oct", passed: 48, failed: 15, blocked: 7, notRun: 28 },
-      { date: "26 Oct", passed: 54, failed: 13, blocked: 6, notRun: 26 },
-      { date: "27 Oct", passed: 66, failed: 14, blocked: 6, notRun: 28 },
-    ];
+  // Real Execution trend from database
+  const executionTrend: ExecutionTrendPoint[] = props.overview?.executionTrend ?? [];
 
-  // Result breakdown
-  const resultBreakdown: ResultBreakdownData =
-    props.overview?.resultBreakdown ?? {
-      total: tcVal !== undefined ? tcVal : 142,
-      passed: { count: 96, percent: 67 },
-      failed: { count: 24, percent: 17 },
-      blocked: { count: 8, percent: 6 },
-      notRun: { count: 14, percent: 10 },
-    };
-
-  // Recent Bugs
-  const recentBugs: OverviewBugItem[] =
-    props.overview?.recentBugs && props.overview.recentBugs.length > 0
-      ? props.overview.recentBugs
-      : (props.recent?.bugs || []).map((b) => ({
-          id: b.id,
-          code: b.code,
-          title: b.title,
-          project: "BugSnap (Capture)",
-          severity: (b.severity === "critical" || b.severity === "high" || b.severity === "low") ? b.severity : "medium",
-          timeAgo: "2 hours ago",
-        }));
-
-  // Today Test Runs
-  const todayTestRuns: OverviewTestRunItem[] =
-    props.overview?.todayTestRuns ?? [
-      { id: 45, code: "RUN-045", project: "BugSnap (Capture)", passed: 24, total: 24, passRate: 100, status: "passed" },
-      { id: 44, code: "RUN-044", project: "SnapTest (AI QA)", passed: 18, total: 24, passRate: 75, status: "passed" },
-      { id: 43, code: "RUN-043", project: "BugSnap (Capture)", passed: 12, total: 24, passRate: 50, status: "failed" },
-      { id: 42, code: "RUN-042", project: "SnapTest (AI QA)", passed: 24, total: 24, passRate: 100, status: "passed" },
-      { id: 41, code: "RUN-041", project: "BugSnap (Capture)", passed: 6, total: 24, passRate: 25, status: "failed" },
-    ];
-
-  // Team Activity
-  const teamActivity: OverviewActivityItem[] =
-    props.overview?.teamActivity ?? [
-      { id: 1, actor: "Dimas Nugraha", initials: "DN", action: "created bug", summary: "Dimas Nugraha created bug BUG-123", entityType: "bug", timeAgo: "2 hours ago" },
-      { id: 2, actor: "Siti Wulandari", initials: "SW", action: "completed test run", summary: "Siti Wulandari completed test run RUN-045", entityType: "test_run", timeAgo: "3 hours ago" },
-      { id: 3, actor: "Andi Rahman", initials: "AR", action: "updated test case", summary: "Andi Rahman updated test case TC-018", entityType: "test_case", timeAgo: "5 hours ago" },
-      { id: 4, actor: "Mega Fitri", initials: "MF", action: "commented on", summary: "Mega Fitri commented on BUG-122", entityType: "comment", timeAgo: "6 hours ago" },
-      { id: 5, actor: "Dimas Nugraha", initials: "DN", action: "assigned task to", summary: "Dimas Nugraha assigned task to Siti Wulandari", entityType: "task", timeAgo: "8 hours ago" },
-    ];
-
-  // Attention Needed
-  const attentionNeeded = props.overview?.attentionNeeded ?? {
-    openBugs: { total: kpis.openBugs.value, critical: 2 },
-    failedTestRuns: 3,
-    blockedCases: 2,
+  // Real Result breakdown from database
+  const resultBreakdown: ResultBreakdownData = props.overview?.resultBreakdown ?? {
+    total: kpis.testCases.value,
+    passed: { count: 0, percent: 0 },
+    failed: { count: 0, percent: 0 },
+    blocked: { count: 0, percent: 0 },
+    notRun: { count: 0, percent: 0 },
   };
 
-  // Project Overview
-  const projectOverview: OverviewProjectItem[] =
-    props.overview?.projectOverview ?? [
-      { name: "BugSnap (Capture)", iconType: "camera", testCases: 86, openBugs: 5, testRuns: 14, passRate: 78, lastActivity: "2 hours ago" },
-      { name: "SnapTest (AI QA)", iconType: "code", testCases: 56, openBugs: 2, testRuns: 10, passRate: 82, lastActivity: "5 hours ago" },
-    ];
+  // Real Recent Bugs from database
+  const recentBugs: OverviewBugItem[] = props.overview?.recentBugs ?? [];
+
+  // Real Test Runs from database
+  const todayTestRuns: OverviewTestRunItem[] = props.overview?.todayTestRuns ?? [];
+
+  // Real Project Overview from database
+  const projectOverview: OverviewProjectItem[] = props.overview?.projectOverview ?? [];
+
+  // Date labels matching Group 659 top header (Start Date & End Date)
+  const now = new Date();
+  const endDateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-");
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - (dateRangePreset === "30d" ? 30 : 7));
+  const startDateStr = startDate.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-");
 
   const generateStandupText = () => {
     const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-    return `*Standup Log - ${date}*\n\n*Done Today:*\n- Daily QA testing and monitoring\n\n*Blockers:*\n- None\n\n*Next Plan:*\n- Continue sprint test execution`;
+    return `*Standup Log - ${date}*\n\n*Done Today:*\n- Test execution: ${todayTestRuns.length} runs processed\n- Defects tracked: ${kpis.openBugs.value} active bugs\n\n*Blockers:*\n- None flagged\n\n*Next Plan:*\n- Continue sprint test coverage and triage`;
   };
 
   return (
     <div className="space-y-6 pb-12">
       <Breadcrumb crumbs={[{ label: "Dashboard" }]} />
 
-      {/* Header matching user's design */}
+      {/* Top Header matching Group 659: Title "Dashboard" in blue + Two Date Selector Dropdowns */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="text-xs font-black tracking-wider uppercase text-blue-600">
-            QA DAILY
-          </span>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-600 dark:text-blue-400">
             Dashboard
           </h1>
-          <p className="mt-1 text-sm text-slate-500 max-w-2xl">
-            Your daily QA overview across all projects. Track progress, issues, and team activity in real time.
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            Live workspace quality metrics and execution trends from your database
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Date Selector Buttons matching Group 659 (Two date buttons with carets) + Quick Actions */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white p-1 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+            {/* Start Date Button */}
+            <button
+              type="button"
+              onClick={() => setDateRangePreset((prev) => (prev === "7d" ? "30d" : "7d"))}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+              title="Click to switch date window (7 days / 30 days)"
+            >
+              <CalendarBlank size={14} className="text-slate-400" />
+              <span className="font-mono text-[11px]">{startDateStr}</span>
+              <CaretDown size={11} className="text-slate-400" />
+            </button>
+
+            <span className="text-xs text-slate-300 dark:text-slate-600 font-bold">&ndash;</span>
+
+            {/* End Date Button */}
+            <button
+              type="button"
+              onClick={() => setDateRangePreset((prev) => (prev === "7d" ? "30d" : "7d"))}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+              title="Click to switch date window (7 days / 30 days)"
+            >
+              <span className="font-mono text-[11px]">{endDateStr}</span>
+              <CaretDown size={11} className="text-slate-400" />
+            </button>
+          </div>
+
+          {/* Quick Actions */}
           <button
+            type="button"
             onClick={() => setShowStandup(true)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <Note size={15} weight="bold" />
+            <Note size={14} weight="bold" />
             <span>Standup</span>
           </button>
 
-          {/* "+ New Test Run" Split Action Button */}
-          <div className="relative inline-flex rounded-xl shadow-sm">
+          {/* "+ New Test Run" Button */}
+          <div className="relative inline-flex rounded-xl shadow-2xs">
             <Link
               href="/test-execution"
-              className="inline-flex h-10 items-center gap-1.5 rounded-l-xl bg-blue-600 px-4 text-xs font-bold text-white transition hover:bg-blue-700"
+              className="inline-flex h-9 items-center gap-1.5 rounded-l-xl bg-blue-600 px-3.5 text-xs font-bold text-white transition hover:bg-blue-700"
             >
-              <Plus size={15} weight="bold" />
-              <span>New Test Run</span>
+              <Plus size={14} weight="bold" />
+              <span>New Run</span>
             </Link>
             <button
+              type="button"
               onClick={() => setNewRunMenuOpen((v) => !v)}
-              className="inline-flex h-10 items-center justify-center rounded-r-xl border-l border-blue-500 bg-blue-600 px-2.5 text-white transition hover:bg-blue-700"
+              className="inline-flex h-9 items-center justify-center rounded-r-xl border-l border-blue-500 bg-blue-600 px-2 text-white transition hover:bg-blue-700"
               aria-label="Options"
             >
-              <CaretDown size={13} weight="bold" />
+              <CaretDown size={12} weight="bold" />
             </button>
 
             {newRunMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <Link
                   href="/test-execution"
                   onClick={() => setNewRunMenuOpen(false)}
-                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Run Test Suite
                 </Link>
                 <Link
                   href="/test-plans"
                   onClick={() => setNewRunMenuOpen(false)}
-                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Create Test Plan
                 </Link>
                 <Link
                   href="/test-cases"
                   onClick={() => setNewRunMenuOpen(false)}
-                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Add Test Case
                 </Link>
@@ -312,9 +273,9 @@ export function Dashboard(props: DashboardProps) {
 
       {/* Quality Health Score / Bug Distribution */}
       {props.qualityHealthScore && (
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900">Bug Distribution</h3>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white">Bug Distribution</h3>
           </div>
           <div className="flex items-center justify-center p-2">
             <QualityHealthScore qualityHealthScore={props.qualityHealthScore} />
@@ -322,10 +283,12 @@ export function Dashboard(props: DashboardProps) {
         </div>
       )}
 
-      {/* 1. Top 4 KPI Stat Cards */}
+      {/* Row 1: Top 4 Metric Cards matching Group 659 */}
       <DashboardKpiCards kpis={kpis} />
 
-      {/* 2. Charts Row: Test Execution Trend & Test Case Result Breakdown */}
+      {/* Row 2: Middle Row matching Group 659:
+          Left 8 cols: Reports (AreaChart with curved gradient line)
+          Right 4 cols: Analytics (Donut Chart with centered pass rate percentage & bottom legend) */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <TestExecutionTrendChart data={executionTrend} />
@@ -335,24 +298,19 @@ export function Dashboard(props: DashboardProps) {
         </div>
       </section>
 
-      {/* 3. Three-Column Row: Recent Bugs, Today's Test Runs, Team Activity */}
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <RecentBugsCard items={recentBugs} />
-        <TodayTestRunsCard items={todayTestRuns} />
-        <TeamActivityCard items={teamActivity} />
-      </section>
-
-      {/* 4. Bottom Row: Attention Needed & Project Overview */}
+      {/* Row 3: Bottom Row matching Group 659:
+          Left 8 cols: Recent Activity & Runs Table (matching Recent Orders)
+          Right 4 cols: Top Projects & Health (matching Top selling Products) */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="lg:col-span-5">
-          <AttentionNeededCard data={attentionNeeded} />
+        <div className="lg:col-span-8">
+          <RecentActivityTableCard runs={todayTestRuns} bugs={recentBugs} />
         </div>
-        <div className="lg:col-span-7">
-          <ProjectOverviewCard items={projectOverview} />
+        <div className="lg:col-span-4">
+          <TopProjectsCard projects={projectOverview} />
         </div>
       </section>
 
-      {/* 5. Timesheet Tracker + QA Canary */}
+      {/* Row 4: Utility Modules (Timesheet tracker + Canary health) */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-4">
           <TimesheetWidget />
@@ -362,6 +320,7 @@ export function Dashboard(props: DashboardProps) {
         </div>
       </section>
 
+      {/* Standup Modal */}
       <DashboardStandupModal
         open={showStandup}
         text={generateStandupText()}

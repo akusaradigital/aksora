@@ -18,6 +18,9 @@ export type TestCaseRow = {
  status: string;
  evidence: string;
  priority: string;
+ category?: string;
+ rationale?: string;
+ maturity?: string;
 };
 
 export type FieldKey =

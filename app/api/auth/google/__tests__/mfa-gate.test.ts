@@ -31,6 +31,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/workspace-memberships", () => ({
   ensureWorkspaceForUser: vi.fn(),
   ensureWorkspaceMembership: vi.fn(),
+  ensurePersonalWorkspaceForUser: vi.fn(),
 }));
 
 vi.mock("@/lib/rate-limit", () => ({

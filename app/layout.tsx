@@ -112,8 +112,8 @@ export default async function RootLayout({
             __html: `
               (function(){
                 try {
-                  var t = localStorage.getItem('theme') || 'system';
-                  var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  var t = localStorage.getItem('theme') || 'light';
+                  var dark = t === 'dark';
                   document.documentElement.classList.toggle('dark', dark);
                 } catch(e){}
               })();

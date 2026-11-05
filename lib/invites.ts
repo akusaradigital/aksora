@@ -8,9 +8,11 @@ import { ensureWorkspace, ensureWorkspaceMembership } from "@/lib/workspace-memb
 
 type InviteRow = {
   id: number;
+  uuid?: string;
   token: string;
   company: string;
   workspaceId?: number | null;
+  projectId?: number | null;
   role: string;
   status: string;
   createdBy: string;
@@ -23,6 +25,7 @@ type InviteRow = {
 type InviteInput = {
   company?: string;
   workspaceId?: number;
+  projectId?: number;
   role: string;
   expiresInDays?: number;
 };
@@ -82,18 +85,33 @@ export async function createInvite(input: InviteInput) {
     }
   }
 
+  const selectedProjectId = Number(input.projectId || 0) || null;
+  if (selectedProjectId) {
+    const proj = await db.get<{ id: number }>(
+      'SELECT "id" FROM "Project" WHERE "id" = CAST(? AS INTEGER) AND "deletedAt" IS NULL',
+      [selectedProjectId],
+    );
+    if (!proj) {
+      return { error: "Project not found." } as const;
+    }
+  }
+
   const token = makeToken();
   const expiresAt = addDays(Math.max(1, Math.min(expiresInDays, 30)));
   const workspace = await ensureWorkspace(inviteCompany, user.id || null);
+  const targetWsId = (workspace?.id ?? selectedWorkspaceId) || null;
+  const { randomUUID } = await import("crypto");
+  const inviteUuid = randomUUID();
   await db.run(
-    'INSERT INTO "Invite" ("token", "company", "workspaceId", "role", "status", "createdBy", "expiresAt") VALUES (?, ?, CAST(? AS INTEGER), ?, ?, ?, ?)',
-    [token, inviteCompany, (workspace?.id ?? selectedWorkspaceId) || null, role, "pending", user.email || "", expiresAt],
+    'INSERT INTO "Invite" ("uuid", "token", "company", "workspaceId", "projectId", "role", "status", "createdBy", "expiresAt") VALUES (?, ?, ?, CAST(? AS INTEGER), CAST(? AS INTEGER), ?, ?, ?, ?)',
+    [inviteUuid, token, inviteCompany, targetWsId, selectedProjectId, role, "pending", user.email || "", expiresAt],
   );
 
   return {
     token,
     company: inviteCompany,
     role,
+    projectId: selectedProjectId,
     expiresAt,
   } as const;
 }
@@ -155,6 +173,10 @@ export async function acceptInvite(token: string, email: string) {
   if (updatedUser) {
     if (workspace?.id) {
       await ensureWorkspaceMembership(workspace.id, updatedUser.id, invite.role);
+    }
+    if (invite.projectId) {
+      const { addProjectMember } = await import("@/lib/project-members");
+      await addProjectMember(invite.projectId, updatedUser.id, invite.role, workspace?.id ?? null);
     }
     await syncAssigneeFromUser(updatedUser);
   }
